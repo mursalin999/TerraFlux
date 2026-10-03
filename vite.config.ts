@@ -13,9 +13,4 @@ const nitro = process.env["VERCEL"] ? ({ preset: "vercel" } as const) : undefine
 
 export default defineConfig({
   ...(nitro ? { nitro } : {}),
-  tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
-  },
 });
