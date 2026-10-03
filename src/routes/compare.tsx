@@ -1,6 +1,7 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Globe2, Map } from "lucide-react";
 import {
   REGIONS,
   getRegion,
@@ -11,8 +12,10 @@ import {
 } from "@/lib/regions";
 import { RegionSelect, DateRangeInputs, defaultFilters } from "@/components/FireControls";
 import { getDetections, getDailyCounts } from "@/lib/firelens.functions";
+import { EmptyState } from "@/components/EmptyState";
 
 const FireMap = lazy(() => import("@/components/FireMap"));
+const EarthGlobe = lazy(() => import("@/components/EarthGlobe"));
 const CompareChart = lazy(() => import("@/components/CompareChart"));
 
 export const Route = createFileRoute("/compare")({
@@ -44,6 +47,7 @@ function Compare() {
   const [startDate, setStartDate] = useState(defaults.startDate);
   const [endDate, setEndDate] = useState(defaults.endDate);
   const [mode, setMode] = useState<Mode>("combined");
+  const [mapProjection, setMapProjection] = useState<"3D" | "2D">("3D");
 
   const region = getRegion(regionId);
   const bboxParts = parseBbox(region.bbox);
@@ -131,10 +135,47 @@ function Compare() {
         </aside>
 
         <div className="mt-6 grid gap-6 lg:mt-0 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-          <div className="h-[420px] overflow-hidden rounded-lg border border-border bg-bg lg:h-[620px]">
+          <div className="relative h-[420px] overflow-hidden rounded-lg border border-border bg-bg lg:h-[620px]">
+            {/* Viewport projection mode switcher: 3D GLOBE vs 2D MAP */}
+            <div className="absolute left-3 top-3 z-20 flex items-center gap-1 rounded-md border border-border/80 bg-surface/90 p-1 font-mono text-[10px] shadow-xl backdrop-blur-md">
+              <button
+                type="button"
+                onClick={() => setMapProjection("3D")}
+                className={`flex items-center gap-1.5 rounded px-2.5 py-1 uppercase transition-colors ${
+                  mapProjection === "3D"
+                    ? "border border-data-blue bg-data-blue/20 text-data-blue font-semibold"
+                    : "text-text-secondary hover:text-text"
+                }`}
+              >
+                <Globe2 className="h-3 w-3" />
+                <span>3D GLOBE</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapProjection("2D")}
+                className={`flex items-center gap-1.5 rounded px-2.5 py-1 uppercase transition-colors ${
+                  mapProjection === "2D"
+                    ? "border border-thermal-orange bg-thermal-orange/20 text-thermal-orange font-semibold"
+                    : "text-text-secondary hover:text-text"
+                }`}
+              >
+                <Map className="h-3 w-3" />
+                <span>2D MAP</span>
+              </button>
+            </div>
+
             <ClientOnly fallback={<div className="h-full w-full bg-surface" />}>
               <Suspense fallback={<div className="h-full w-full bg-surface" />}>
-                <FireMap detections={detections} center={region.center} zoom={region.zoom} />
+                {mapProjection === "3D" ? (
+                  <EarthGlobe
+                    observations={detections}
+                    selectedRegion={region}
+                    showModis={mode === "combined" || mode === "MODIS"}
+                    showViirs={mode === "combined" || mode === "VIIRS"}
+                  />
+                ) : (
+                  <FireMap detections={detections} center={region.center} zoom={region.zoom} />
+                )}
               </Suspense>
             </ClientOnly>
           </div>
@@ -207,8 +248,8 @@ function Compare() {
               </div>
 
               {days.length === 0 ? (
-                <div className="py-12 text-center font-mono text-xs text-text-secondary">
-                  No observation records in this date window.
+                <div className="py-6">
+                  <EmptyState type="no_observations" />
                 </div>
               ) : (
                 <div className="mt-2">

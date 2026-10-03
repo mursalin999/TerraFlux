@@ -366,3 +366,69 @@ export const getRecentGlobeObservations = createServerFn({ method: "GET" }).hand
     return [];
   }
 });
+
+// --- get-global-grid-cells: retrieves aggregated global grid observations ---
+export const getGlobalGridCells = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z
+      .object({
+        start_date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        end_date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const sb = publicClient();
+    if (!sb) return [];
+
+    try {
+      let query = sb
+        .from("global_fire_cells")
+        .select(
+          "cell_id, lat, lon, acq_date, modis_count, viirs_count, total_count, max_frp, mean_frp, max_brightness_k, strong_agreement",
+        )
+        .order("acq_date", { ascending: false })
+        .limit(10000);
+
+      if (data.start_date) query = query.gte("acq_date", data.start_date);
+      if (data.end_date) query = query.lte("acq_date", data.end_date);
+
+      const { data: rows, error } = await query;
+      if (error || !rows) return [];
+      return rows;
+    } catch {
+      return [];
+    }
+  });
+
+// --- trigger-global-pull: invokes the pull-global-firms Supabase Edge Function ---
+export const triggerGlobalPull = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z
+      .object({
+        days: z.number().int().min(1).max(3).default(1),
+        date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        dry_run: z.boolean().default(false),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("./firms.server");
+    const admin = supabaseAdmin();
+    const { data: result, error } = await admin.functions.invoke("pull-global-firms", {
+      body: data,
+    });
+    if (error) {
+      throw new Error(`Edge function error: ${error.message}`);
+    }
+    return result;
+  });

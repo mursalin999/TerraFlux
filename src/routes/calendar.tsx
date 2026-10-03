@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { REGIONS, getRegion, parseBbox } from "@/lib/regions";
 import { RegionSelect, DateRangeInputs, defaultFilters } from "@/components/FireControls";
-import { CalendarHeatmap } from "@/components/CalendarHeatmap";
-import { getDailyCounts } from "@/lib/firelens.functions";
+import { ActivityTimeline } from "@/components/ActivityTimeline";
+import { getDailyCounts, getDetections } from "@/lib/firelens.functions";
+import { EmptyState } from "@/components/EmptyState";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
@@ -32,10 +33,12 @@ type Mode = "combined" | "MODIS" | "VIIRS";
 
 function CalendarPage() {
   const defaults = defaultFilters();
+  const navigate = useNavigate();
   const [regionId, setRegionId] = useState(defaults.regionId);
   const [startDate, setStartDate] = useState(defaults.startDate);
   const [endDate, setEndDate] = useState(defaults.endDate);
   const [mode, setMode] = useState<Mode>("combined");
+  const [selectedDayForAnalysis, setSelectedDayForAnalysis] = useState<string | null>(null);
 
   const region = getRegion(regionId);
   const bboxParts = parseBbox(region.bbox);
@@ -48,7 +51,17 @@ function CalendarPage() {
       }),
   });
 
+  const detectionsQuery = useQuery({
+    queryKey: ["detections-calendar", regionId, startDate, endDate],
+    queryFn: () =>
+      getDetections({
+        data: { ...bboxParts, start_date: startDate, end_date: endDate },
+      }),
+    staleTime: 60000,
+  });
+
   const days = query.data ?? [];
+  const rawDetections = detectionsQuery.data ?? [];
   const countForMode = (day: (typeof days)[number]) =>
     mode === "MODIS" ? day.modis : mode === "VIIRS" ? day.viirs : day.modis + day.viirs;
   const total = days.reduce((sum, day) => sum + countForMode(day), 0);
@@ -142,31 +155,36 @@ function CalendarPage() {
         ))}
       </div>
 
-      <div className="mt-6 rounded-lg border border-border bg-surface p-6">
+      <div className="mt-6">
         {query.isLoading && (
-          <p className="py-16 text-center font-mono text-xs text-text-secondary">
+          <div className="rounded-lg border border-border bg-surface p-16 text-center font-mono text-xs text-text-secondary">
             Reading stored observations…
-          </p>
-        )}
-        {query.isError && (
-          <p className="rounded border border-critical-red/40 bg-critical-red/10 p-4 font-mono text-xs text-critical-red">
-            Couldn't load daily counts.
-          </p>
-        )}
-        {!query.isLoading && !query.isError && days.length === 0 && (
-          <div className="py-16 text-center font-mono text-xs text-text-secondary">
-            <p>No stored observations for {region.name} in this range.</p>
-            <p className="mt-2">
-              Open{" "}
-              <a href="/explore" className="text-data-blue underline underline-offset-4">
-                Explore
-              </a>{" "}
-              and run "Fetch recent" or "Load full range" to ingest data from NASA FIRMS.
-            </p>
           </div>
         )}
+        {query.isError && (
+          <EmptyState
+            type="firms_error"
+            description="Could not load daily observation counts from NASA FIRMS database."
+            onRetry={() => query.refetch()}
+          />
+        )}
+        {!query.isLoading && !query.isError && days.length === 0 && (
+          <EmptyState
+            type="no_observations"
+            title="No satellite observations found for this selection."
+            description={`No stored observations for ${region.name} in this date range. Open Explore to fetch recent or backfill data from NASA FIRMS.`}
+          />
+        )}
         {days.length > 0 && (
-          <CalendarHeatmap days={days} startDate={startDate} endDate={endDate} mode={mode} />
+          <ActivityTimeline
+            days={days}
+            detections={rawDetections}
+            selectedDate={selectedDayForAnalysis}
+            onSelectDate={(date) => setSelectedDayForAnalysis(date)}
+            onFlyTo={(date) => {
+              navigate({ to: "/explore" });
+            }}
+          />
         )}
       </div>
 

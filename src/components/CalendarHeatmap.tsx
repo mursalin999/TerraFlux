@@ -10,6 +10,7 @@ interface Props {
   startDate: string;
   endDate: string;
   mode: "combined" | "MODIS" | "VIIRS";
+  onSelectDate?: (date: string) => void;
 }
 
 function countFor(d: DayCount | undefined, mode: Props["mode"]): number {
@@ -28,7 +29,7 @@ function level(count: number, max: number): number {
   return 4;
 }
 
-export function CalendarHeatmap({ days, startDate, endDate, mode }: Props) {
+export function CalendarHeatmap({ days, startDate, endDate, mode, onSelectDate }: Props) {
   const byDate = new Map(days.map((d) => [d.date, d]));
   const max = Math.max(1, ...days.map((d) => countFor(d, mode)));
 
@@ -129,13 +130,17 @@ export function CalendarHeatmap({ days, startDate, endDate, mode }: Props) {
                   const entry = byDate.get(iso);
                   const count = countFor(entry, mode);
                   const lev = d.inRange ? level(count, max) : 0;
+                  const isClickable = Boolean(d.inRange && count > 0 && onSelectDate);
                   return (
                     <div
                       key={di}
                       title={`${iso}: ${count.toLocaleString()} observations (${entry ? `MODIS: ${entry.modis}, VIIRS: ${entry.viirs}` : "none stored"})`}
+                      onClick={() => isClickable && onSelectDate?.(iso)}
+                      role={isClickable ? "button" : undefined}
+                      tabIndex={isClickable ? 0 : undefined}
                       className={`h-2.5 w-2.5 rounded-[2px] transition-colors ${
                         d.inRange ? LEVEL_BG[lev] : "bg-surface opacity-20 border border-border/20"
-                      }`}
+                      } ${isClickable ? "cursor-pointer hover:ring-1 hover:ring-text" : ""}`}
                     />
                   );
                 })}

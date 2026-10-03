@@ -39,6 +39,10 @@ interface GlobePolygonItem {
   altitude: number;
 }
 
+// Shared unit geometries to prevent per-point buffer allocations on mobile
+const SHARED_RING_GEO = new THREE.RingGeometry(0.65, 1.0, 16);
+const SHARED_CIRCLE_GEO = new THREE.CircleGeometry(0.75, 14);
+
 export default function ExploreGlobe({
   observations,
   gridCells,
@@ -152,7 +156,10 @@ export default function ExploreGlobe({
     // Hide individual points in pure COMMON GRID view to let the analytical grid shine
     if (activeView === "COMMON GRID") return [];
 
-    return filteredObservations.map((obs) => {
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    const pointsToRender = isMobile ? filteredObservations.slice(0, 1500) : filteredObservations;
+
+    return pointsToRender.map((obs) => {
       const isModis = obs.sensor === "MODIS";
       const baseRadius = isModis ? 0.36 : 0.22;
       const frpScale = obs.frp_mw ? Math.min(1.8, Math.max(0.7, Math.log10(obs.frp_mw + 1))) : 1.0;
@@ -332,27 +339,16 @@ export default function ExploreGlobe({
           const radius = pt.size * 0.45;
           const group = new THREE.Group();
 
-          if (isModis) {
-            // MODIS: 1 km nadir hollow ring marker
-            const ringGeo = new THREE.RingGeometry(radius * 0.65, radius, 16);
-            const ringMat = new THREE.MeshBasicMaterial({
-              color: pt.color,
-              side: THREE.DoubleSide,
-              transparent: true,
-              opacity: pt.opacity,
-            });
-            group.add(new THREE.Mesh(ringGeo, ringMat));
-          } else {
-            // VIIRS: 375 m solid circle marker
-            const circleGeo = new THREE.CircleGeometry(radius * 0.75, 14);
-            const circleMat = new THREE.MeshBasicMaterial({
-              color: pt.color,
-              side: THREE.DoubleSide,
-              transparent: true,
-              opacity: pt.opacity,
-            });
-            group.add(new THREE.Mesh(circleGeo, circleMat));
-          }
+          const mat = new THREE.MeshBasicMaterial({
+            color: pt.color,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: pt.opacity,
+          });
+
+          const mesh = new THREE.Mesh(isModis ? SHARED_RING_GEO : SHARED_CIRCLE_GEO, mat);
+          mesh.scale.set(radius, radius, 1);
+          group.add(mesh);
           return group;
         }}
         customThreeObjectUpdate={(obj: THREE.Object3D, d: object) => {

@@ -29,6 +29,9 @@ import {
 import { type ObservationPoint } from "@/components/EarthGlobe";
 import { type ExploreViewMode, type SensorFilterMode } from "@/components/ExploreGlobe";
 import { ObservationsTableModal } from "@/components/ObservationsTableModal";
+import { ObservationInspector } from "@/components/ObservationInspector";
+import { ActivityTimeline } from "@/components/ActivityTimeline";
+import { EmptyState } from "@/components/EmptyState";
 import {
   Drawer,
   DrawerContent,
@@ -97,6 +100,8 @@ function ExploreWorkspace() {
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [selectedObs, setSelectedObs] = useState<ObservationPoint | null>(null);
   const [selectedCell, setSelectedCell] = useState<GridCell | null>(null);
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
+  const [selectedAnalysisDate, setSelectedAnalysisDate] = useState<string | null>(null);
   const [pull, setPull] = useState<PullState>({ status: "idle" });
 
   const queryClient = useQueryClient();
@@ -133,6 +138,18 @@ function ExploreWorkspace() {
   const gridAnalysis = useMemo(() => {
     return computeAnalyticalGrid(rawDetections, filters.startDate, filters.endDate);
   }, [rawDetections, filters.startDate, filters.endDate]);
+
+  // Aggregate daily detections for the collapsible timeline
+  const timelineDays = useMemo(() => {
+    const map = new Map<string, { date: string; modis: number; viirs: number }>();
+    for (const d of rawDetections) {
+      const entry = map.get(d.acq_date) ?? { date: d.acq_date, modis: 0, viirs: 0 };
+      if (d.sensor === "MODIS") entry.modis++;
+      else entry.viirs++;
+      map.set(d.acq_date, entry);
+    }
+    return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }, [rawDetections]);
 
   // Signature caption based on active sensor
   const sensorCaption = useMemo(() => {
@@ -488,6 +505,25 @@ function ExploreWorkspace() {
         </span>
       </div>
 
+      {/* Accessible Loading Status with aria-live */}
+      {query.isFetching && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none absolute right-6 top-18 z-20 hidden items-center gap-2 rounded-full border border-border/80 bg-surface/90 px-3 py-1 font-mono text-[11px] text-text shadow-xl backdrop-blur-md sm:flex animate-in fade-in"
+        >
+          <RefreshCw className="h-3 w-3 animate-spin text-data-blue" />
+          <span>Synchronizing observations…</span>
+        </div>
+      )}
+
+      {/* Query Error Floating State */}
+      {query.isError && (
+        <div className="pointer-events-auto absolute right-6 top-20 z-30 max-w-sm shadow-2xl">
+          <EmptyState type="firms_error" onRetry={() => query.refetch()} />
+        </div>
+      )}
+
       {/* COLLAPSIBLE PARAMETERS FLOATING PANEL (Desktop) */}
       {isParamsOpen && (
         <div className="pointer-events-auto absolute right-6 top-18 z-30 hidden w-80 rounded-lg border border-border/90 bg-surface/95 p-5 shadow-2xl backdrop-blur-xl sm:block animate-in fade-in-0 zoom-in-95">
@@ -711,153 +747,17 @@ function ExploreWorkspace() {
         )}
       </div>
 
-      {/* OBSERVATION INSPECTOR HUD (when an individual point is clicked) */}
-      {selectedObs && (
-        <div className="pointer-events-auto absolute right-4 top-20 z-30 w-72 rounded-lg border border-border bg-surface/95 p-4 font-mono text-xs shadow-2xl backdrop-blur-xl sm:right-6">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <span className="font-semibold uppercase tracking-wider text-text">
-              OBSERVATION TELEMETRY
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedObs(null)}
-              className="text-text-secondary hover:text-text"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <div className="mt-3 space-y-1.5 text-[11px]">
-            <div className="flex justify-between">
-              <span className="text-text-secondary">SENSOR:</span>
-              <span
-                className="font-bold"
-                style={{
-                  color:
-                    selectedObs.sensor === "MODIS"
-                      ? SENSOR_META.MODIS.color
-                      : SENSOR_META.VIIRS.color,
-                }}
-              >
-                {selectedObs.sensor} ({selectedObs.resolution_m} m)
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">PLATFORM:</span>
-              <span className="text-text">{selectedObs.satellite}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">COORDINATES:</span>
-              <span className="text-text">
-                {selectedObs.lat.toFixed(4)}, {selectedObs.lon.toFixed(4)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">ACQUISITION:</span>
-              <span className="text-text">
-                {selectedObs.acq_date} {selectedObs.acq_time} UTC
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">DAY / NIGHT:</span>
-              <span className="text-text">{selectedObs.day_night === "D" ? "DAY" : "NIGHT"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">FRP:</span>
-              <span className="font-semibold text-text">
-                {selectedObs.frp_mw != null
-                  ? `${selectedObs.frp_mw.toFixed(1)} MW`
-                  : "Not available"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">BRIGHTNESS:</span>
-              <span className="text-text">
-                {selectedObs.brightness_k != null
-                  ? `${selectedObs.brightness_k.toFixed(1)} K`
-                  : "Not available"}
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-border/40 pt-1.5">
-              <span className="text-text-secondary">CONFIDENCE:</span>
-              <span className="font-semibold uppercase text-text">
-                {selectedObs.confidence_tier}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* GRID CELL INSPECTOR HUD (when an analytical grid cell is clicked) */}
-      {selectedCell && (
-        <div className="pointer-events-auto absolute right-4 top-20 z-30 w-80 rounded-lg border border-border bg-surface/95 p-4 font-mono text-xs shadow-2xl backdrop-blur-xl sm:right-6">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <span className="font-semibold uppercase tracking-wider text-text">
-              GRID CELL · {selectedCell.id}
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelectedCell(null)}
-              className="text-text-secondary hover:text-text"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <div className="mt-3 space-y-1.5 text-[11px]">
-            <div className="flex justify-between">
-              <span className="text-text-secondary">CENTROID:</span>
-              <span className="text-text">
-                {selectedCell.lat.toFixed(4)}, {selectedCell.lon.toFixed(4)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">BOUNDS:</span>
-              <span className="text-[10px] text-text-secondary">
-                [{selectedCell.bounds.west}, {selectedCell.bounds.south}] → [
-                {selectedCell.bounds.east}, {selectedCell.bounds.north}]
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-border/40 pt-1.5">
-              <span className="text-text-secondary">DETECTIONS:</span>
-              <span className="font-bold text-text">{selectedCell.totalCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-data-blue">MODIS (1 km):</span>
-              <span className="font-semibold text-data-blue">{selectedCell.modisCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-thermal-orange">VIIRS (375 m):</span>
-              <span className="font-semibold text-thermal-orange">{selectedCell.viirsCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">MEAN FRP:</span>
-              <span className="text-text">
-                {selectedCell.meanFrp != null
-                  ? `${selectedCell.meanFrp.toFixed(1)} MW`
-                  : "Not available"}
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-border/40 pt-1.5">
-              <span className="text-agreement-teal font-semibold">AGREEMENT:</span>
-              <span
-                className="font-bold"
-                style={{ color: AGREEMENT_DEFINITIONS[selectedCell.agreementLevel].color }}
-              >
-                {selectedCell.agreementLevel}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-anomaly-amber">ANOMALY STATUS:</span>
-              <span className="font-semibold text-text">
-                {selectedCell.isAnomaly
-                  ? "CRITICAL (≥90th %ile)"
-                  : selectedCell.anomalyPercentile >= 80
-                    ? "ELEVATED (≥80th %ile)"
-                    : "BASELINE"}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* PHASE 4: OBSERVATION INSPECTOR & DETECTION STORY */}
+      <ObservationInspector
+        observation={selectedObs}
+        cell={selectedCell}
+        allCells={gridAnalysis.cells}
+        baselineWindow={`${filters.startDate} → ${filters.endDate}`}
+        onClose={() => {
+          setSelectedObs(null);
+          setSelectedCell(null);
+        }}
+      />
 
       {/* ACCESSIBLE OBSERVATIONS TABLE MODAL */}
       <ObservationsTableModal
@@ -866,6 +766,47 @@ function ExploreWorkspace() {
         observations={rawDetections}
         regionName={region.name}
       />
+
+      {/* PHASE 5: COLLAPSIBLE THERMAL ACTIVITY TIMELINE BOTTOM PANEL */}
+      <div className="pointer-events-auto fixed inset-x-0 bottom-0 z-20 flex flex-col items-center">
+        {/* Toggle Pill Button */}
+        <button
+          type="button"
+          onClick={() => setTimelineExpanded((v) => !v)}
+          className="flex items-center gap-2 rounded-t-lg border-t border-x border-border bg-surface/95 px-4 py-1.5 font-mono text-[11px] font-semibold text-text shadow-2xl backdrop-blur-md transition-all hover:bg-surface-elevated"
+          aria-expanded={timelineExpanded}
+          aria-label="Toggle thermal activity timeline"
+        >
+          <span className="h-2 w-2 rounded-full bg-data-blue animate-pulse" />
+          <span>THERMAL ACTIVITY TIMELINE</span>
+          <span className="text-[9px] text-text-secondary">({timelineDays.length} days)</span>
+          {timelineExpanded ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronUp className="h-3.5 w-3.5" />
+          )}
+        </button>
+
+        {timelineExpanded && (
+          <div className="w-full max-h-[48vh] overflow-y-auto border-t border-border bg-surface/95 p-3 shadow-2xl backdrop-blur-xl sm:p-4 animate-in slide-in-from-bottom duration-300">
+            <div className="mx-auto max-w-6xl">
+              <ActivityTimeline
+                days={timelineDays}
+                detections={rawDetections}
+                selectedDate={selectedAnalysisDate}
+                onSelectDate={(date) => setSelectedAnalysisDate(date)}
+                onFlyTo={(date) => {
+                  const firstOnDate = rawDetections.find((d) => d.acq_date === date);
+                  if (firstOnDate) {
+                    setSelectedObs(firstOnDate);
+                  }
+                  setSelectedAnalysisDate(null);
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
