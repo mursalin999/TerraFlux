@@ -1,0 +1,212 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-data-blue: var(--data-blue);
+  --color-thermal-orange: var(--thermal-orange);
+  --color-anomaly-amber: var(--anomaly-amber);
+  --color-agreement-teal: var(--agreement-teal);
+  --color-critical-red: var(--critical-red);
+
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface-elevated);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--text);
+  --color-primary-foreground: var(--bg);
+  --color-secondary: var(--surface-elevated);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--surface);
+  --color-muted-foreground: var(--text-secondary);
+  --color-accent: var(--surface-elevated);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--critical-red);
+  --color-destructive-foreground: var(--text);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--data-blue);
+
+  --color-ember: var(--thermal-orange);
+  --color-ember-foreground: var(--text);
+  --color-steel: var(--data-blue);
+  --color-steel-foreground: var(--text);
+
+  --color-chart-1: var(--data-blue);
+  --color-chart-2: var(--thermal-orange);
+  --color-chart-3: var(--anomaly-amber);
+  --color-chart-4: var(--agreement-teal);
+  --color-chart-5: var(--text-secondary);
+
+  --color-sidebar: var(--surface);
+  --color-sidebar-foreground: var(--text);
+  --color-sidebar-primary: var(--data-blue);
+  --color-sidebar-primary-foreground: var(--bg);
+  --color-sidebar-accent: var(--surface-elevated);
+  --color-sidebar-accent-foreground: var(--text);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--data-blue);
+}
+
+:root {
+  --radius: 0.375rem;
+  --bg: #030711;
+  --surface: #07111f;
+  --surface-elevated: #0b1728;
+  --text: #f4f7fa;
+  --text-secondary: #91a0b5;
+  --data-blue: #4da3ff;
+  --thermal-orange: #ff6a2a;
+  --anomaly-amber: #ffb547;
+  --agreement-teal: #56d6c9;
+  --critical-red: #ff4d4d;
+  --border: rgba(145, 160, 181, 0.16);
+
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface-elevated);
+  --popover-foreground: var(--text);
+  --primary: var(--text);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-elevated);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--surface-elevated);
+  --accent-foreground: var(--text);
+  --destructive: var(--critical-red);
+  --destructive-foreground: var(--text);
+  --input: var(--border);
+  --ring: var(--data-blue);
+
+  --ember: var(--thermal-orange);
+  --ember-foreground: var(--text);
+  --steel: var(--data-blue);
+  --steel-foreground: var(--text);
+
+  --chart-1: var(--data-blue);
+  --chart-2: var(--thermal-orange);
+  --chart-3: var(--anomaly-amber);
+  --chart-4: var(--agreement-teal);
+  --chart-5: var(--text-secondary);
+
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--data-blue);
+  --sidebar-primary-foreground: var(--bg);
+  --sidebar-accent: var(--surface-elevated);
+  --sidebar-accent-foreground: var(--text);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--data-blue);
+}
+
+.dark {
+  --bg: #030711;
+  --surface: #07111f;
+  --surface-elevated: #0b1728;
+  --text: #f4f7fa;
+  --text-secondary: #91a0b5;
+  --data-blue: #4da3ff;
+  --thermal-orange: #ff6a2a;
+  --anomaly-amber: #ffb547;
+  --agreement-teal: #56d6c9;
+  --critical-red: #ff4d4d;
+  --border: rgba(145, 160, 181, 0.16);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    color-scheme: dark;
+    background-color: var(--bg);
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family:
+      "Inter",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .font-headline {
+    font-family:
+      "Space Grotesk",
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+@layer components {
+  /* Cartographic map styling inherits TerraFlux instrument dark theme */
+  .leaflet-container {
+    background: #030711 !important;
+    font-family: "Inter", sans-serif;
+  }
+  .leaflet-popup-content-wrapper {
+    background: var(--surface-elevated) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  }
+  .leaflet-popup-tip {
+    background: var(--surface-elevated) !important;
+  }
+  .leaflet-bar a {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+  .leaflet-bar a:hover {
+    background: var(--surface-elevated) !important;
+  }
+}
+
+@keyframes cell-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
