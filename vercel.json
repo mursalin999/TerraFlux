@@ -2,5 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "buildCommand": "npm run build",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "functions": {
+    ".output/server/index.mjs": {
+      "includeFiles": [
+        ".output/server/_libs/**",
+        ".output/server/_ssr/**"
+      ]
+    }
+  }
 }
