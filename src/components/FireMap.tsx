@@ -2,7 +2,7 @@
 // Never import this module statically from a route.
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SENSOR_META } from "@/lib/regions";
 
 export interface MapDetection {
@@ -40,6 +40,20 @@ export default function FireMap({
   zoom: number;
   onSelectObservation?: (obs: MapDetection) => void;
 }) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || typeof window === "undefined") {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-[#030711] font-mono text-xs text-text-secondary">
+        INITIALIZING 2D GEODETIC MAP…
+      </div>
+    );
+  }
+
   const shown =
     detections.length > MAX_MARKERS
       ? detections.filter((_, i) => i % Math.ceil(detections.length / MAX_MARKERS) === 0)

@@ -17,7 +17,7 @@ import {
   Calendar,
   Grid,
   Globe2,
-  Map,
+  Map as MapIcon,
 } from "lucide-react";
 import { REGIONS, getRegion, parseBbox, SENSOR_META } from "@/lib/regions";
 import { defaultFilters, type FireFilters, type ConfidenceTier } from "@/components/FireControls";
@@ -503,7 +503,7 @@ function ExploreWorkspace() {
                 : "text-text-secondary hover:text-text"
             }`}
           >
-            <Map className="h-3.5 w-3.5" />
+            <MapIcon className="h-3.5 w-3.5" />
             <span>2D MAP</span>
           </button>
         </div>
@@ -699,7 +699,7 @@ function ExploreWorkspace() {
                     : "border-border bg-surface-elevated text-text-secondary"
                 }`}
               >
-                <Map className="h-3.5 w-3.5" />
+                <MapIcon className="h-3.5 w-3.5" />
                 <span>2D MAP</span>
               </button>
             </div>

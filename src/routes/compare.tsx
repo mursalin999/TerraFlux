@@ -1,7 +1,7 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Globe2, Map } from "lucide-react";
+import { Globe2, Map as MapIcon } from "lucide-react";
 import {
   REGIONS,
   getRegion,
@@ -162,7 +162,7 @@ function Compare() {
                     : "text-text-secondary hover:text-text"
                 }`}
               >
-                <Map className="h-3 w-3" />
+                <MapIcon className="h-3 w-3" />
                 <span>2D MAP</span>
               </button>
             </div>

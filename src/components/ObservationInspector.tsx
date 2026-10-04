@@ -73,7 +73,7 @@ function DetectionStoryModal({
     isPoint && observation
       ? `${observation.sensor} detected this thermal anomaly from spacecraft ${satellite} at ${resolution} native resolution with ${confidence} confidence.`
       : cell
-        ? `VIIRS (375 m) registered ${cell.viirsCount.toLocaleString()} detections; MODIS (1,000 m) registered ${cell.modisCount.toLocaleString()} detections.`
+        ? `VIIRS (375 m) registered ${(cell.viirsCount ?? 0).toLocaleString()} detections; MODIS (1,000 m) registered ${(cell.modisCount ?? 0).toLocaleString()} detections.`
         : unavailable;
 
   // Step 3: COMMON GRID
@@ -233,15 +233,23 @@ export function ObservationInspector({
   // Derived metrics
   const rank = useMemo(() => {
     if (!allCells.length) return null;
-    const targetCount = targetCell?.detectionCount ?? (isPoint ? 1 : 0);
+    const targetCount =
+      targetCell?.totalCount ??
+      (targetCell as unknown as { detectionCount?: number })?.detectionCount ??
+      (isPoint ? 1 : 0);
     return calculatePercentile(
       targetCount,
-      allCells.map((c) => c.detectionCount),
+      allCells.map(
+        (c) => c.totalCount ?? (c as unknown as { detectionCount?: number }).detectionCount ?? 0,
+      ),
     );
   }, [allCells, targetCell, isPoint]);
 
   const agreementLevel = useMemo(() => {
-    if (targetCell?.agreement) return targetCell.agreement;
+    if (targetCell?.agreementLevel) return targetCell.agreementLevel;
+    if ((targetCell as unknown as { agreement?: string })?.agreement) {
+      return (targetCell as unknown as { agreement: string }).agreement;
+    }
     if (observation?.confidence_tier === "high") return "STRONG";
     if (observation?.confidence_tier === "nominal") return "MODERATE";
     return "LIMITED";
@@ -343,7 +351,7 @@ export function ObservationInspector({
             { label: "ACQUISITION TIME (UTC)", value: unavailable },
             {
               label: "SENSOR & INSTRUMENT",
-              value: `MODIS (${cell.modisCount}) · VIIRS (${cell.viirsCount})`,
+              value: `MODIS (${cell.modisCount ?? 0}) · VIIRS (${cell.viirsCount ?? 0})`,
             },
             { label: "PLATFORM / SATELLITE", value: "Terra / Aqua / Suomi-NPP / NOAA-20" },
             { label: "ORBITAL ALTITUDE", value: orbitalAltitude },
@@ -377,9 +385,16 @@ export function ObservationInspector({
   // For a common-grid cell selection, add per-sensor totals
   const cellSpecificFields: FieldItem[] = targetCell
     ? [
-        { label: "MODIS DETECTIONS", value: targetCell.modisCount.toLocaleString() },
-        { label: "VIIRS DETECTIONS", value: targetCell.viirsCount.toLocaleString() },
-        { label: "TOTAL CELL DETECTIONS", value: targetCell.detectionCount.toLocaleString() },
+        { label: "MODIS DETECTIONS", value: (targetCell.modisCount ?? 0).toLocaleString() },
+        { label: "VIIRS DETECTIONS", value: (targetCell.viirsCount ?? 0).toLocaleString() },
+        {
+          label: "TOTAL CELL DETECTIONS",
+          value: (
+            targetCell.totalCount ??
+            (targetCell as unknown as { detectionCount?: number })?.detectionCount ??
+            0
+          ).toLocaleString(),
+        },
       ]
     : [];
 
