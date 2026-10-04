@@ -6,6 +6,7 @@ import { RegionSelect, DateRangeInputs, defaultFilters } from "@/components/Fire
 import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { getDailyCounts, getDetections } from "@/lib/firelens.functions";
 import { EmptyState } from "@/components/EmptyState";
+import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
@@ -131,6 +132,14 @@ function CalendarPage() {
             onEnd={setEndDate}
           />
         </div>
+      </div>
+
+      <div className="mt-6">
+        <NasaFirmsFetcher
+          initialRegionId={regionId}
+          initialStartDate={startDate}
+          initialEndDate={endDate}
+        />
       </div>
 
       <div className="mt-6 flex gap-2" role="tablist" aria-label="Sensor view">
