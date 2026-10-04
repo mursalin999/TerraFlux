@@ -59,6 +59,9 @@ export const backfillFireData = createServerFn({ method: "POST" })
         errors.push(`${date}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
+    if (stored === 0 && errors.length > 0) {
+      throw new Error(errors[0]);
+    }
     return { chunks, stored, errors };
   });
 

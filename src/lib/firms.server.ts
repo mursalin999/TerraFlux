@@ -40,9 +40,22 @@ export function validateBbox(bbox: string): [number, number, number, number] {
   return [west, south, east, north];
 }
 
-function parseCsv(text: string): Record<string, string>[] {
-  const lines = text.trim().split(/\r?\n/);
+function parseCsv(text: string, source: FirmsSource): Record<string, string>[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  const lines = trimmed.split(/\r?\n/);
+  const headerLine = lines[0]!.toLowerCase();
+
+  // Validate that NASA FIRMS returned a legitimate CSV with expected coordinate columns
+  if (!headerLine.includes("latitude") || !headerLine.includes("longitude")) {
+    // NASA returned an error string, invalid key warning, transaction limit, or HTML page
+    throw new Error(`NASA FIRMS ${source} rejection: ${trimmed.slice(0, 300)}`);
+  }
+
+  // Valid CSV header present, but no observation records in this bounding box/time
   if (lines.length < 2) return [];
+
   const headers = lines[0]!.split(",").map((h) => h.trim());
   const rows: Record<string, string>[] = [];
   for (let i = 1; i < lines.length; i++) {
@@ -145,7 +158,7 @@ export async function fetchFirmsCsv(opts: {
   if (/^invalid|error/i.test(text.trim().slice(0, 20))) {
     throw new Error(`FIRMS ${source} returned an error: ${text.slice(0, 300)}`);
   }
-  return parseCsv(text);
+  return parseCsv(text, source);
 }
 
 export async function fetchAndHarmonize(opts: {
@@ -153,8 +166,12 @@ export async function fetchAndHarmonize(opts: {
   days: number;
   date?: string | undefined;
 }): Promise<HarmonizedRow[]> {
-  const mapKey = process.env["FIRMS_MAP_KEY"];
-  if (!mapKey) throw new Error("FIRMS_MAP_KEY is not configured");
+  const mapKey = process.env["FIRMS_MAP_KEY"]?.trim();
+  if (!mapKey) {
+    throw new Error(
+      "FIRMS_MAP_KEY is not set in Vercel environment variables. Please set FIRMS_MAP_KEY in Vercel Project Settings -> Environment Variables and trigger a fresh redeploy.",
+    );
+  }
   validateBbox(opts.bbox);
   if (!Number.isInteger(opts.days) || opts.days < 1 || opts.days > 5) {
     throw new Error("days must be an integer between 1 and 5 — recent-checks endpoint only");
@@ -189,10 +206,10 @@ export async function upsertDetections(rows: HarmonizedRow[]): Promise<number> {
 
   // Portable path (self-hosted deploys, e.g. Vercel): the service-role key is
   // not available, so writes go through a token-gated SECURITY DEFINER RPC.
-  const token = process.env["FIRELENS_INGEST_TOKEN"];
+  const token = process.env["FIRELENS_INGEST_TOKEN"]?.trim();
   if (!token) {
     throw new Error(
-      "No write credentials: set SUPABASE_SERVICE_ROLE_KEY or FIRELENS_INGEST_TOKEN.",
+      "No database write credentials: set FIRELENS_INGEST_TOKEN (or SUPABASE_SERVICE_ROLE_KEY) in Vercel environment variables and redeploy.",
     );
   }
   const { publicServerClient } = await import("./supabase-public.server");

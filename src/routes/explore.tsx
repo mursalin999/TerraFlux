@@ -16,6 +16,8 @@ import {
   ShieldCheck,
   Calendar,
   Grid,
+  Globe2,
+  Map,
 } from "lucide-react";
 import { REGIONS, getRegion, parseBbox, SENSOR_META } from "@/lib/regions";
 import { defaultFilters, type FireFilters, type ConfidenceTier } from "@/components/FireControls";
@@ -41,6 +43,7 @@ import {
 } from "@/components/ui/drawer";
 
 const ExploreGlobe = lazy(() => import("@/components/ExploreGlobe"));
+const FireMap = lazy(() => import("@/components/FireMap"));
 
 export const Route = createFileRoute("/explore")({
   head: () => ({
@@ -94,6 +97,7 @@ function ExploreWorkspace() {
   const [timeScale, setTimeScale] = useState<TimeScale>("daily");
   const [activeSensor, setActiveSensor] = useState<SensorFilterMode>("HARMONIZED");
   const [activeView, setActiveView] = useState<ExploreViewMode>("NATIVE");
+  const [mapProjection, setMapProjection] = useState<"3D" | "2D">("3D");
   const [isParamsOpen, setIsParamsOpen] = useState(false);
   const [isLegendExpanded, setIsLegendExpanded] = useState(true);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
@@ -366,27 +370,39 @@ function ExploreWorkspace() {
           <Suspense
             fallback={
               <div className="flex h-full w-full items-center justify-center font-mono text-xs text-text-secondary">
-                RENDERING 3D EARTH…
+                RENDERING EARTH VIEW…
               </div>
             }
           >
-            <ExploreGlobe
-              observations={rawDetections}
-              gridCells={gridAnalysis.cells}
-              selectedRegion={region}
-              activeSensor={activeSensor}
-              activeView={activeView}
-              selectedObservation={selectedObs}
-              selectedCell={selectedCell}
-              onSelectObservation={(obs) => {
-                setSelectedObs(obs);
-                setSelectedCell(null);
-              }}
-              onSelectCell={(cell) => {
-                setSelectedCell(cell);
-                setSelectedObs(null);
-              }}
-            />
+            {mapProjection === "3D" ? (
+              <ExploreGlobe
+                observations={rawDetections}
+                gridCells={gridAnalysis.cells}
+                selectedRegion={region}
+                activeSensor={activeSensor}
+                activeView={activeView}
+                selectedObservation={selectedObs}
+                selectedCell={selectedCell}
+                onSelectObservation={(obs) => {
+                  setSelectedObs(obs);
+                  setSelectedCell(null);
+                }}
+                onSelectCell={(cell) => {
+                  setSelectedCell(cell);
+                  setSelectedObs(null);
+                }}
+              />
+            ) : (
+              <FireMap
+                detections={rawDetections}
+                center={region.center}
+                zoom={region.zoom}
+                onSelectObservation={(obs) => {
+                  setSelectedObs(obs as unknown as ObservationPoint);
+                  setSelectedCell(null);
+                }}
+              />
+            )}
           </Suspense>
         </ClientOnly>
       </div>
@@ -462,6 +478,34 @@ function ExploreWorkspace() {
               </button>
             );
           })}
+        </div>
+
+        {/* Map Projection Switcher: 3D GLOBE vs 2D REGIONAL MAP */}
+        <div className="flex items-center gap-1 rounded-lg border border-border/80 bg-surface/90 p-1.5 shadow-2xl backdrop-blur-md">
+          <button
+            type="button"
+            onClick={() => setMapProjection("3D")}
+            className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs uppercase tracking-wider transition-colors ${
+              mapProjection === "3D"
+                ? "border border-data-blue bg-data-blue/20 text-data-blue font-semibold"
+                : "text-text-secondary hover:text-text"
+            }`}
+          >
+            <Globe2 className="h-3.5 w-3.5" />
+            <span>3D GLOBE</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMapProjection("2D")}
+            className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs uppercase tracking-wider transition-colors ${
+              mapProjection === "2D"
+                ? "border border-thermal-orange bg-thermal-orange/20 text-thermal-orange font-semibold"
+                : "text-text-secondary hover:text-text"
+            }`}
+          >
+            <Map className="h-3.5 w-3.5" />
+            <span>2D MAP</span>
+          </button>
         </div>
 
         {/* Right: Actions (Parameters Toggle, View Table, Reset) */}
@@ -625,6 +669,39 @@ function ExploreWorkspace() {
                   {view}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Projection Selection in Mobile Drawer */}
+          <div className="mb-4">
+            <label className="text-[11px] uppercase tracking-wider text-text-secondary">
+              MAP PROJECTION
+            </label>
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => setMapProjection("3D")}
+                className={`flex items-center justify-center gap-1.5 rounded border py-1.5 text-center text-xs font-semibold ${
+                  mapProjection === "3D"
+                    ? "border-data-blue bg-data-blue/20 text-data-blue"
+                    : "border-border bg-surface-elevated text-text-secondary"
+                }`}
+              >
+                <Globe2 className="h-3.5 w-3.5" />
+                <span>3D GLOBE</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMapProjection("2D")}
+                className={`flex items-center justify-center gap-1.5 rounded border py-1.5 text-center text-xs font-semibold ${
+                  mapProjection === "2D"
+                    ? "border-thermal-orange bg-thermal-orange/20 text-thermal-orange"
+                    : "border-border bg-surface-elevated text-text-secondary"
+                }`}
+              >
+                <Map className="h-3.5 w-3.5" />
+                <span>2D MAP</span>
+              </button>
             </div>
           </div>
 

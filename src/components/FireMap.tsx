@@ -1,5 +1,6 @@
 // Browser-only map module — imported lazily (React.lazy) behind <ClientOnly>.
 // Never import this module statically from a route.
+import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import { useEffect } from "react";
 import { SENSOR_META } from "@/lib/regions";
@@ -32,10 +33,12 @@ export default function FireMap({
   detections,
   center,
   zoom,
+  onSelectObservation,
 }: {
   detections: MapDetection[];
   center: [number, number];
   zoom: number;
+  onSelectObservation?: (obs: MapDetection) => void;
 }) {
   const shown =
     detections.length > MAX_MARKERS
@@ -79,6 +82,9 @@ export default function FireMap({
               key={`${d.sensor}-${d.satellite}-${d.acq_date}-${d.acq_time}-${d.lat}-${d.lon}-${i}`}
               center={[d.lat, d.lon]}
               radius={radius}
+              eventHandlers={{
+                click: () => onSelectObservation?.(d),
+              }}
               pathOptions={{
                 color: meta.color,
                 fillColor: meta.color,
@@ -107,6 +113,14 @@ export default function FireMap({
                       </span>{" "}
                       <span className="font-mono text-text">
                         {d.lat.toFixed(4)}, {d.lon.toFixed(4)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-mono text-[10px] text-text-secondary uppercase">
+                        ORBITAL ALTITUDE:
+                      </span>{" "}
+                      <span className="font-semibold text-text">
+                        {d.sensor === "MODIS" ? "705 km (Polar EOS)" : "824 km (Polar JPSS)"}
                       </span>
                     </div>
                     <div>

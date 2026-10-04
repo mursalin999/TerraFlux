@@ -13,6 +13,8 @@ import {
 import { RegionSelect, DateRangeInputs, defaultFilters } from "@/components/FireControls";
 import { getDetections, getDailyCounts } from "@/lib/firelens.functions";
 import { EmptyState } from "@/components/EmptyState";
+import { ObservationInspector } from "@/components/ObservationInspector";
+import type { ObservationPoint } from "@/components/EarthGlobe";
 
 const FireMap = lazy(() => import("@/components/FireMap"));
 const EarthGlobe = lazy(() => import("@/components/EarthGlobe"));
@@ -48,6 +50,7 @@ function Compare() {
   const [endDate, setEndDate] = useState(defaults.endDate);
   const [mode, setMode] = useState<Mode>("combined");
   const [mapProjection, setMapProjection] = useState<"3D" | "2D">("3D");
+  const [selectedObs, setSelectedObs] = useState<ObservationPoint | null>(null);
 
   const region = getRegion(regionId);
   const bboxParts = parseBbox(region.bbox);
@@ -170,11 +173,20 @@ function Compare() {
                   <EarthGlobe
                     observations={detections}
                     selectedRegion={region}
+                    selectedObservation={selectedObs}
+                    onSelectObservation={(obs) => setSelectedObs(obs)}
                     showModis={mode === "combined" || mode === "MODIS"}
                     showViirs={mode === "combined" || mode === "VIIRS"}
                   />
                 ) : (
-                  <FireMap detections={detections} center={region.center} zoom={region.zoom} />
+                  <FireMap
+                    detections={detections}
+                    center={region.center}
+                    zoom={region.zoom}
+                    onSelectObservation={(obs) =>
+                      setSelectedObs(obs as unknown as ObservationPoint)
+                    }
+                  />
                 )}
               </Suspense>
             </ClientOnly>
@@ -270,6 +282,15 @@ function Compare() {
           </div>
         </div>
       </div>
+
+      {selectedObs && (
+        <ObservationInspector
+          observation={selectedObs}
+          cell={null}
+          baselineWindow={`${startDate} to ${endDate}`}
+          onClose={() => setSelectedObs(null)}
+        />
+      )}
     </div>
   );
 }

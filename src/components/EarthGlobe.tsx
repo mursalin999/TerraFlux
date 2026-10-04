@@ -171,6 +171,11 @@ export default function EarthGlobe({
             group.add(circleMesh);
           }
 
+          // Add invisible hit sphere to guarantee click registration on small dots
+          const hitGeo = new THREE.SphereGeometry(Math.max(0.5, radius * 1.6), 8, 8);
+          const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+          group.add(new THREE.Mesh(hitGeo, hitMat));
+
           return group;
         }}
         customThreeObjectUpdate={(obj: THREE.Object3D, d: object) => {
@@ -179,6 +184,19 @@ export default function EarthGlobe({
           if (coords) {
             Object.assign(obj.position, coords);
           }
+        }}
+        customLayerLabel={(d: object) => {
+          const pt = d as GlobePoint;
+          const isModis = pt.sensor === "MODIS";
+          const orbitAlt = isModis ? "705 km (Polar EOS)" : "824 km (Polar JPSS)";
+          const frp = pt.frp_mw != null ? `${pt.frp_mw.toFixed(1)} MW` : "N/A";
+          const temp = pt.brightness_k != null ? `${pt.brightness_k.toFixed(1)} K` : "N/A";
+          return `<div style="background: rgba(3,7,17,0.95); border: 1px solid #1e293b; padding: 6px 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #f1f5f9; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
+            <div style="font-weight: bold; color: ${pt.color};">${pt.sensor} · ${pt.satellite}</div>
+            <div>Altitude: ${orbitAlt} · Resolution: ${pt.resolution_m} m</div>
+            <div>FRP: ${frp} · Brightness: ${temp}</div>
+            <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">Click to inspect complete telemetry</div>
+          </div>`;
         }}
         onCustomLayerClick={(d: object) => {
           if (onSelectObservation) {

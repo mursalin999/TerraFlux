@@ -257,6 +257,62 @@ export function ObservationInspector({
   if (!observation && !cell) return null;
 
   // FIELD GROUPS: SOURCE DATA (NASA FIRMS) & TERRAFLUX-DERIVED
+  const isModis = observation?.sensor === "MODIS";
+  const orbitalAltitude =
+    isPoint && observation
+      ? isModis
+        ? "705 km (Polar Sun-Synchronous EOS)"
+        : "824 km (Polar Sun-Synchronous JPSS)"
+      : "705 km / 824 km";
+
+  const solarCrossing =
+    isPoint && observation
+      ? isModis
+        ? "10:30 (Terra EOS AM) / 13:30 (Aqua EOS PM)"
+        : "13:30 Local Solar Time (NOAA-20 / SNPP)"
+      : "10:30 AM / 1:30 PM Equator Crossing";
+
+  const primarySpectral =
+    isPoint && observation
+      ? isModis
+        ? `${format(observation.brightness_k?.toFixed(1), " K")} (Channel 21/22, 3.96 µm)`
+        : `${format(observation.brightness_k?.toFixed(1), " K")} (Band I4, 3.74 µm)`
+      : unavailable;
+
+  const secondarySpectral =
+    isPoint && observation
+      ? observation.brightness2_k != null
+        ? isModis
+          ? `${observation.brightness2_k.toFixed(1)} K (Channel 31, 11.0 µm)`
+          : `${observation.brightness2_k.toFixed(1)} K (Band I5, 11.45 µm)`
+        : unavailable
+      : unavailable;
+
+  const dayNightMode =
+    isPoint && observation
+      ? observation.day_night === "D"
+        ? "Daytime Overpass (Solar Reflectance)"
+        : observation.day_night === "N"
+          ? "Nighttime Overpass (Thermal Only)"
+          : "Standard Pass"
+      : unavailable;
+
+  const confidenceDisplay =
+    isPoint && observation
+      ? observation.confidence_raw
+        ? `${observation.confidence_raw} (${observation.confidence_tier.toUpperCase()})`
+        : observation.confidence_tier.toUpperCase()
+      : cell?.isAnomaly
+        ? "ELEVATED"
+        : "NOMINAL";
+
+  const swathDistortion =
+    isPoint && observation
+      ? isModis
+        ? "1,000 m (Nadir) → ~4,800 m (Scan Edge)"
+        : "375 m (Near-constant I-band across swath)"
+      : "1,000 m / 375 m";
+
   const sourceFields: FieldItem[] =
     isPoint && observation
       ? [
@@ -264,12 +320,20 @@ export function ObservationInspector({
           { label: "LONGITUDE", value: observation.lon.toFixed(4) },
           { label: "ACQUISITION DATE", value: observation.acq_date },
           { label: "ACQUISITION TIME (UTC)", value: observation.acq_time },
-          { label: "SENSOR", value: observation.sensor },
-          { label: "PLATFORM", value: observation.satellite },
+          { label: "SENSOR & INSTRUMENT", value: observation.sensor },
+          { label: "PLATFORM / SATELLITE", value: observation.satellite },
+          { label: "ORBITAL ALTITUDE", value: orbitalAltitude },
+          { label: "SOLAR LOCAL OVERPASS", value: solarCrossing },
           { label: "NATIVE RESOLUTION", value: format(observation.resolution_m, " m") },
-          { label: "FRP", value: format(observation.frp_mw?.toFixed(1), " MW") },
-          { label: "BRIGHTNESS", value: format(observation.brightness_k?.toFixed(1), " K") },
-          { label: "CONFIDENCE", value: observation.confidence_tier.toUpperCase() },
+          { label: "SWATH FOOTPRINT", value: swathDistortion },
+          {
+            label: "FRP (FIRE RADIATIVE POWER)",
+            value: format(observation.frp_mw?.toFixed(1), " MW"),
+          },
+          { label: "BRIGHTNESS (FIRE CHANNEL)", value: primarySpectral },
+          { label: "BACKGROUND BRIGHTNESS (IR)", value: secondarySpectral },
+          { label: "CONFIDENCE METRIC", value: confidenceDisplay },
+          { label: "OVERPASS ILLUMINATION", value: dayNightMode },
         ]
       : cell
         ? [
@@ -277,12 +341,20 @@ export function ObservationInspector({
             { label: "LONGITUDE (CENTROID)", value: cell.lon.toFixed(4) },
             { label: "ACQUISITION DATE", value: baselineWindow.split(" ")[0] ?? unavailable },
             { label: "ACQUISITION TIME (UTC)", value: unavailable },
-            { label: "SENSOR", value: `MODIS (${cell.modisCount}) · VIIRS (${cell.viirsCount})` },
-            { label: "PLATFORM", value: "Terra / Aqua / Suomi-NPP / NOAA-20" },
+            {
+              label: "SENSOR & INSTRUMENT",
+              value: `MODIS (${cell.modisCount}) · VIIRS (${cell.viirsCount})`,
+            },
+            { label: "PLATFORM / SATELLITE", value: "Terra / Aqua / Suomi-NPP / NOAA-20" },
+            { label: "ORBITAL ALTITUDE", value: orbitalAltitude },
+            { label: "SOLAR LOCAL OVERPASS", value: solarCrossing },
             { label: "NATIVE RESOLUTION", value: "1,000 m (MODIS) / 375 m (VIIRS)" },
+            { label: "SWATH FOOTPRINT", value: "0.15° Harmonized Geodetic Grid (~16.5 km)" },
             { label: "FRP (MEAN)", value: format(cell.meanFrp?.toFixed(1), " MW") },
-            { label: "BRIGHTNESS", value: unavailable },
-            { label: "CONFIDENCE", value: cell.isAnomaly ? "ELEVATED" : "NOMINAL" },
+            { label: "BRIGHTNESS (FIRE CHANNEL)", value: unavailable },
+            { label: "BACKGROUND BRIGHTNESS (IR)", value: unavailable },
+            { label: "CONFIDENCE METRIC", value: confidenceDisplay },
+            { label: "OVERPASS ILLUMINATION", value: unavailable },
           ]
         : [];
 

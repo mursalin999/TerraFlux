@@ -27,6 +27,8 @@ Set these in Vercel → Settings → Environment Variables (all environments):
 | `FIRMS_MAP_KEY`                 | NASA FIRMS MAP_KEY — server only, never sent to the browser |
 | `FIRELENS_INGEST_TOKEN`         | Token that authorises storing new detections                |
 
+> **Important**: When you add or change environment variables in Vercel, they do **not** take effect automatically on existing builds. You must trigger a fresh **Redeploy** (Deployments → `...` → Redeploy) for the serverless functions to pick up the new variables.
+
 `SUPABASE_SERVICE_ROLE_KEY` is **not** required. When it is absent, writes go
 through the token-gated `public.ingest_fire_detections` database function,
 which rejects any call without the correct `FIRELENS_INGEST_TOKEN`.
