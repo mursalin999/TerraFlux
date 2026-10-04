@@ -6,9 +6,14 @@ import { createClient } from "@supabase/supabase-js";
  * where the service-role key is not available.
  */
 export function publicServerClient() {
-  const url = process.env["SUPABASE_URL"] ?? process.env["VITE_SUPABASE_URL"]!;
+  const url =
+    process.env["SUPABASE_URL"] ??
+    process.env["VITE_SUPABASE_URL"] ??
+    process.env["NEXT_PUBLIC_SUPABASE_URL"]!;
   const key =
-    process.env["SUPABASE_PUBLISHABLE_KEY"] ?? process.env["VITE_SUPABASE_PUBLISHABLE_KEY"]!;
+    process.env["SUPABASE_PUBLISHABLE_KEY"] ??
+    process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ??
+    process.env["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]!;
   return createClient(url, key, {
     auth: { persistSession: false },
     global: {
