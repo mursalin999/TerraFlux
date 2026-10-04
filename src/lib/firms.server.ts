@@ -166,7 +166,11 @@ export async function fetchAndHarmonize(opts: {
   days: number;
   date?: string | undefined;
 }): Promise<HarmonizedRow[]> {
-  const mapKey = process.env["FIRMS_MAP_KEY"]?.trim();
+  const mapKey = (
+    process.env["FIRMS_MAP_KEY"] ||
+    process.env["VITE_FIRMS_MAP_KEY"] ||
+    process.env["NASA_FIRMS_MAP_KEY"]
+  )?.trim();
   if (!mapKey) {
     throw new Error(
       "FIRMS_MAP_KEY is not set in Vercel environment variables. Please set FIRMS_MAP_KEY in Vercel Project Settings -> Environment Variables and trigger a fresh redeploy.",

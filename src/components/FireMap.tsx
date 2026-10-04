@@ -59,17 +59,7 @@ export default function FireMap({
       ? detections.filter((_, i) => i % Math.ceil(detections.length / MAX_MARKERS) === 0)
       : detections;
 
-  const cartoKey =
-    typeof import.meta !== "undefined" && import.meta.env
-      ? (import.meta.env.VITE_CARTO_KEY as string) ||
-        (import.meta.env.VITE_CARTO_API_KEY as string) ||
-        ""
-      : "";
-
-  // If a Carto key is supplied, use the clean authenticated raster tiles; otherwise default to dark_all
-  const tileUrl = cartoKey
-    ? `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoKey}`
-    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+  const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   return (
     <div className="relative h-full w-full">
@@ -82,7 +72,7 @@ export default function FireMap({
       >
         <Recenter center={center} zoom={zoom} />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url={tileUrl}
         />
         {shown.map((d, i) => {
@@ -195,7 +185,7 @@ export default function FireMap({
         })}
       </MapContainer>
       <div className="pointer-events-none absolute bottom-1.5 right-2 z-[400] font-mono text-[9px] text-text-secondary/70">
-        CARTO / NASA FIRMS
+        OpenStreetMap / NASA FIRMS
       </div>
     </div>
   );
