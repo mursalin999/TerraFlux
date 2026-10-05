@@ -69,13 +69,12 @@ export const backfillFireData = createServerFn({ method: "POST" })
 
 function publicClient() {
   const url =
-    process.env["SUPABASE_URL"] ||
-    process.env["VITE_SUPABASE_URL"] ||
-    process.env["NEXT_PUBLIC_SUPABASE_URL"];
+    (typeof process !== "undefined" && (process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"])) ||
+    (typeof import.meta !== "undefined" && import.meta.env?.["VITE_SUPABASE_URL"]);
   const key =
-    process.env["SUPABASE_PUBLISHABLE_KEY"] ||
-    process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
-    process.env["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"];
+    (typeof process !== "undefined" &&
+      (process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["VITE_SUPABASE_PUBLISHABLE_KEY"])) ||
+    (typeof import.meta !== "undefined" && import.meta.env?.["VITE_SUPABASE_PUBLISHABLE_KEY"]);
   if (!url || !key) return null;
   try {
     return createClient(url, key, {

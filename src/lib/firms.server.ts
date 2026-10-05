@@ -167,9 +167,12 @@ export async function fetchAndHarmonize(opts: {
   date?: string | undefined;
 }): Promise<HarmonizedRow[]> {
   const mapKey = (
-    process.env["FIRMS_MAP_KEY"] ||
-    process.env["VITE_FIRMS_MAP_KEY"] ||
-    process.env["NASA_FIRMS_MAP_KEY"]
+    (typeof process !== "undefined" &&
+      (process.env["FIRMS_MAP_KEY"] ||
+        process.env["VITE_FIRMS_MAP_KEY"] ||
+        process.env["NASA_FIRMS_MAP_KEY"])) ||
+    (typeof import.meta !== "undefined" &&
+      (import.meta.env?.["VITE_FIRMS_MAP_KEY"] || import.meta.env?.["FIRMS_MAP_KEY"]))
   )?.trim();
   if (!mapKey) {
     throw new Error(

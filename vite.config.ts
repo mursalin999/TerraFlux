@@ -12,10 +12,13 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 // Keep the Vercel Nitro preset for production builds only. The preview runs
 // Vite's native TanStack Start dev server; enabling Nitro during dev makes the
 // browser resolve the internal default client entry as an unserved module.
-const nitro =
-  process.env["VERCEL"] && process.env["NODE_ENV"] === "production"
-    ? ({ preset: "vercel" } as const)
-    : undefined;
+const isVercelBuild =
+  Boolean(process.env["VERCEL"]) &&
+  (process.env["NODE_ENV"] === "production" || process.env["npm_lifecycle_event"] === "build");
+
+const nitro = isVercelBuild
+  ? ({ preset: "vercel", vercel: { entryFormat: "node" } } as const)
+  : undefined;
 
 export default defineConfig({
   ...(nitro ? { nitro } : {}),
