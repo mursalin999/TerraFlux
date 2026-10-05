@@ -87,7 +87,10 @@ function publicClient() {
             h.delete("Authorization");
           }
           h.set("apikey", key);
-          return fetch(input, { ...init, headers: h });
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 12_000);
+          const requestInit = { ...init, headers: h, signal: controller.signal };
+          return fetch(input, requestInit).finally(() => clearTimeout(timeout));
         },
       },
     });

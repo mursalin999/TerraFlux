@@ -149,7 +149,19 @@ export async function fetchFirmsCsv(opts: {
     `https://firms.modaps.eosdis.nasa.gov/api/area/csv/` +
     `${mapKey}/${source}/${bbox}/${days}` +
     (date ? `/${date}` : "");
-  const res = await fetch(url);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 18_000);
+  let res: Response;
+  try {
+    res = await fetch(url, { signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`FIRMS ${source} request timed out after 18 seconds`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`FIRMS ${source} request failed [${res.status}]: ${body.slice(0, 300)}`);

@@ -22,8 +22,12 @@ export function publicServerClient() {
         if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
           h.delete("Authorization");
         }
-        h.set("apikey", key);
-        return fetch(input, { ...init, headers: h });
+      h.set("apikey", key);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12_000);
+      const requestInit = { ...init, headers: h, signal: controller.signal };
+      return fetch(input, requestInit).finally(() => clearTimeout(timeout));
+
       },
     },
   });
