@@ -269,9 +269,9 @@ export default function ExploreGlobe({
           coordinates: [
             [
               [west, south],
-              [east, south],
-              [east, north],
               [west, north],
+              [east, north],
+              [east, south],
               [west, south],
             ],
           ],
@@ -295,9 +295,9 @@ export default function ExploreGlobe({
           coordinates: [
             [
               [west, south],
-              [east, south],
-              [east, north],
               [west, north],
+              [east, north],
+              [east, south],
               [west, south],
             ],
           ],
@@ -384,7 +384,7 @@ export default function ExploreGlobe({
         polygonsData={allPolygons}
         polygonGeoJsonGeometry={(d: object) => (d as GlobePolygonItem).geometry}
         polygonCapColor={(d: object) => (d as GlobePolygonItem).capColor}
-        polygonSideColor={() => "rgba(0, 0, 0, 0)"}
+        polygonSideColor={() => undefined}
         polygonStrokeColor={(d: object) => (d as GlobePolygonItem).strokeColor}
         polygonAltitude={(d: object) => (d as GlobePolygonItem).altitude}
         onPolygonClick={(d: object) => {
