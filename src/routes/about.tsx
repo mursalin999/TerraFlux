@@ -107,6 +107,38 @@ export default function AboutPage() {
           </div>
         </section>
 
+        {/* Team Emberline Profile */}
+        <section className="mt-8 grid gap-5 border-t border-border pt-8 sm:grid-cols-[minmax(0,1.25fr)_minmax(220px,0.75fr)] sm:items-center">
+          <div className="rounded-lg border border-border bg-surface p-5">
+            <div className="flex items-center gap-3">
+              <img
+                src="/emberline-logo.png"
+                alt="Emberline logo showing satellites observing fire data over Earth"
+                className="size-16 rounded-full border border-border object-cover"
+              />
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-text-secondary">TEAM EMBERLINE</p>
+                <h2 className="mt-1 font-headline text-xl font-semibold text-text">Built by Ibrahim Mursalin</h2>
+              </div>
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-text-secondary">
+              TerraFlux is an independent solo project by Ibrahim Mursalin, a 17-year-old builder
+              focused on making NASA fire observations easier to understand and compare.
+            </p>
+          </div>
+          <div className="overflow-hidden rounded-lg border border-border bg-surface">
+            <img
+              src="/ibrahim-mursalin.jpg"
+              alt="Black-and-white portrait of Ibrahim Mursalin"
+              className="aspect-[4/3] w-full object-cover object-top"
+            />
+            <div className="p-3">
+              <p className="text-[10px] uppercase tracking-wider text-text-secondary">FOUNDER & BUILDER</p>
+              <p className="mt-1 text-sm font-semibold text-text">Ibrahim Mursalin</p>
+            </div>
+          </div>
+        </section>
+
         {/* AI-Assisted Development Disclosure */}
         <section className="mt-8 rounded-lg border border-border bg-surface p-5">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-data-blue">
