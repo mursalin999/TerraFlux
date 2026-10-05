@@ -15,6 +15,7 @@ import { getDetections, getDailyCounts } from "@/lib/firelens.functions";
 import { EmptyState } from "@/components/EmptyState";
 import { ObservationInspector } from "@/components/ObservationInspector";
 import type { ObservationPoint } from "@/components/EarthGlobe";
+import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
 
 const FireMap = lazy(() => import("@/components/FireMap"));
 const EarthGlobe = lazy(() => import("@/components/EarthGlobe"));
@@ -94,6 +95,14 @@ function Compare() {
           Comparing 1 km MODIS nadir observations with 375 m VIIRS I-band detections over{" "}
           {region.name}.
         </p>
+      </div>
+
+      <div className="mt-6">
+        <NasaFirmsFetcher
+          initialRegionId={regionId}
+          initialStartDate={startDate}
+          initialEndDate={endDate}
+        />
       </div>
 
       <div className="mt-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start lg:gap-6">

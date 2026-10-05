@@ -1,7 +1,7 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronDown, Menu, X, Calendar, Layers, Database } from "lucide-react";
+import { ArrowRight, ChevronDown, Menu, X, Calendar, Layers, Database, RefreshCw } from "lucide-react";
 import { LogoWithWordmark } from "@/components/LogoMark";
 import {
   getHomeMissionTelemetry,
@@ -177,6 +177,19 @@ function HomePage() {
                     search={{}}
                     className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-text hover:bg-surface"
                   >
+                    <RefreshCw className="h-4 w-4 text-data-blue" />
+                    <div className="flex flex-col">
+                      <span className="font-semibold">Fetch NASA FIRMS</span>
+                      <span className="text-[10px] text-text-secondary">Any region and date range</span>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/calendar"
+                    search={{}}
+                    className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-text hover:bg-surface"
+                  >
                     <Calendar className="h-4 w-4 text-thermal-orange" />
                     <div className="flex flex-col">
                       <span className="font-semibold">Observation Calendar</span>
@@ -258,6 +271,14 @@ function HomePage() {
                 className="rounded px-3 py-2 text-text hover:bg-surface-elevated"
               >
                 EXPLORE
+              </Link>
+              <Link
+                to="/calendar"
+                search={{}}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded px-3 py-2 text-text hover:bg-surface-elevated"
+              >
+                DATA · FETCH NASA FIRMS
               </Link>
               <Link
                 to="/calendar"

@@ -179,6 +179,15 @@ function ExploreWorkspace() {
   };
 
   const handlePullHistory = async () => {
+    if (!filters.startDate || !filters.endDate) {
+      setPull({ status: "error", message: "Choose both a start date and an end date." });
+      return;
+    }
+    if (filters.startDate > filters.endDate) {
+      setPull({ status: "error", message: "Start date must be on or before end date." });
+      return;
+    }
+
     const chunks = monthChunks(filters.startDate, filters.endDate);
     setPull({ status: "running", done: 0, total: chunks.length });
     let stored = 0;
@@ -335,7 +344,7 @@ function ExploreWorkspace() {
             disabled={pull.status === "running"}
             className="rounded border border-border bg-surface px-3 py-1.5 text-text transition-colors hover:bg-surface-elevated disabled:opacity-50"
           >
-            LOAD FULL RANGE FROM NASA FIRMS
+              FETCH NASA FIRMS DATE RANGE
           </button>
         </div>
         <div className="text-[10px] text-text-secondary">
