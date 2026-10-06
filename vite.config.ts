@@ -6,17 +6,15 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-// Outside a Lovable build (e.g. Vercel CI), build the full-stack server with
-// Nitro's `vercel` preset so server functions deploy as serverless functions.
-// Inside Lovable, LOVABLE_NITRO_PRESET pins the target and this is ignored.
-// Keep the Vercel Nitro preset for production builds only. The preview runs
-// Vite's native TanStack Start dev server; enabling Nitro during dev makes the
-// browser resolve the internal default client entry as an unserved module.
-const isVercelBuild =
-  Boolean(process.env["VERCEL"]) &&
-  (process.env["NODE_ENV"] === "production" || process.env["npm_lifecycle_event"] === "build");
+// Production builds must use Nitro's Vercel preset so the generated artifact
+// contains a valid Vercel function instead of the default Cloudflare worker.
+// Keep Nitro disabled during development: TanStack Start's native dev server
+// serves the client entry correctly and avoids an unserved internal module.
+const isProductionBuild =
+  process.env["NODE_ENV"] === "production" ||
+  process.env["npm_lifecycle_event"] === "build";
 
-const nitro = isVercelBuild
+const nitro = isProductionBuild
   ? ({ preset: "vercel", vercel: { entryFormat: "node" } } as const)
   : undefined;
 

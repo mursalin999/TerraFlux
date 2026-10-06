@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-05T16:40:17.262Z",
+  "date": "2026-10-06T15:18:09.701Z",
   "preset": "vercel",
   "framework": {
     "name": "nitro",
@@ -20,7 +20,7 @@
       "cronHandlerRoute": "/_vercel/cron",
       "entryFormat": "node",
       "functions": {
-        "runtime": "nodejs22.x"
+        "runtime": "nodejs24.x"
       }
     }
   }
