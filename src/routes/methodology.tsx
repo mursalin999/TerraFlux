@@ -127,7 +127,7 @@ export function MethodologyPage() {
         <h1 className="mt-2 font-headline text-3xl font-bold tracking-tight text-text sm:text-4xl">
           From Raw Photons to Harmonized Telemetry
         </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-text-secondary sm:text-base">
+        <p className="mt-2 max-w-3xl text-base leading-7 text-text-secondary">
           How TerraFlux ingests, normalizes, and correlates spaceborne radiometric active fire
           observations from NASA's MODIS and VIIRS satellite instruments into a unified analytical
           framework.
@@ -151,8 +151,8 @@ export function MethodologyPage() {
         </div>
 
         {/* Clean Scientific SVG Vector Flow */}
-        <div className="overflow-x-auto pb-2">
-          <div className="min-w-[780px]">
+        <div className="-mx-1 overflow-x-auto overscroll-x-contain px-1 pb-3 [scrollbar-width:thin]">
+          <div className="min-w-[780px] snap-x snap-mandatory">
             <svg viewBox="0 0 860 160" className="w-full h-auto">
               <defs>
                 <linearGradient id="modisGrad" x1="0" y1="0" x2="1" y2="0">
@@ -331,7 +331,7 @@ export function MethodologyPage() {
               <div
                 key={step.id}
                 onClick={() => setExpandedStep(isExpanded ? null : step.id)}
-                className={`cursor-pointer rounded-lg border p-4 transition-all ${
+                className={`cursor-pointer rounded-lg border p-4 text-base transition-all ${
                   isExpanded
                     ? "border-text bg-surface-elevated shadow-lg"
                     : "border-border bg-surface hover:border-text-secondary"
@@ -354,7 +354,7 @@ export function MethodologyPage() {
                   {step.subtitle}
                 </h3>
                 {isExpanded && (
-                  <p className="mt-2 text-xs leading-relaxed text-text-secondary border-t border-border/50 pt-2 animate-in fade-in duration-200">
+                  <p className="mt-2 border-t border-border/50 pt-2 text-base leading-7 text-text-secondary animate-in fade-in duration-200">
                     {step.detail}
                   </p>
                 )}

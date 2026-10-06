@@ -40,17 +40,17 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   const delta = Math.abs(modisVal - viirsVal);
 
   return (
-    <div className="rounded-[6px] border border-border bg-surface-elevated p-3 font-mono text-xs text-text shadow-xl">
+    <div className="min-w-[220px] rounded-[6px] border border-border bg-surface-elevated p-3 font-mono text-sm text-text shadow-xl">
       <div className="border-b border-border/60 pb-1.5 font-semibold text-text">{label}</div>
       <div className="mt-2 space-y-1">
-        <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-5 leading-6">
           <span className="flex items-center gap-1.5 text-data-blue">
             <span className="h-2 w-2 rounded-full border border-data-blue" />
             MODIS (1 km):
           </span>
           <span className="font-bold text-text">{modisVal.toLocaleString()}</span>
         </div>
-        <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-5 leading-6">
           <span className="flex items-center gap-1.5 text-thermal-orange">
             <span className="h-2 w-2 rounded-full bg-thermal-orange" />
             VIIRS (375 m):
@@ -82,7 +82,11 @@ export default function CompareChart({ data }: CompareChartProps) {
   }));
 
   return (
-    <div className="h-72 w-full pt-2">
+    <div className="h-80 w-full pt-3" aria-label="Daily MODIS and VIIRS detections chart">
+      <div className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-xs text-text-secondary" aria-label="Chart legend">
+        <span className="inline-flex items-center gap-2 text-data-blue"><span className="h-2.5 w-2.5 rounded-full bg-data-blue" />MODIS (1 km)</span>
+        <span className="inline-flex items-center gap-2 text-thermal-orange"><span className="h-2.5 w-2.5 rounded-full bg-thermal-orange" />VIIRS (375 m)</span>
+      </div>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={formattedData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
           <defs>
@@ -101,7 +105,7 @@ export default function CompareChart({ data }: CompareChartProps) {
           <XAxis
             dataKey="shortDate"
             stroke="#91A0B5"
-            fontSize={10}
+            fontSize={12}
             fontFamily="DM Mono, monospace"
             tickLine={false}
             dy={5}
@@ -110,7 +114,7 @@ export default function CompareChart({ data }: CompareChartProps) {
 
           <YAxis
             stroke="#91A0B5"
-            fontSize={10}
+            fontSize={12}
             fontFamily="DM Mono, monospace"
             tickLine={false}
             dx={-5}

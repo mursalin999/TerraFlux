@@ -416,7 +416,7 @@ function ExploreWorkspace() {
       </div>
 
       {/* TOP DESKTOP FLOATING BAR (Slim, Compact, Floating) */}
-      <div className="pointer-events-auto absolute left-4 right-4 top-4 z-20 hidden items-center justify-between gap-4 font-mono sm:flex lg:left-6 lg:right-6">
+      <div className="pointer-events-auto absolute left-4 right-4 top-4 z-20 hidden max-w-[calc(100%-2rem)] items-center justify-between gap-3 overflow-x-auto pb-1 font-mono sm:flex lg:left-6 lg:right-6 lg:max-w-[calc(100%-3rem)]">
         {/* Left: Region & Signature 3-Way Control */}
         <div className="flex items-center gap-3 rounded-lg border border-border/80 bg-surface/90 p-1.5 shadow-2xl backdrop-blur-md">
           {/* Target Region Selector */}
@@ -445,7 +445,7 @@ function ExploreWorkspace() {
                   key={sensor}
                   type="button"
                   onClick={() => setActiveSensor(sensor)}
-                  className={`rounded px-2.5 py-1 text-xs font-semibold tracking-wider transition-all duration-300 ${
+                  className={`min-h-11 rounded px-3 py-2 text-xs font-semibold tracking-wider transition-all duration-300 ${
                     active
                       ? sensor === "MODIS"
                         ? "bg-data-blue text-bg shadow-sm"
@@ -476,7 +476,7 @@ function ExploreWorkspace() {
                   setActiveView(view);
                   if (view === "HARMONIZED") setActiveSensor("HARMONIZED");
                 }}
-                className={`rounded px-2.5 py-1 text-xs tracking-wider transition-colors ${
+                className={`min-h-11 rounded px-3 py-2 text-xs tracking-wider transition-colors ${
                   active
                     ? "bg-surface-elevated font-semibold text-text border border-border"
                     : "text-text-secondary hover:text-text"
@@ -521,7 +521,7 @@ function ExploreWorkspace() {
           <button
             type="button"
             onClick={() => setIsParamsOpen(!isParamsOpen)}
-            className={`flex items-center gap-1.5 rounded-lg border border-border/80 bg-surface/90 px-3 py-1.5 text-xs text-text shadow-2xl backdrop-blur-md transition-colors hover:bg-surface-elevated ${
+            className={`flex min-h-11 items-center gap-1.5 rounded-lg border border-border/80 bg-surface/90 px-3 py-2 text-xs text-text shadow-2xl backdrop-blur-md transition-colors hover:bg-surface-elevated ${
               isParamsOpen ? "border-data-blue text-data-blue" : ""
             }`}
           >
@@ -533,7 +533,7 @@ function ExploreWorkspace() {
           <button
             type="button"
             onClick={() => setIsTableModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-border/80 bg-surface/90 px-3 py-1.5 text-xs text-text shadow-2xl backdrop-blur-md transition-colors hover:bg-surface-elevated"
+            className="flex min-h-11 items-center gap-1.5 rounded-lg border border-border/80 bg-surface/90 px-3 py-2 text-xs text-text shadow-2xl backdrop-blur-md transition-colors hover:bg-surface-elevated focus-visible:ring-2 focus-visible:ring-data-blue"
           >
             <TableIcon className="h-3.5 w-3.5 text-agreement-teal" />
             <span>VIEW AS TABLE</span>
@@ -543,7 +543,7 @@ function ExploreWorkspace() {
             type="button"
             onClick={resetFilters}
             title="Reset parameters"
-            className="rounded-lg border border-border/80 bg-surface/90 p-1.5 text-text-secondary shadow-2xl backdrop-blur-md transition-colors hover:text-text"
+            className="min-h-11 min-w-11 rounded-lg border border-border/80 bg-surface/90 p-2 text-text-secondary shadow-2xl backdrop-blur-md transition-colors hover:text-text focus-visible:ring-2 focus-visible:ring-data-blue"
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
@@ -604,7 +604,7 @@ function ExploreWorkspace() {
               key={sensor}
               type="button"
               onClick={() => setActiveSensor(sensor)}
-              className={`flex-1 rounded py-1 text-center text-xs font-semibold ${
+              className={`min-h-11 flex-1 rounded px-2 py-2 text-center text-xs font-semibold ${
                 activeSensor === sensor
                   ? sensor === "MODIS"
                     ? "bg-data-blue text-bg"
@@ -624,7 +624,7 @@ function ExploreWorkspace() {
           <button
             type="button"
             onClick={() => setIsMobileDrawerOpen(true)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-xs font-semibold text-text shadow-xl"
+            className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2.5 text-xs font-semibold text-text shadow-xl transition-colors hover:bg-surface-elevated focus-visible:ring-2 focus-visible:ring-data-blue"
           >
             <SlidersHorizontal className="h-4 w-4 text-data-blue" />
             <span>CONTROLS ({activeView})</span>
@@ -632,7 +632,7 @@ function ExploreWorkspace() {
           <button
             type="button"
             onClick={() => setIsTableModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2.5 text-xs text-text shadow-xl"
+            className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2.5 text-xs text-text shadow-xl transition-colors hover:bg-surface-elevated focus-visible:ring-2 focus-visible:ring-data-blue"
           >
             <TableIcon className="h-4 w-4 text-agreement-teal" />
             <span>TABLE</span>
