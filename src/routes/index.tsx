@@ -374,7 +374,12 @@ function HomePage() {
             <div className="flex shrink-0 items-center gap-1.5">
               <span className="text-text-secondary">DATA SOURCE:</span>
               <strong className="text-text">NASA FIRMS</strong>
-              {telemetry.status === "unavailable" ? (
+              {telemetryQuery.isPending ? (
+                <span className="inline-flex items-center gap-1.5 text-text-secondary" aria-label="Loading data source status">
+                  <span className="inline-block h-2 w-16 animate-pulse rounded bg-surface-elevated" />
+                  <span>· SYNCING</span>
+                </span>
+              ) : telemetry.status === "unavailable" ? (
                 <span className="font-semibold text-critical-red">· DATA SOURCE UNAVAILABLE</span>
               ) : (
                 <>
@@ -408,7 +413,7 @@ function HomePage() {
                   isModisAvailable ? "font-semibold text-data-blue" : "text-text-secondary/60"
                 }
               >
-                {isModisAvailable ? "AVAILABLE" : "UNAVAILABLE"}
+                {telemetryQuery.isPending ? "SYNCING" : isModisAvailable ? "AVAILABLE" : "UNAVAILABLE"}
               </span>
             </div>
 
@@ -423,7 +428,7 @@ function HomePage() {
                   isViirsAvailable ? "font-semibold text-thermal-orange" : "text-text-secondary/60"
                 }
               >
-                {isViirsAvailable ? "AVAILABLE" : "UNAVAILABLE"}
+                {telemetryQuery.isPending ? "SYNCING" : isViirsAvailable ? "AVAILABLE" : "UNAVAILABLE"}
               </span>
             </div>
 
@@ -449,9 +454,11 @@ function HomePage() {
             <div className="flex shrink-0 items-center gap-1.5">
               <span>HISTORICAL:</span>
               <span className="text-text">
-                {telemetry.baselineDays > 0
-                  ? `${telemetry.baselineDays} DAYS BASELINE`
-                  : "UNAVAILABLE"}
+                {telemetryQuery.isPending
+                  ? "SYNCING"
+                  : telemetry.baselineDays > 0
+                    ? `${telemetry.baselineDays} DAYS BASELINE`
+                    : "UNAVAILABLE"}
               </span>
             </div>
           </div>

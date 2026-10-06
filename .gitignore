@@ -16,6 +16,12 @@ dist-ssr
 .nitro
 *.local
 
+# The Vercel Output API manifest is required when deploying the committed
+# prebuilt artifact. The parent .vercel directory remains globally ignored.
+!.vercel/
+!.vercel/output/
+!.vercel/output/config.json
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

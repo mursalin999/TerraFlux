@@ -155,6 +155,23 @@
       sans-serif;
   }
 
+  button,
+  a,
+  select,
+  input,
+  textarea {
+    min-height: 44px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  select:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--data-blue);
+    outline-offset: 2px;
+  }
+
   h1,
   h2,
   h3,
@@ -208,5 +225,16 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
