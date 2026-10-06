@@ -1,5 +1,5 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { Suspense, lazy, useState } from "react";
+import { Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Globe2, Map as MapIcon } from "lucide-react";
 import {
@@ -16,10 +16,9 @@ import { EmptyState } from "@/components/EmptyState";
 import { ObservationInspector } from "@/components/ObservationInspector";
 import type { ObservationPoint } from "@/components/EarthGlobe";
 import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
-
-const FireMap = lazy(() => import("@/components/FireMap"));
-const EarthGlobe = lazy(() => import("@/components/EarthGlobe"));
-const CompareChart = lazy(() => import("@/components/CompareChart"));
+import FireMap from "@/components/FireMap";
+import EarthGlobe from "@/components/EarthGlobe";
+import CompareChart from "@/components/CompareChart";
 
 export const Route = createFileRoute("/compare")({
   head: () => ({

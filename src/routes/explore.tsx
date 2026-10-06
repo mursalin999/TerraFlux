@@ -1,5 +1,5 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { Suspense, lazy, useMemo, useState, useEffect, useCallback } from "react";
+import { Suspense, useMemo, useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -41,9 +41,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-
-const ExploreGlobe = lazy(() => import("@/components/ExploreGlobe"));
-const FireMap = lazy(() => import("@/components/FireMap"));
+import ExploreGlobe from "@/components/ExploreGlobe";
+import FireMap from "@/components/FireMap";
 
 export const Route = createFileRoute("/explore")({
   head: () => ({
