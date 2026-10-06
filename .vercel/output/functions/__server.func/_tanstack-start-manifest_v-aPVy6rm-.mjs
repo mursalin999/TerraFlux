@@ -1,4 +1,4 @@
-//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-BY0HOoV8.js
+//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-aPVy6rm-.js
 var tsrStartManifest = () => ({ routes: {
 	__root__: {
 		filePath: "/vercel/share/v0-project/src/routes/__root.tsx",
@@ -11,21 +11,21 @@ var tsrStartManifest = () => ({ routes: {
 			"/methodology"
 		],
 		preloads: [
-			"/assets/index-CIEnU6A5.js",
+			"/assets/index-CuLpK0DD.js",
 			"/assets/clsx-BHFsf9zG.js",
 			"/assets/layers-BFqUr-Df.js"
 		],
 		scripts: [{ attrs: {
 			type: "module",
 			async: !0,
-			src: "/assets/index-CIEnU6A5.js"
+			src: "/assets/index-CuLpK0DD.js"
 		} }]
 	},
 	"/": {
 		filePath: "/vercel/share/v0-project/src/routes/index.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/routes-CJ7Rb6Zy.js",
+			"/assets/routes-CrfIZ4vE.js",
 			"/assets/firelens.functions--AAyoa00.js",
 			"/assets/react-globe.gl-Ul3onpbU.js"
 		]
@@ -34,10 +34,10 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "/vercel/share/v0-project/src/routes/calendar.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/calendar-BV6upMI5.js",
+			"/assets/calendar-BbRJc0xf.js",
 			"/assets/firelens.functions--AAyoa00.js",
 			"/assets/EmptyState-ravY19Ga.js",
-			"/assets/ActivityTimeline-Csdy2Xqf.js",
+			"/assets/ActivityTimeline-DhXP1JDP.js",
 			"/assets/NasaFirmsFetcher-DUVy2ZfV.js"
 		]
 	},
@@ -46,7 +46,7 @@ var tsrStartManifest = () => ({ routes: {
 		children: void 0,
 		css: ["/assets/FireMap-vh-t_kPv.css"],
 		preloads: [
-			"/assets/compare-CXbJmJPd.js",
+			"/assets/compare-CGn3B_Mq.js",
 			"/assets/firelens.functions--AAyoa00.js",
 			"/assets/EmptyState-ravY19Ga.js",
 			"/assets/react-globe.gl-Ul3onpbU.js",
@@ -59,11 +59,11 @@ var tsrStartManifest = () => ({ routes: {
 		children: void 0,
 		css: ["/assets/FireMap-vh-t_kPv.css"],
 		preloads: [
-			"/assets/explore-YoZS9Gh8.js",
+			"/assets/explore-DE-Tx3IF.js",
 			"/assets/firelens.functions--AAyoa00.js",
 			"/assets/EmptyState-ravY19Ga.js",
 			"/assets/react-globe.gl-Ul3onpbU.js",
-			"/assets/ActivityTimeline-Csdy2Xqf.js",
+			"/assets/ActivityTimeline-DhXP1JDP.js",
 			"/assets/FireMap-CSxKzRth.js"
 		]
 	}

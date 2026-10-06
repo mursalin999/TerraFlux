@@ -17,7 +17,7 @@ const isProductionBuild =
 const nitro = isProductionBuild
   ? ({
       preset: "vercel",
-      vercel: { entryFormat: "node", functions: { runtime: "nodejs20.x" } },
+      vercel: { entryFormat: "node", functions: { runtime: "nodejs22.x" } },
     } as const)
   : undefined;
 

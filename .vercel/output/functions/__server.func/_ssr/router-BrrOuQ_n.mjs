@@ -6,10 +6,10 @@ import { E as ChevronDown, S as CircleCheck, a as ShieldAlert, d as Menu, g as E
 import { n as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
 import { t as QueryClient } from "../_libs/tanstack__query-core.mjs";
 import { a as LogoMark, i as DropdownMenuTrigger, n as DropdownMenuContent, o as LogoWithWordmark, r as DropdownMenuItem, t as DropdownMenu } from "./dropdown-menu-j_qlvo2r.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-BecfVqcz.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-BrrOuQ_n.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var styles_default = "/assets/styles-BGUOApOk.css";
+var styles_default = "/assets/styles-uthHBWnX.css";
 function reportLovableError(error, context = {}) {
 	if (typeof window === "undefined") return;
 	window.__lovableEvents?.captureException?.(error, {
@@ -456,7 +456,7 @@ function RootComponent() {
 		})
 	});
 }
-var $$splitComponentImporter$3 = () => import("./routes-DCtL4Isu.mjs");
+var $$splitComponentImporter$3 = () => import("./routes-COBZQob5.mjs");
 var Route$5 = createFileRoute("/")({
 	head: () => ({ meta: [
 		{ title: "TerraFlux: Earth's thermal story, harmonized" },
@@ -755,7 +755,7 @@ var Route$2 = createFileRoute("/compare")({
 	] }),
 	component: lazyRouteComponent($$splitComponentImporter$1, "component")
 });
-var $$splitComponentImporter = () => import("./explore-BWCTMyjJ.mjs");
+var $$splitComponentImporter = () => import("./explore-C24XUdg3.mjs");
 var Route$1 = createFileRoute("/explore")({
 	head: () => ({ meta: [
 		{ title: "Scientific Workspace — TerraFlux" },
@@ -891,7 +891,7 @@ function MethodologyPage() {
 						children: "From Raw Photons to Harmonized Telemetry"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						className: "mt-2 max-w-3xl text-sm leading-relaxed text-text-secondary sm:text-base",
+						className: "mt-2 max-w-3xl text-base leading-7 text-text-secondary",
 						children: "How TerraFlux ingests, normalizes, and correlates spaceborne radiometric active fire observations from NASA's MODIS and VIIRS satellite instruments into a unified analytical framework."
 					})
 				]
@@ -913,9 +913,9 @@ function MethodologyPage() {
 						})]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-						className: "overflow-x-auto pb-2",
+						className: "-mx-1 overflow-x-auto overscroll-x-contain px-1 pb-3 [scrollbar-width:thin]",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-							className: "min-w-[780px]",
+							className: "min-w-[780px] snap-x snap-mandatory",
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", {
 								viewBox: "0 0 860 160",
 								className: "w-full h-auto",
@@ -1124,7 +1124,7 @@ function MethodologyPage() {
 							const isExpanded = expandedStep === step.id;
 							return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								onClick: () => setExpandedStep(isExpanded ? null : step.id),
-								className: `cursor-pointer rounded-lg border p-4 transition-all ${isExpanded ? "border-text bg-surface-elevated shadow-lg" : "border-border bg-surface hover:border-text-secondary"}`,
+								className: `cursor-pointer rounded-lg border p-4 text-base transition-all ${isExpanded ? "border-text bg-surface-elevated shadow-lg" : "border-border bg-surface hover:border-text-secondary"}`,
 								children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 										className: "flex items-center justify-between",
@@ -1139,7 +1139,7 @@ function MethodologyPage() {
 										children: step.subtitle
 									}),
 									isExpanded && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-										className: "mt-2 text-xs leading-relaxed text-text-secondary border-t border-border/50 pt-2 animate-in fade-in duration-200",
+										className: "mt-2 border-t border-border/50 pt-2 text-base leading-7 text-text-secondary animate-in fade-in duration-200",
 										children: step.detail
 									})
 								]
