@@ -15,7 +15,10 @@ const isProductionBuild =
   process.env["npm_lifecycle_event"] === "build";
 
 const nitro = isProductionBuild
-  ? ({ preset: "vercel", vercel: { entryFormat: "node" } } as const)
+  ? ({
+      preset: "vercel",
+      vercel: { entryFormat: "node", functions: { runtime: "nodejs20.x" } },
+    } as const)
   : undefined;
 
 export default defineConfig({
