@@ -6,7 +6,7 @@ import { E as ChevronDown, d as Menu, j as ArrowRight, k as Calendar, l as Refre
 import { a as getHomeMissionTelemetry } from "./firelens.functions-C1L89yTy.mjs";
 import { t as useQuery } from "../_libs/tanstack__react-query.mjs";
 import { i as DropdownMenuTrigger, n as DropdownMenuContent, o as LogoWithWordmark, r as DropdownMenuItem, t as DropdownMenu } from "./dropdown-menu-j_qlvo2r.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-DCtL4Isu.js
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-COBZQob5.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function GlobeFallback() {
@@ -313,7 +313,11 @@ function HomePage() {
 										className: "text-text",
 										children: "NASA FIRMS"
 									}),
-									telemetry.status === "unavailable" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									telemetryQuery.isPending ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+										className: "inline-flex items-center gap-1.5 text-text-secondary",
+										"aria-label": "Loading data source status",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "inline-block h-2 w-16 animate-pulse rounded bg-surface-elevated" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "· SYNCING" })]
+									}) : telemetry.status === "unavailable" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 										className: "font-semibold text-critical-red",
 										children: "· DATA SOURCE UNAVAILABLE"
 									}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
@@ -347,7 +351,7 @@ function HomePage() {
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "MODIS:" }),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 										className: isModisAvailable ? "font-semibold text-data-blue" : "text-text-secondary/60",
-										children: isModisAvailable ? "AVAILABLE" : "UNAVAILABLE"
+										children: telemetryQuery.isPending ? "SYNCING" : isModisAvailable ? "AVAILABLE" : "UNAVAILABLE"
 									})
 								]
 							}),
@@ -362,7 +366,7 @@ function HomePage() {
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "VIIRS:" }),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 										className: isViirsAvailable ? "font-semibold text-thermal-orange" : "text-text-secondary/60",
-										children: isViirsAvailable ? "AVAILABLE" : "UNAVAILABLE"
+										children: telemetryQuery.isPending ? "SYNCING" : isViirsAvailable ? "AVAILABLE" : "UNAVAILABLE"
 									})
 								]
 							}),
@@ -385,7 +389,7 @@ function HomePage() {
 								className: "flex shrink-0 items-center gap-1.5",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "HISTORICAL:" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 									className: "text-text",
-									children: telemetry.baselineDays > 0 ? `${telemetry.baselineDays} DAYS BASELINE` : "UNAVAILABLE"
+									children: telemetryQuery.isPending ? "SYNCING" : telemetry.baselineDays > 0 ? `${telemetry.baselineDays} DAYS BASELINE` : "UNAVAILABLE"
 								})]
 							})
 						]
