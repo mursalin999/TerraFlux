@@ -1,5 +1,5 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
-import { Suspense, lazy, useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ChevronDown, Menu, X, Calendar, Layers, Database, RefreshCw } from "lucide-react";
 import { LogoWithWordmark } from "@/components/LogoMark";
@@ -14,8 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const HomeEarthGlobe = lazy(() => import("@/components/HomeEarthGlobe"));
+import HomeEarthGlobe from "@/components/HomeEarthGlobe";
 
 export const Route = createFileRoute("/")({
   head: () => ({
