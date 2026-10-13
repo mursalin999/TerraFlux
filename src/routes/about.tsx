@@ -117,13 +117,17 @@ export default function AboutPage() {
                 className="size-16 rounded-full border border-border object-cover"
               />
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-text-secondary">TEAM EMBERLINE</p>
-                <h2 className="mt-1 font-headline text-xl font-semibold text-text">Built by Ibrahim Mursalin</h2>
+                <p className="text-[10px] uppercase tracking-wider text-text-secondary">
+                  TEAM EMBERLINE
+                </p>
+                <h2 className="mt-1 font-headline text-xl font-semibold text-text">
+                  Built by Ibrahim Mursalin
+                </h2>
               </div>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-text-secondary">
-              TerraFlux is an independent solo project by Ibrahim Mursalin, a 17-year-old builder
-              focused on making NASA fire observations easier to understand and compare.
+              TerraFlux is an independent solo project by Ibrahim Mursalin, focused on making NASA
+              fire observations easier to understand and compare.
             </p>
           </div>
           <div className="overflow-hidden rounded-lg border border-border bg-surface">
@@ -133,7 +137,9 @@ export default function AboutPage() {
               className="aspect-[4/3] w-full object-cover object-top"
             />
             <div className="p-3">
-              <p className="text-[10px] uppercase tracking-wider text-text-secondary">FOUNDER & BUILDER</p>
+              <p className="text-[10px] uppercase tracking-wider text-text-secondary">
+                FOUNDER & BUILDER
+              </p>
               <p className="mt-1 text-sm font-semibold text-text">Ibrahim Mursalin</p>
             </div>
           </div>
