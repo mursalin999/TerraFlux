@@ -1,4 +1,4 @@
-//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-DbDZfpmp.js
+//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-BlrjPmfL.js
 var tsrStartManifest = () => ({ routes: {
 	__root__: {
 		filePath: "/vercel/share/v0-project/src/routes/__root.tsx",
@@ -11,7 +11,7 @@ var tsrStartManifest = () => ({ routes: {
 			"/methodology"
 		],
 		preloads: [
-			"/assets/index-_oXKeQ6j.js",
+			"/assets/index-Dexau31K.js",
 			"/assets/jsx-runtime-D3jfb0Ew.js",
 			"/assets/react-dom-CwdmouWZ.js",
 			"/assets/clsx-B94IcPJn.js"
@@ -19,14 +19,14 @@ var tsrStartManifest = () => ({ routes: {
 		scripts: [{ attrs: {
 			type: "module",
 			async: !0,
-			src: "/assets/index-_oXKeQ6j.js"
+			src: "/assets/index-Dexau31K.js"
 		} }]
 	},
 	"/": {
 		filePath: "/vercel/share/v0-project/src/routes/index.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/routes-DLPz5938.js",
+			"/assets/routes-BS6FA94h.js",
 			"/assets/firelens.functions-CGfemD9m.js",
 			"/assets/arrow-right-CJIXscRv.js",
 			"/assets/react-globe.gl-B46gxH3z.js"
@@ -36,10 +36,10 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "/vercel/share/v0-project/src/routes/calendar.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/calendar-CFWZx3TK.js",
+			"/assets/calendar-CBOzt3BK.js",
 			"/assets/firelens.functions-CGfemD9m.js",
 			"/assets/EmptyState-B1vWkqtk.js",
-			"/assets/ActivityTimeline-BBm4SjrC.js",
+			"/assets/ActivityTimeline-D5e7ExHg.js",
 			"/assets/NasaFirmsFetcher-CqerXPp0.js"
 		]
 	},
@@ -48,12 +48,12 @@ var tsrStartManifest = () => ({ routes: {
 		children: void 0,
 		css: ["/assets/FireMap-vh-t_kPv.css"],
 		preloads: [
-			"/assets/compare-D_lCQnAS.js",
+			"/assets/compare-LgZ2Ci7n.js",
 			"/assets/firelens.functions-CGfemD9m.js",
 			"/assets/EmptyState-B1vWkqtk.js",
-			"/assets/analyticalGrid-CMsaUJGO.js",
+			"/assets/analyticalGrid-CjLXZxIM.js",
 			"/assets/react-globe.gl-B46gxH3z.js",
-			"/assets/FireMap-B_Ot81MG.js",
+			"/assets/FireMap-vXuaYEMO.js",
 			"/assets/NasaFirmsFetcher-CqerXPp0.js"
 		]
 	},
@@ -61,11 +61,11 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "/vercel/share/v0-project/src/routes/explore.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/explore-CjDmvWGu.js",
+			"/assets/explore-1C4lk420.js",
 			"/assets/firelens.functions-CGfemD9m.js",
 			"/assets/EmptyState-B1vWkqtk.js",
-			"/assets/ActivityTimeline-BBm4SjrC.js",
-			"/assets/analyticalGrid-CMsaUJGO.js"
+			"/assets/ActivityTimeline-D5e7ExHg.js",
+			"/assets/analyticalGrid-CjLXZxIM.js"
 		]
 	}
 } });

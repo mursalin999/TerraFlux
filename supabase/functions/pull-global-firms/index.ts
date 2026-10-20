@@ -29,7 +29,6 @@ const GLOBAL_QUADRANTS = [
 const GRID_STEP = 0.25; // Existing analytical grid
 const GLOBAL_GRID_STEP = 1; // Additive hero layer: one-degree cells
 
-
 interface RawObservation {
   lat: number;
   lon: number;
@@ -206,7 +205,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const cellMap = new Map<string, CellAggregation>();
-    const globalViirs = new Map<string, { cell_lat: number; cell_lon: number; count: number; max_frp: number | null }>();
+    const globalViirs = new Map<
+      string,
+      { cell_lat: number; cell_lon: number; count: number; max_frp: number | null }
+    >();
     const fetchedAt = new Date().toISOString();
     const pointRecords: RawObservation[] = [];
     let totalDetectionsFetched = 0;
@@ -237,7 +239,12 @@ Deno.serve(async (req) => {
               const cellLat = Math.floor(obs.lat / GLOBAL_GRID_STEP);
               const cellLon = Math.floor(obs.lon / GLOBAL_GRID_STEP);
               const key = `${cellLat}:${cellLon}`;
-              const current = globalViirs.get(key) ?? { cell_lat: cellLat + 0.5, cell_lon: cellLon + 0.5, count: 0, max_frp: null };
+              const current = globalViirs.get(key) ?? {
+                cell_lat: cellLat + 0.5,
+                cell_lon: cellLon + 0.5,
+                count: 0,
+                max_frp: null,
+              };
               current.count += 1;
               if (obs.frp_mw != null) current.max_frp = Math.max(current.max_frp ?? 0, obs.frp_mw);
               globalViirs.set(key, current);
@@ -319,12 +326,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { error: clearHeroError } = await supabase.from("global_cells_48h").delete().eq("source", "VIIRS");
+    const { error: clearHeroError } = await supabase
+      .from("global_cells_48h")
+      .delete()
+      .eq("source", "VIIRS");
     if (clearHeroError) throw new Error(`global_cells_48h clear failed: ${clearHeroError.message}`);
 
-    const heroCells = Array.from(globalViirs.values()).map((cell) => ({ ...cell, source: "VIIRS", fetched_at: fetchedAt }));
+    const heroCells = Array.from(globalViirs.values()).map((cell) => ({
+      ...cell,
+      source: "VIIRS",
+      fetched_at: fetchedAt,
+    }));
     for (let i = 0; i < heroCells.length; i += 500) {
-      const { error } = await supabase.from("global_cells_48h").upsert(heroCells.slice(i, i + 500), { onConflict: "cell_lat,cell_lon,source" });
+      const { error } = await supabase
+        .from("global_cells_48h")
+        .upsert(heroCells.slice(i, i + 500), { onConflict: "cell_lat,cell_lon,source" });
       if (error) throw new Error(`global_cells_48h upsert failed: ${error.message}`);
     }
 

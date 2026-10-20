@@ -41,6 +41,7 @@ export default function FireMap({
   onSelectObservation?: (obs: MapDetection) => void;
 }) {
   const [isMounted, setIsMounted] = useState(false);
+  const [tileError, setTileError] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -74,7 +75,14 @@ export default function FireMap({
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url={tileUrl}
+          eventHandlers={{ tileerror: () => setTileError(true) }}
         />
+        {tileError && (
+          <div className="pointer-events-none absolute inset-x-4 top-4 z-[500] rounded border border-data-orange/50 bg-[#030711]/95 px-3 py-2 font-mono text-[11px] text-text-secondary shadow-lg">
+            BASEMAP UNAVAILABLE — CARTO tiles require no API key. Showing observation points without
+            a basemap.
+          </div>
+        )}
         {shown.map((d, i) => {
           const isModis = d.sensor === "MODIS";
           const meta = SENSOR_META[d.sensor];
