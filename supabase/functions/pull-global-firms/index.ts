@@ -319,6 +319,9 @@ Deno.serve(async (req) => {
       );
     }
 
+    const { error: clearHeroError } = await supabase.from("global_cells_48h").delete().eq("source", "VIIRS");
+    if (clearHeroError) throw new Error(`global_cells_48h clear failed: ${clearHeroError.message}`);
+
     const heroCells = Array.from(globalViirs.values()).map((cell) => ({ ...cell, source: "VIIRS", fetched_at: fetchedAt }));
     for (let i = 0; i < heroCells.length; i += 500) {
       const { error } = await supabase.from("global_cells_48h").upsert(heroCells.slice(i, i + 500), { onConflict: "cell_lat,cell_lon,source" });
