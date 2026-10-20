@@ -5,11 +5,11 @@ import { C as ClientOnly } from "../_libs/@tanstack/react-router+[...].mjs";
 import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
 import { _ as Earth, f as Map$1, m as Info, t as X } from "../_libs/lucide-react.mjs";
 import { i as defaultFilters, n as EmptyState, r as RegionSelect, t as DateRangeInputs } from "./EmptyState-CYtulnKL.mjs";
-import { i as getDetections, r as getDailyCounts } from "./firelens.functions-C1L89yTy.mjs";
+import { i as getDetections, r as getDailyCounts } from "./firelens.functions-DdPPN-au.mjs";
 import { t as useQuery } from "../_libs/tanstack__react-query.mjs";
-import { t as NasaFirmsFetcher } from "./NasaFirmsFetcher-B61ZlWsW.mjs";
+import { t as NasaFirmsFetcher } from "./NasaFirmsFetcher-LskkWvAE.mjs";
 import { n as ObservationInspector, r as computeAnalyticalGrid } from "./analyticalGrid-JuyqBVH4.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/compare-BXUHHC6D.js
+//#region node_modules/.nitro/vite/services/ssr/assets/compare-Ont7uXDA.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function Formula({ children }) {

@@ -6,12 +6,12 @@ import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[.
 import { D as ChevronDown, T as ChevronUp, _ as Earth, c as RotateCcw, f as Map$1, i as SlidersHorizontal, j as ArrowUpDown, l as RefreshCw, n as Table, o as Search, t as X, v as Download } from "../_libs/lucide-react.mjs";
 import { a as useServerFn, i as defaultFilters, n as EmptyState } from "./EmptyState-CYtulnKL.mjs";
 import { t as ActivityTimeline } from "./ActivityTimeline-Cfl2VATt.mjs";
-import { i as getDetections, n as fetchFireData, t as backfillFireData } from "./firelens.functions-C1L89yTy.mjs";
+import { i as getDetections, n as fetchFireData, t as backfillFireData } from "./firelens.functions-DdPPN-au.mjs";
 import { r as useQueryClient, t as useQuery } from "../_libs/tanstack__react-query.mjs";
 import { n as ObservationInspector, r as computeAnalyticalGrid, t as AGREEMENT_DEFINITIONS } from "./analyticalGrid-JuyqBVH4.mjs";
 import { t as cn } from "./utils-C_uf36nf.mjs";
 import { t as Drawer } from "../_libs/vaul.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/explore-Co0ZIs2J.js
+//#region node_modules/.nitro/vite/services/ssr/assets/explore-D7FILMuP.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function ObservationsTableModal({ isOpen, onClose, observations, regionName }) {

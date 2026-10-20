@@ -5,10 +5,10 @@ import { x as useNavigate } from "../_libs/@tanstack/react-router+[...].mjs";
 import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
 import { i as defaultFilters, n as EmptyState, r as RegionSelect, t as DateRangeInputs } from "./EmptyState-CYtulnKL.mjs";
 import { t as ActivityTimeline } from "./ActivityTimeline-Cfl2VATt.mjs";
-import { i as getDetections, r as getDailyCounts } from "./firelens.functions-C1L89yTy.mjs";
+import { i as getDetections, r as getDailyCounts } from "./firelens.functions-DdPPN-au.mjs";
 import { t as useQuery } from "../_libs/tanstack__react-query.mjs";
-import { t as NasaFirmsFetcher } from "./NasaFirmsFetcher-B61ZlWsW.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/calendar-DrW9FJKO.js
+import { t as NasaFirmsFetcher } from "./NasaFirmsFetcher-LskkWvAE.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/calendar-FT0zevvg.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function CalendarPage() {

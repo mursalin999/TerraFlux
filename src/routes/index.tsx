@@ -15,6 +15,8 @@ import { LogoWithWordmark } from "@/components/LogoMark";
 import {
   getHomeMissionTelemetry,
   getRecentGlobeObservations,
+  getGlobalCells48h,
+  triggerGlobalPull,
   type HomeMissionTelemetry,
 } from "@/lib/firelens.functions";
 import {
@@ -93,6 +95,12 @@ function HomePage() {
     staleTime: 60000,
   });
 
+  const globalCellsQuery = useQuery({
+    queryKey: ["home-global-cells-48h"],
+    queryFn: () => getGlobalCells48h(),
+    staleTime: 60000,
+  });
+
   const telemetry: HomeMissionTelemetry = telemetryQuery.data ?? {
     status: telemetryQuery.isError ? "unavailable" : "ok",
     totalDetections: 0,
@@ -106,6 +114,13 @@ function HomePage() {
   };
 
   const observations = observationsQuery.data ?? [];
+  const globalCells = globalCellsQuery.data?.cells ?? [];
+  const refreshGlobalLayer = async () => {
+    const secret = window.prompt("Admin token");
+    if (!secret) return;
+    await triggerGlobalPull({ data: { days: 2, dry_run: false, secret } });
+    await globalCellsQuery.refetch();
+  };
 
   // Skip loader if ready in under 300 ms
   useEffect(() => {
@@ -148,6 +163,8 @@ function HomePage() {
           <Suspense fallback={<GlobeFallback />}>
             <HomeEarthGlobe
               observations={observations}
+              globalCells={globalCells}
+              globalFetchedAt={globalCellsQuery.data?.fetchedAt ?? null}
               isLoadingObservations={observationsQuery.isLoading}
               observationError={
                 observationsQuery.isError
@@ -503,6 +520,13 @@ function HomePage() {
             <div className="flex shrink-0 items-center gap-1.5">
               <span className="text-text-secondary">DATA SOURCE:</span>
               <strong className="text-text">NASA FIRMS</strong>
+              <button
+                type="button"
+                onClick={refreshGlobalLayer}
+                className="ml-2 min-h-9 rounded border border-border px-2 text-[10px] text-text-secondary hover:border-data-orange hover:text-text"
+              >
+                REFRESH GLOBAL LAYER
+              </button>
               {telemetryQuery.isPending ? (
                 <span
                   className="inline-flex items-center gap-1.5 text-text-secondary"
@@ -523,7 +547,7 @@ function HomePage() {
                         : "border border-border bg-surface font-medium text-text-secondary"
                     }`}
                   >
-                    {telemetry.isRecentPull ? "LIVE" : "STORED RECORDS"}
+                    STORED RECORDS
                   </span>
                   {telemetry.latestAcqDate && (
                     <span className="text-[10px] text-text-secondary">

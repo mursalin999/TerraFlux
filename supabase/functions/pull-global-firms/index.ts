@@ -26,7 +26,9 @@ const GLOBAL_QUADRANTS = [
   { name: "Oceania & Australia", bbox: "110,-50,180,0" },
 ];
 
-const GRID_STEP = 0.25; // 0.25 deg ~= 27.8 km at equator
+const GRID_STEP = 0.25; // Existing analytical grid
+const GLOBAL_GRID_STEP = 1; // Additive hero layer: one-degree cells
+
 
 interface RawObservation {
   lat: number;
@@ -204,6 +206,8 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const cellMap = new Map<string, CellAggregation>();
+    const globalViirs = new Map<string, { cell_lat: number; cell_lon: number; count: number; max_frp: number | null }>();
+    const fetchedAt = new Date().toISOString();
     const pointRecords: RawObservation[] = [];
     let totalDetectionsFetched = 0;
 
@@ -229,7 +233,17 @@ Deno.serve(async (req) => {
               pointRecords.push(obs);
             }
 
-            // Aggregate into global 0.25° geodetic grid cell
+            if (obs.sensor === "VIIRS") {
+              const cellLat = Math.floor(obs.lat / GLOBAL_GRID_STEP);
+              const cellLon = Math.floor(obs.lon / GLOBAL_GRID_STEP);
+              const key = `${cellLat}:${cellLon}`;
+              const current = globalViirs.get(key) ?? { cell_lat: cellLat + 0.5, cell_lon: cellLon + 0.5, count: 0, max_frp: null };
+              current.count += 1;
+              if (obs.frp_mw != null) current.max_frp = Math.max(current.max_frp ?? 0, obs.frp_mw);
+              globalViirs.set(key, current);
+            }
+
+            // Aggregate into existing global 0.25° geodetic grid cell
             const latIdx = Math.floor(obs.lat / GRID_STEP);
             const lonIdx = Math.floor(obs.lon / GRID_STEP);
             const centerLat = Number((latIdx * GRID_STEP + GRID_STEP / 2).toFixed(4));
@@ -255,9 +269,9 @@ Deno.serve(async (req) => {
               cellMap.set(cellKey, cell);
             }
 
-            if (obs.sensor === "MODIS") cell.modisCount++;
-            else cell.viirsCount++;
-            cell.totalCount++;
+            if (obs.sensor === "MODIS") cell.modis_count++;
+            else cell.viirs_count++;
+            cell.total_count++;
 
             if (obs.frp_mw != null && obs.frp_mw > 0) {
               cell.max_frp = Math.max(cell.max_frp ?? 0, obs.frp_mw);
@@ -267,7 +281,7 @@ Deno.serve(async (req) => {
             if (obs.brightness_k != null) {
               cell.max_brightness_k = Math.max(cell.max_brightness_k ?? 0, obs.brightness_k);
             }
-            if (cell.modisCount > 0 && cell.viirsCount > 0) {
+            if (cell.modis_count > 0 && cell.viirs_count > 0) {
               cell.strong_agreement = true;
             }
           }
@@ -303,6 +317,12 @@ Deno.serve(async (req) => {
         }),
         { headers: { "Content-Type": "application/json" } },
       );
+    }
+
+    const heroCells = Array.from(globalViirs.values()).map((cell) => ({ ...cell, source: "VIIRS", fetched_at: fetchedAt }));
+    for (let i = 0; i < heroCells.length; i += 500) {
+      const { error } = await supabase.from("global_cells_48h").upsert(heroCells.slice(i, i + 500), { onConflict: "cell_lat,cell_lon,source" });
+      if (error) throw new Error(`global_cells_48h upsert failed: ${error.message}`);
     }
 
     // 1. Batch upsert aggregated global grid cells (500 rows per batch)

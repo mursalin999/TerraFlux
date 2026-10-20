@@ -6,10 +6,10 @@ import { A as Calendar, C as CircleCheck, D as ChevronDown, S as CircleX, _ as E
 import { n as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
 import { t as QueryClient } from "../_libs/tanstack__query-core.mjs";
 import { a as LogoMark, i as DropdownMenuTrigger, n as DropdownMenuContent, o as LogoWithWordmark, r as DropdownMenuItem, t as DropdownMenu } from "./dropdown-menu-j_qlvo2r.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-D1jUKY7-.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-DUq285ND.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var styles_default = "/assets/styles-DC2L21on.css";
+var styles_default = "/assets/styles-CC-mnRc5.css";
 function reportLovableError(error, context = {}) {
 	if (typeof window === "undefined") return;
 	window.__lovableEvents?.captureException?.(error, {
@@ -471,7 +471,7 @@ function RootComponent() {
 		})
 	});
 }
-var $$splitComponentImporter$3 = () => import("./routes-BHuCOBjW.mjs");
+var $$splitComponentImporter$3 = () => import("./routes-B5lD-Mia.mjs");
 var Route$5 = createFileRoute("/")({
 	head: () => ({ meta: [
 		{ title: "TerraFlux: Earth's thermal story, harmonized" },
@@ -754,7 +754,7 @@ function AboutPage() {
 		})
 	});
 }
-var $$splitComponentImporter$2 = () => import("./calendar-DrW9FJKO.mjs");
+var $$splitComponentImporter$2 = () => import("./calendar-FT0zevvg.mjs");
 var Route$3 = createFileRoute("/calendar")({
 	head: () => ({ meta: [
 		{ title: "Temporal Anomaly Calendar — TerraFlux" },
@@ -781,7 +781,7 @@ var Route$3 = createFileRoute("/calendar")({
 	] }),
 	component: lazyRouteComponent($$splitComponentImporter$2, "component")
 });
-var $$splitComponentImporter$1 = () => import("./compare-BXUHHC6D.mjs");
+var $$splitComponentImporter$1 = () => import("./compare-Ont7uXDA.mjs");
 var Route$2 = createFileRoute("/compare")({
 	head: () => ({ meta: [
 		{ title: "Sensor Comparison — TerraFlux" },
@@ -808,7 +808,7 @@ var Route$2 = createFileRoute("/compare")({
 	] }),
 	component: lazyRouteComponent($$splitComponentImporter$1, "component")
 });
-var $$splitComponentImporter = () => import("./explore-Co0ZIs2J.mjs");
+var $$splitComponentImporter = () => import("./explore-D7FILMuP.mjs");
 var Route$1 = createFileRoute("/explore")({
 	head: () => ({ meta: [
 		{ title: "Scientific Workspace — TerraFlux" },

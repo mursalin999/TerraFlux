@@ -2,7 +2,7 @@ import { a as parseBbox, n as REGIONS } from "./regions--TbXEuvW.mjs";
 import { a as TSS_SERVER_FUNCTION, l as createServerFn } from "./createServerFn-DDDJMFWM.mjs";
 import { a as objectType, i as numberType, n as booleanType, o as stringType, r as enumType, t as arrayType } from "../_libs/zod.mjs";
 import { t as createClient } from "../_libs/supabase__supabase-js.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/firelens.functions-BBXfZNE1.js
+//#region node_modules/.nitro/vite/services/ssr/assets/firelens.functions-Dfbz6fft.js
 var createServerRpc = (serverFnMeta, splitImportFn) => {
 	const url = "/_serverFn/" + serverFnMeta.id;
 	return Object.assign(splitImportFn, {
@@ -327,6 +327,28 @@ var getRecentGlobeObservations = createServerFn({ method: "GET" }).handler(getRe
 		return [];
 	}
 });
+var getGlobalCells48h_createServerFn_handler = createServerRpc({
+	id: "9f01d8cd7a304915d03ca97e28b4af507012070b11b9fc3389562fcb7fb38c55",
+	name: "getGlobalCells48h",
+	filename: "src/lib/firelens.functions.ts"
+}, (opts) => getGlobalCells48h.__executeServer(opts));
+var getGlobalCells48h = createServerFn({ method: "GET" }).handler(getGlobalCells48h_createServerFn_handler, async () => {
+	const sb = publicClient();
+	if (!sb) return {
+		cells: [],
+		fetchedAt: null
+	};
+	const { data, error } = await sb.from("global_cells_48h").select("cell_lat,cell_lon,count,max_frp,source,fetched_at").eq("source", "VIIRS").order("fetched_at", { ascending: false }).limit(2e4);
+	if (error || !data?.length) return {
+		cells: [],
+		fetchedAt: null
+	};
+	const fetchedAt = data[0].fetched_at;
+	return {
+		cells: data.filter((row) => row.fetched_at === fetchedAt),
+		fetchedAt
+	};
+});
 var getGlobalGridCells_createServerFn_handler = createServerRpc({
 	id: "2eb6082b8054b3a2c949ea86720867eeb37eca70984ea392fb222467e08cef32",
 	name: "getGlobalGridCells",
@@ -355,14 +377,16 @@ var triggerGlobalPull_createServerFn_handler = createServerRpc({
 	filename: "src/lib/firelens.functions.ts"
 }, (opts) => triggerGlobalPull.__executeServer(opts));
 var triggerGlobalPull = createServerFn({ method: "POST" }).inputValidator((data) => objectType({
-	days: numberType().int().min(1).max(3).default(1),
+	days: numberType().int().min(1).max(3).default(2),
 	date: stringType().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-	dry_run: booleanType().default(false)
+	dry_run: booleanType().default(false),
+	secret: stringType().min(1)
 }).parse(data)).handler(triggerGlobalPull_createServerFn_handler, async ({ data }) => {
+	if (data.secret !== process.env.FIRELENS_INGEST_TOKEN) throw new Error("Unauthorized");
 	const { supabaseAdmin } = await import("./firms.server-Ddze8PYh.mjs");
 	const { data: result, error } = await supabaseAdmin().functions.invoke("pull-global-firms", { body: data });
 	if (error) throw new Error(`Edge function error: ${error.message}`);
 	return result;
 });
 //#endregion
-export { backfillFireData_createServerFn_handler, fetchFireData_createServerFn_handler, getDailyCounts_createServerFn_handler, getDetections_createServerFn_handler, getGlobalGridCells_createServerFn_handler, getHomeMissionTelemetry_createServerFn_handler, getLiveSnapshot_createServerFn_handler, getRecentGlobeObservations_createServerFn_handler, triggerGlobalPull_createServerFn_handler };
+export { backfillFireData_createServerFn_handler, fetchFireData_createServerFn_handler, getDailyCounts_createServerFn_handler, getDetections_createServerFn_handler, getGlobalCells48h_createServerFn_handler, getGlobalGridCells_createServerFn_handler, getHomeMissionTelemetry_createServerFn_handler, getLiveSnapshot_createServerFn_handler, getRecentGlobeObservations_createServerFn_handler, triggerGlobalPull_createServerFn_handler };

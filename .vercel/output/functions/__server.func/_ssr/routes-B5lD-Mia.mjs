@@ -3,10 +3,10 @@ import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { C as ClientOnly, b as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
 import { A as Calendar, D as ChevronDown, M as ArrowRight, d as Menu, l as RefreshCw, p as Layers, t as X, y as Database } from "../_libs/lucide-react.mjs";
-import { a as getHomeMissionTelemetry } from "./firelens.functions-C1L89yTy.mjs";
+import { a as getGlobalCells48h, o as getHomeMissionTelemetry, s as triggerGlobalPull } from "./firelens.functions-DdPPN-au.mjs";
 import { t as useQuery } from "../_libs/tanstack__react-query.mjs";
 import { i as DropdownMenuTrigger, n as DropdownMenuContent, o as LogoWithWordmark, r as DropdownMenuItem, t as DropdownMenu } from "./dropdown-menu-j_qlvo2r.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-BHuCOBjW.js
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-B5lD-Mia.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function GlobeFallback() {
@@ -42,6 +42,11 @@ function HomePage() {
 		queryFn: () => getHomeMissionTelemetry(),
 		staleTime: 6e4
 	});
+	const globalCellsQuery = useQuery({
+		queryKey: ["home-global-cells-48h"],
+		queryFn: () => getGlobalCells48h(),
+		staleTime: 6e4
+	});
 	const telemetry = telemetryQuery.data ?? {
 		status: telemetryQuery.isError ? "unavailable" : "ok",
 		totalDetections: 0,
@@ -52,6 +57,16 @@ function HomePage() {
 		baselineDays: 0,
 		hasHarmonized: false,
 		isRecentPull: false
+	};
+	const refreshGlobalLayer = async () => {
+		const secret = window.prompt("Admin token");
+		if (!secret) return;
+		await triggerGlobalPull({ data: {
+			days: 2,
+			dry_run: false,
+			secret
+		} });
+		await globalCellsQuery.refetch();
 	};
 	(0, import_react.useEffect)(() => {
 		if (new URLSearchParams(window.location.search).get("tour") === "1") setTourStep(0);
@@ -443,6 +458,12 @@ function HomePage() {
 										className: "text-text",
 										children: "NASA FIRMS"
 									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+										type: "button",
+										onClick: refreshGlobalLayer,
+										className: "ml-2 min-h-9 rounded border border-border px-2 text-[10px] text-text-secondary hover:border-data-orange hover:text-text",
+										children: "REFRESH GLOBAL LAYER"
+									}),
 									telemetryQuery.isPending ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 										className: "inline-flex items-center gap-1.5 text-text-secondary",
 										"aria-label": "Loading data source status",
@@ -457,7 +478,7 @@ function HomePage() {
 										}),
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 											className: `rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wider ${telemetry.isRecentPull ? "border border-agreement-teal/40 bg-agreement-teal/15 font-bold text-agreement-teal" : "border border-border bg-surface font-medium text-text-secondary"}`,
-											children: telemetry.isRecentPull ? "LIVE" : "STORED RECORDS"
+											children: "STORED RECORDS"
 										}),
 										telemetry.latestAcqDate && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 											className: "text-[10px] text-text-secondary",

@@ -1,7 +1,7 @@
-import { t as getServerFnById } from "../__23tanstack-start-server-fn-resolver-DLIzyZ0I.mjs";
+import { t as getServerFnById } from "../__23tanstack-start-server-fn-resolver-CxqH-gfE.mjs";
 import { a as TSS_SERVER_FUNCTION, l as createServerFn } from "./createServerFn-DDDJMFWM.mjs";
 import { a as objectType, i as numberType, n as booleanType, o as stringType, r as enumType, t as arrayType } from "../_libs/zod.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/firelens.functions-C1L89yTy.js
+//#region node_modules/.nitro/vite/services/ssr/assets/firelens.functions-DdPPN-au.js
 var createSsrRpc = (functionId) => {
 	const url = "/_serverFn/" + functionId;
 	const serverFnMeta = { id: functionId };
@@ -47,14 +47,16 @@ var getDailyCounts = createServerFn({ method: "GET" }).inputValidator((data) => 
 createServerFn({ method: "GET" }).handler(createSsrRpc("c5514e0a97d4cc310a8751abd6bee0b21d62f40f104f18b49fb00ceb1e63ff36"));
 var getHomeMissionTelemetry = createServerFn({ method: "GET" }).handler(createSsrRpc("b89bfb8f8acf2d3e273a3dae80b17400cc8e00aceb682311d42f89fd2d5fe2ff"));
 createServerFn({ method: "GET" }).handler(createSsrRpc("e615816906e90bb554e4742d1a566bb3852ed7f69cfdaf23416ddbb3ead1377b"));
+var getGlobalCells48h = createServerFn({ method: "GET" }).handler(createSsrRpc("9f01d8cd7a304915d03ca97e28b4af507012070b11b9fc3389562fcb7fb38c55"));
 createServerFn({ method: "POST" }).inputValidator((data) => objectType({
 	start_date: stringType().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 	end_date: stringType().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
 }).parse(data)).handler(createSsrRpc("2eb6082b8054b3a2c949ea86720867eeb37eca70984ea392fb222467e08cef32"));
-createServerFn({ method: "POST" }).inputValidator((data) => objectType({
-	days: numberType().int().min(1).max(3).default(1),
+var triggerGlobalPull = createServerFn({ method: "POST" }).inputValidator((data) => objectType({
+	days: numberType().int().min(1).max(3).default(2),
 	date: stringType().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-	dry_run: booleanType().default(false)
+	dry_run: booleanType().default(false),
+	secret: stringType().min(1)
 }).parse(data)).handler(createSsrRpc("2a7a39ee95d22edb7cc18a0c263bf5ec12b00fdc4b29e593a2df511c50a8eadf"));
 //#endregion
-export { getHomeMissionTelemetry as a, getDetections as i, fetchFireData as n, getDailyCounts as r, backfillFireData as t };
+export { getGlobalCells48h as a, getDetections as i, fetchFireData as n, getHomeMissionTelemetry as o, getDailyCounts as r, triggerGlobalPull as s, backfillFireData as t };

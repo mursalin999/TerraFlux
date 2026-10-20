@@ -69,7 +69,8 @@ export const backfillFireData = createServerFn({ method: "POST" })
 
 function publicClient() {
   const url =
-    (typeof process !== "undefined" && (process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"])) ||
+    (typeof process !== "undefined" &&
+      (process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"])) ||
     (typeof import.meta !== "undefined" && import.meta.env?.["VITE_SUPABASE_URL"]);
   const key =
     (typeof process !== "undefined" &&
@@ -378,6 +379,20 @@ export const getRecentGlobeObservations = createServerFn({ method: "GET" }).hand
 });
 
 // --- get-global-grid-cells: retrieves aggregated global grid observations ---
+export const getGlobalCells48h = createServerFn({ method: "GET" }).handler(async () => {
+  const sb = publicClient();
+  if (!sb) return { cells: [], fetchedAt: null as string | null };
+  const { data, error } = await sb
+    .from("global_cells_48h")
+    .select("cell_lat,cell_lon,count,max_frp,source,fetched_at")
+    .eq("source", "VIIRS")
+    .order("fetched_at", { ascending: false })
+    .limit(20000);
+  if (error || !data?.length) return { cells: [], fetchedAt: null as string | null };
+  const fetchedAt = data[0].fetched_at;
+  return { cells: data.filter((row) => row.fetched_at === fetchedAt), fetchedAt };
+});
+
 export const getGlobalGridCells = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
@@ -422,16 +437,18 @@ export const triggerGlobalPull = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
       .object({
-        days: z.number().int().min(1).max(3).default(1),
+        days: z.number().int().min(1).max(3).default(2),
         date: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .optional(),
         dry_run: z.boolean().default(false),
+        secret: z.string().min(1),
       })
       .parse(data),
   )
   .handler(async ({ data }) => {
+    if (data.secret !== process.env.FIRELENS_INGEST_TOKEN) throw new Error("Unauthorized");
     const { supabaseAdmin } = await import("./firms.server");
     const admin = supabaseAdmin();
     const { data: result, error } = await admin.functions.invoke("pull-global-firms", {
