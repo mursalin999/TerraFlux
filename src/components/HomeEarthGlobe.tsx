@@ -17,15 +17,28 @@ export interface HomeObservation {
   day_night: "D" | "N" | null;
 }
 
+export interface GlobalCell {
+  cell_lat: number;
+  cell_lon: number;
+  count: number;
+  max_frp: number | null;
+  source: string;
+  fetched_at: string;
+}
+
 interface GlobePoint extends HomeObservation {
   lng: number;
   size: number;
   color: string;
   altitude: number;
+  global?: boolean;
+  count?: number;
 }
 
 interface HomeEarthGlobeProps {
   observations: HomeObservation[];
+  globalCells?: GlobalCell[];
+  globalFetchedAt?: string | null;
   isLoadingObservations?: boolean;
   observationError?: string | null;
   isPanelOpen?: boolean;
@@ -61,6 +74,8 @@ function getSunDirection(): THREE.Vector3 {
 
 export default function HomeEarthGlobe({
   observations,
+  globalCells = [],
+  globalFetchedAt = null,
   isLoadingObservations = false,
   observationError,
   isPanelOpen = false,
@@ -153,6 +168,20 @@ export default function HomeEarthGlobe({
       };
     });
   }, [observations]);
+
+  const globalPoints = useMemo(
+    () =>
+      globalCells.map((cell) => ({
+        lat: cell.cell_lat,
+        lng: cell.cell_lon,
+        size: Math.min(2.8, 0.35 + Math.log2(cell.count + 1) * 0.28),
+        color: "#ff7a45",
+        altitude: 0.012,
+        global: true,
+        count: cell.count,
+      })),
+    [globalCells],
+  );
 
   // Create Custom Day/Night blended ShaderMaterial via real sun direction
   const globeMaterial = useMemo(() => {
@@ -306,14 +335,23 @@ export default function HomeEarthGlobe({
           bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
           atmosphereColor="#4DA3FF"
           atmosphereAltitude={0.08}
-          customLayerData={customData}
+          customLayerData={[...customData, ...globalPoints]}
           customThreeObject={(d: object) => {
             const pt = d as GlobePoint;
+            const isGlobal = pt.global === true;
             const isModis = pt.sensor === "MODIS";
-            const radius = pt.size * 0.45;
+            const radius = pt.size * (isGlobal ? 1.2 : 0.45);
             const group = new THREE.Group();
 
-            if (isModis) {
+            if (isGlobal) {
+              const glow = new THREE.MeshBasicMaterial({
+                color: pt.color,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: Math.min(0.8, 0.2 + (pt.count ?? 0) / 40),
+              });
+              group.add(new THREE.Mesh(new THREE.CircleGeometry(radius, 18), glow));
+            } else if (isModis) {
               // MODIS: hollow ring marker (1 km pixel)
               const ringGeo = new THREE.RingGeometry(radius * 0.65, radius, 16);
               const ringMat = new THREE.MeshBasicMaterial({
@@ -354,6 +392,17 @@ export default function HomeEarthGlobe({
           ringAltitude={0.003}
         />
       </div>
+
+      {globalCells.length > 0 && globalFetchedAt && (
+        <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded border border-data-orange/40 bg-surface/80 px-3 py-2 font-mono text-[10px] text-text-secondary backdrop-blur-md">
+          LAST 48 H · VIIRS · NASA FIRMS · AS OF {new Date(globalFetchedAt).toLocaleString()}
+        </div>
+      )}
+      {globalCells.length === 0 && (
+        <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded border border-border/60 bg-surface/80 px-3 py-2 font-mono text-[10px] text-text-secondary backdrop-blur-md">
+          GLOBAL LAYER UNAVAILABLE
+        </div>
+      )}
 
       {/* Empty State Banner when no satellite observations stored */}
       {!isLoadingObservations && observations.length === 0 && !observationError && (

@@ -1,5 +1,5 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { Suspense, useMemo, useState, useEffect, useCallback } from "react";
+import { Suspense, lazy, useMemo, useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -41,8 +41,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import ExploreGlobe from "@/components/ExploreGlobe";
-import FireMap from "@/components/FireMap";
+const ExploreGlobe = lazy(() => import("@/components/ExploreGlobe"));
+const FireMap = lazy(() => import("@/components/FireMap"));
 
 export const Route = createFileRoute("/explore")({
   head: () => ({
@@ -155,6 +155,25 @@ function ExploreWorkspace() {
   }, [rawDetections]);
 
   // Signature caption based on active sensor
+  const viewCaption = useMemo(() => {
+    if (activeView === "AGREEMENT") {
+      const counts = gridAnalysis.cells.reduce(
+        (acc, cell) => {
+          acc.cells += 1;
+          acc[cell.agreementLevel.toLowerCase() as "strong" | "moderate" | "limited" | "none"] += 1;
+          return acc;
+        },
+        { cells: 0, strong: 0, moderate: 0, limited: 0, none: 0 },
+      );
+      return `AGREEMENT · ${counts.cells} cells · ${counts.strong} strong · ${counts.moderate} moderate · ${counts.limited} limited`;
+    }
+    if (activeView === "COMMON GRID")
+      return `COMMON GRID · ${gridAnalysis.cells.length} cells · ${gridAnalysis.maxCount} max detections`;
+    if (activeView === "ANOMALY")
+      return `ANOMALY · ${gridAnalysis.cells.filter((cell) => cell.isAnomaly).length} cells · ${gridAnalysis.baselineWindowLabel}`;
+    return null;
+  }, [activeView, gridAnalysis]);
+
   const sensorCaption = useMemo(() => {
     if (activeSensor === "MODIS") {
       return "MODIS: 1,000 m nadir pixel observations from Terra and Aqua satellites.";
@@ -369,7 +388,7 @@ function ExploreWorkspace() {
       {/* Dedicated map workspace: controls and visualization stay in document flow. */}
       <div className="mx-auto flex w-full max-w-[1920px] flex-col gap-3 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-6">
         {/* 3D Earth Globe */}
-        <div className="order-2 h-[min(58dvh,620px)] min-h-[320px] w-full overflow-hidden rounded-lg border border-border bg-[#030711] shadow-xl sm:h-[min(64dvh,700px)] lg:order-1 lg:h-[min(70dvh,760px)]">
+        <div className="order-2 h-[min(62dvh,620px)] min-h-[420px] w-full overflow-hidden rounded-lg border border-border bg-[#030711] shadow-xl sm:h-[min(64dvh,700px)] lg:order-1 lg:h-[min(70dvh,760px)]">
           <ClientOnly
             fallback={
               <div className="flex h-full w-full items-center justify-center font-mono text-xs text-text-secondary">
@@ -401,6 +420,10 @@ function ExploreWorkspace() {
                     setSelectedCell(cell);
                     setSelectedObs(null);
                   }}
+                  onResetView={() => {
+                    setSelectedObs(null);
+                    setSelectedCell(null);
+                  }}
                 />
               ) : (
                 <FireMap
@@ -416,9 +439,17 @@ function ExploreWorkspace() {
             </Suspense>
           </ClientOnly>
         </div>
+        {viewCaption && (
+          <p className="order-3 -mt-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
+            {viewCaption}
+          </p>
+        )}
 
         {/* Dedicated map control toolbar */}
-        <div className="order-1 flex w-full flex-col gap-3 rounded-lg border border-border bg-surface/95 p-3 font-mono shadow-lg sm:p-4 lg:order-2">
+        <div
+          aria-live="polite"
+          className="order-1 hidden w-full flex-col gap-3 rounded-lg border border-border bg-surface/95 p-3 font-mono shadow-lg sm:flex sm:p-4 lg:order-2"
+        >
           {/* Left: Region & Signature 3-Way Control */}
           <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-lg border border-border/80 bg-surface/90 p-1.5">
             {/* Target Region Selector */}

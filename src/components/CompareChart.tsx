@@ -19,6 +19,7 @@ interface DailyRecord {
 
 interface CompareChartProps {
   data: DailyRecord[];
+  onDateClick?: (date: string) => void;
 }
 
 interface TooltipPayloadItem {
@@ -43,14 +44,14 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
     <div className="min-w-[220px] rounded-[6px] border border-border bg-surface-elevated p-3 font-mono text-sm text-text shadow-xl">
       <div className="border-b border-border/60 pb-1.5 font-semibold text-text">{label}</div>
       <div className="mt-2 space-y-1">
-                <div className="flex items-center justify-between gap-5 leading-6">
+        <div className="flex items-center justify-between gap-5 leading-6">
           <span className="flex items-center gap-1.5 text-data-blue">
             <span className="h-2 w-2 rounded-full border border-data-blue" />
             MODIS (1 km):
           </span>
           <span className="font-bold text-text">{modisVal.toLocaleString()}</span>
         </div>
-                <div className="flex items-center justify-between gap-5 leading-6">
+        <div className="flex items-center justify-between gap-5 leading-6">
           <span className="flex items-center gap-1.5 text-thermal-orange">
             <span className="h-2 w-2 rounded-full bg-thermal-orange" />
             VIIRS (375 m):
@@ -66,7 +67,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-export default function CompareChart({ data }: CompareChartProps) {
+export default function CompareChart({ data, onDateClick }: CompareChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="flex h-64 w-full items-center justify-center font-mono text-xs text-text-secondary">
@@ -83,12 +84,28 @@ export default function CompareChart({ data }: CompareChartProps) {
 
   return (
     <div className="h-80 w-full pt-3" aria-label="Daily MODIS and VIIRS detections chart">
-      <div className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-xs text-text-secondary" aria-label="Chart legend">
-        <span className="inline-flex items-center gap-2 text-data-blue"><span className="h-2.5 w-2.5 rounded-full bg-data-blue" />MODIS (1 km)</span>
-        <span className="inline-flex items-center gap-2 text-thermal-orange"><span className="h-2.5 w-2.5 rounded-full bg-thermal-orange" />VIIRS (375 m)</span>
+      <div
+        className="mb-2 flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-xs text-text-secondary"
+        aria-label="Chart legend"
+      >
+        <span className="inline-flex items-center gap-2 text-data-blue">
+          <span className="h-2.5 w-2.5 rounded-full bg-data-blue" />
+          MODIS (1 km)
+        </span>
+        <span className="inline-flex items-center gap-2 text-thermal-orange">
+          <span className="h-2.5 w-2.5 rounded-full bg-thermal-orange" />
+          VIIRS (375 m)
+        </span>
       </div>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={formattedData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+        <AreaChart
+          data={formattedData}
+          margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+          onClick={(state) => {
+            const active = state?.activePayload?.[0]?.payload as { date?: string } | undefined;
+            if (active?.date) onDateClick?.(active.date);
+          }}
+        >
           <defs>
             <linearGradient id="modisGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={SENSOR_META.MODIS.color} stopOpacity={0.4} />

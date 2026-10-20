@@ -49,11 +49,16 @@ export function NasaFirmsFetcher({
 
     setStatus({ kind: "loading" });
     try {
-      const result = await runBackfill({ data: { bbox: region.bbox, start_date: startDate, end_date: endDate } });
+      const result = await runBackfill({
+        data: { bbox: region.bbox, start_date: startDate, end_date: endDate },
+      });
       await queryClient.invalidateQueries();
       setStatus({ kind: "success", stored: result.stored });
     } catch (error) {
-      setStatus({ kind: "error", message: error instanceof Error ? error.message : "NASA FIRMS fetch failed." });
+      setStatus({
+        kind: "error",
+        message: error instanceof Error ? error.message : "NASA FIRMS fetch failed.",
+      });
     }
   };
 
@@ -64,63 +69,114 @@ export function NasaFirmsFetcher({
       await queryClient.invalidateQueries();
       setStatus({ kind: "success", stored: result.stored });
     } catch (error) {
-      setStatus({ kind: "error", message: error instanceof Error ? error.message : "NASA FIRMS fetch failed." });
+      setStatus({
+        kind: "error",
+        message: error instanceof Error ? error.message : "NASA FIRMS fetch failed.",
+      });
     }
   };
 
   return (
-    <section className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-5" aria-labelledby="nasa-firms-fetcher-title">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-data-blue">
-            <Satellite className="h-3.5 w-3.5" aria-hidden="true" />
-            NASA FIRMS DATA INGEST
+    <details className="rounded-lg border border-border bg-surface shadow-sm" open={false}>
+      <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 px-4 py-3 font-mono text-[11px] font-semibold uppercase tracking-wider text-text sm:px-5">
+        <span>DATA PULL</span>
+        <span className="text-text-secondary">NASA FIRMS</span>
+      </summary>
+      <section
+        className="border-t border-border p-4 sm:p-5"
+        aria-labelledby="nasa-firms-fetcher-title"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-data-blue">
+              <Satellite className="h-3.5 w-3.5" aria-hidden="true" />
+              NASA FIRMS DATA INGEST
+            </div>
+            <h2
+              id="nasa-firms-fetcher-title"
+              className="mt-1 font-headline text-lg font-semibold text-text"
+            >
+              Fetch observations for any date range
+            </h2>
+            <p className="mt-1 max-w-2xl font-mono text-[11px] leading-relaxed text-text-secondary">
+              Pull MODIS and VIIRS records directly from NASA FIRMS and make them available across
+              the globe, calendar, and comparison views.
+            </p>
           </div>
-          <h2 id="nasa-firms-fetcher-title" className="mt-1 font-headline text-lg font-semibold text-text">
-            Fetch observations for any date range
-          </h2>
-          <p className="mt-1 max-w-2xl font-mono text-[11px] leading-relaxed text-text-secondary">
-            Pull MODIS and VIIRS records directly from NASA FIRMS and make them available across the globe, calendar, and comparison views.
-          </p>
+          <span className="rounded border border-agreement-teal/40 bg-agreement-teal/10 px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-agreement-teal">
+            API CONNECTED
+          </span>
         </div>
-        <span className="rounded border border-agreement-teal/40 bg-agreement-teal/10 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-agreement-teal">
-          API CONNECTED
-        </span>
-      </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_1fr_1fr_auto] sm:items-end">
-        <label className="flex flex-col gap-1 font-mono text-[10px] uppercase tracking-wider text-text-secondary">
-          Region
-          <select value={regionId} onChange={(event) => setRegionId(event.target.value)} className="min-h-9 rounded border border-border bg-bg px-2.5 text-xs normal-case tracking-normal text-text focus:border-data-blue focus:outline-none">
-            {REGIONS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 font-mono text-[10px] uppercase tracking-wider text-text-secondary">
-          From
-          <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="min-h-9 rounded border border-border bg-bg px-2.5 text-xs text-text focus:border-data-blue focus:outline-none" />
-        </label>
-        <label className="flex flex-col gap-1 font-mono text-[10px] uppercase tracking-wider text-text-secondary">
-          To
-          <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} className="min-h-9 rounded border border-border bg-bg px-2.5 text-xs text-text focus:border-data-blue focus:outline-none" />
-        </label>
-        <button type="button" onClick={refreshData} disabled={status.kind === "loading"} className="inline-flex min-h-9 items-center justify-center gap-2 rounded bg-data-blue px-4 font-mono text-xs font-semibold text-bg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">
-          <RefreshCw className={status.kind === "loading" ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} aria-hidden="true" />
-          FETCH DATE RANGE
-        </button>
-      </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_1fr_1fr_auto] sm:items-end">
+          <label className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
+            Region
+            <select
+              value={regionId}
+              onChange={(event) => setRegionId(event.target.value)}
+              className="min-h-11 rounded border border-border bg-bg px-2.5 text-xs normal-case tracking-normal text-text focus:border-data-blue focus:outline-none"
+            >
+              {REGIONS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
+            From
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+              className="min-h-11 rounded border border-border bg-bg px-2.5 text-xs text-text focus:border-data-blue focus:outline-none"
+            />
+          </label>
+          <label className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
+            To
+            <input
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              className="min-h-11 rounded border border-border bg-bg px-2.5 text-xs text-text focus:border-data-blue focus:outline-none"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={refreshData}
+            disabled={status.kind === "loading"}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded bg-data-blue px-4 font-mono text-xs font-semibold text-bg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw
+              className={status.kind === "loading" ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"}
+              aria-hidden="true"
+            />
+            FETCH DATE RANGE
+          </button>
+        </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] text-text-secondary">
-        <button type="button" onClick={fetchRecent} disabled={status.kind === "loading"} className="underline underline-offset-2 hover:text-text disabled:opacity-50">
-          Fetch latest 3 days instead
-        </button>
-        <span aria-live="polite">
-          {status.kind === "loading" && "Contacting NASA FIRMS and storing observations…"}
-          {status.kind === "success" && <span className="text-agreement-teal">Fetch complete: {status.stored.toLocaleString()} records stored.</span>}
-          {status.kind === "error" && <span className="text-critical-red">{status.message}</span>}
-          {status.kind === "idle" && "Fetched records are shared by every data view."}
-        </span>
-      </div>
-    </section>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] text-text-secondary">
+          <button
+            type="button"
+            onClick={fetchRecent}
+            disabled={status.kind === "loading"}
+            className="underline underline-offset-2 hover:text-text disabled:opacity-50"
+          >
+            Fetch latest 3 days instead
+          </button>
+          <span aria-live="polite">
+            {status.kind === "loading" && "Contacting NASA FIRMS and storing observations…"}
+            {status.kind === "success" && (
+              <span className="text-agreement-teal">
+                Fetch complete: {status.stored.toLocaleString()} records stored.
+              </span>
+            )}
+            {status.kind === "error" && <span className="text-critical-red">{status.message}</span>}
+            {status.kind === "idle" && "Fetched records are shared by every data view."}
+          </span>
+        </div>
+      </section>
+    </details>
   );
 }
 

@@ -1,11 +1,22 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
 import { Suspense, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronDown, Menu, X, Calendar, Layers, Database, RefreshCw } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  Menu,
+  X,
+  Calendar,
+  Layers,
+  Database,
+  RefreshCw,
+} from "lucide-react";
 import { LogoWithWordmark } from "@/components/LogoMark";
 import {
   getHomeMissionTelemetry,
   getRecentGlobeObservations,
+  getGlobalCells48h,
+  triggerGlobalPull,
   type HomeMissionTelemetry,
 } from "@/lib/firelens.functions";
 import {
@@ -56,6 +67,18 @@ function GlobeFallback() {
 
 function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [tourStep, setTourStep] = useState<number | null>(null);
+  const [tourPaused, setTourPaused] = useState(false);
+  const tourCaptions = [
+    "Earth: start with the full stored observation view.",
+    "Fly to Bangladesh: inspect the selected region.",
+    "MODIS only: hollow blue rings show 1 km observations.",
+    "VIIRS only: orange dots show 375 m observations.",
+    "Harmonized: derived activity combines both sensors.",
+    "Agreement: correspondence between satellite observations.",
+    "Largest gap day: compare the live daily sensor totals.",
+    "Methods: read what TerraFlux knows and does not know.",
+  ];
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("INITIALIZING EARTH");
   const [showLoaderBadge, setShowLoaderBadge] = useState(false);
 
@@ -72,6 +95,12 @@ function HomePage() {
     staleTime: 60000,
   });
 
+  const globalCellsQuery = useQuery({
+    queryKey: ["home-global-cells-48h"],
+    queryFn: () => getGlobalCells48h(),
+    staleTime: 60000,
+  });
+
   const telemetry: HomeMissionTelemetry = telemetryQuery.data ?? {
     status: telemetryQuery.isError ? "unavailable" : "ok",
     totalDetections: 0,
@@ -85,8 +114,28 @@ function HomePage() {
   };
 
   const observations = observationsQuery.data ?? [];
+  const globalCells = globalCellsQuery.data?.cells ?? [];
+  const refreshGlobalLayer = async () => {
+    const secret = window.prompt("Admin token");
+    if (!secret) return;
+    await triggerGlobalPull({ data: { days: 2, dry_run: false, secret } });
+    await globalCellsQuery.refetch();
+  };
 
   // Skip loader if ready in under 300 ms
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tour") === "1") setTourStep(0);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setTourStep(null);
+      if (event.key === "ArrowRight" && tourStep != null)
+        setTourStep((step) => Math.min(7, (step ?? 0) + 1));
+      if (event.key === "ArrowLeft" && tourStep != null)
+        setTourStep((step) => Math.max(0, (step ?? 0) - 1));
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [tourStep]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (loadingStage !== "READY") {
@@ -114,6 +163,8 @@ function HomePage() {
           <Suspense fallback={<GlobeFallback />}>
             <HomeEarthGlobe
               observations={observations}
+              globalCells={globalCells}
+              globalFetchedAt={globalCellsQuery.data?.fetchedAt ?? null}
               isLoadingObservations={observationsQuery.isLoading}
               observationError={
                 observationsQuery.isError
@@ -179,7 +230,9 @@ function HomePage() {
                     <RefreshCw className="h-4 w-4 text-data-blue" />
                     <div className="flex flex-col">
                       <span className="font-semibold">Fetch NASA FIRMS</span>
-                      <span className="text-[10px] text-text-secondary">Any region and date range</span>
+                      <span className="text-[10px] text-text-secondary">
+                        Any region and date range
+                      </span>
                     </div>
                   </Link>
                 </DropdownMenuItem>
@@ -264,6 +317,13 @@ function HomePage() {
           <div className="border-b border-border bg-surface px-4 py-3 sm:hidden">
             <nav className="flex flex-col space-y-1 font-mono text-xs">
               <Link
+                to="/"
+                search={{ tour: "1" }}
+                className="inline-flex min-h-11 items-center justify-center rounded border border-agreement-teal px-4 py-2 font-mono text-xs font-semibold tracking-wider text-agreement-teal transition-colors hover:bg-agreement-teal/10"
+              >
+                GUIDED TOUR
+              </Link>
+              <Link
                 to="/explore"
                 search={{}}
                 onClick={() => setMobileMenuOpen(false)}
@@ -318,7 +378,7 @@ function HomePage() {
 
       {/* Real Loading Sequence HUD Badge (skips if <300ms) */}
       {showLoaderBadge && loadingStage !== "READY" && (
-        <div className="pointer-events-none absolute right-4 top-20 z-40 flex items-center gap-2 rounded border border-border bg-surface/90 px-3 py-1.5 font-mono text-[11px] text-text backdrop-blur-md sm:right-8">
+        <div className="pointer-events-none absolute right-4 top-20 z-40 flex min-h-11 items-center gap-2 rounded border border-border bg-surface/90 px-3 py-2 font-mono text-[11px] text-text backdrop-blur-md sm:right-8">
           <span className="h-2 w-2 rounded-full bg-data-blue animate-pulse" />
           <span className="font-semibold uppercase tracking-wider">{loadingStage}</span>
         </div>
@@ -345,6 +405,40 @@ function HomePage() {
             framework designed to reveal patterns, differences and unusual periods across Earth.
           </p>
 
+          {!telemetryQuery.isPending && telemetryQuery.data && (
+            <div className="mt-6 rounded border border-border bg-surface/80 p-3 font-mono text-[11px] backdrop-blur-sm">
+              <div className="font-semibold uppercase tracking-wider text-text">SNAPSHOT</div>
+              <p className="mt-2 text-text-secondary">
+                MODIS {telemetry.modisCount.toLocaleString()} · VIIRS{" "}
+                {telemetry.viirsCount.toLocaleString()} · RATIO{" "}
+                {telemetry.modisCount > 0
+                  ? `${(telemetry.viirsCount / telemetry.modisCount).toFixed(1)}x`
+                  : "—"}
+              </p>
+              <p className="mt-1 text-text-secondary">
+                Stored data: {telemetry.baselineDays.toLocaleString()} days
+              </p>
+            </div>
+          )}
+
+          <div className="mt-5 max-w-lg border-l-2 border-agreement-teal pl-3 text-xs leading-relaxed text-text-secondary sm:text-sm">
+            <p>
+              <strong className="text-text">WHO IT&apos;S FOR:</strong> Researchers, students and
+              local analysts who need to compare MODIS and VIIRS fire records without learning two
+              data formats.
+            </p>
+            <p className="mt-2">
+              <strong className="text-text">WHY BANGLADESH:</strong> Fire detections in South Asia
+              change strongly with season and cloud cover. TerraFlux makes those differences visible
+              so a quiet or busy day is not over-read.
+            </p>
+            <p className="mt-2">
+              <strong className="text-text">WHAT IT IS NOT:</strong> Not an alert system and not a
+              confirmed-fire map.
+            </p>
+            {/* [TEAM EDIT: add one real, verified local use case] */}
+          </div>
+
           {/* Primary CTA and Secondary Link */}
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <Link
@@ -366,18 +460,80 @@ function HomePage() {
         </div>
       </section>
 
+      {tourStep != null && (
+        <div
+          className="fixed inset-x-4 bottom-20 z-50 mx-auto max-w-xl rounded-lg border border-agreement-teal/60 bg-surface/95 p-4 shadow-2xl backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Guided tour"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-agreement-teal">
+                GUIDED TOUR · STEP {tourStep + 1} OF 8
+              </p>
+              <p className="mt-2 text-sm text-text">
+                {tourPaused ? "Tour paused. Resume when ready." : tourCaptions[tourStep]}
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Exit guided tour"
+              onClick={() => setTourStep(null)}
+              className="min-h-11 min-w-11 rounded border border-border text-text"
+            >
+              ESC
+            </button>
+          </div>
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setTourPaused((paused) => !paused)}
+              className="min-h-11 rounded border border-border px-3 text-xs text-text"
+            >
+              {tourPaused ? "RESUME" : "PAUSE"}
+            </button>
+            <button
+              type="button"
+              disabled={tourStep === 0}
+              onClick={() => setTourStep((step) => Math.max(0, (step ?? 0) - 1))}
+              className="min-h-11 rounded border border-border px-3 text-xs text-text disabled:opacity-40"
+            >
+              BACK
+            </button>
+            <button
+              type="button"
+              onClick={() => setTourStep((step) => (step != null && step < 7 ? step + 1 : null))}
+              className="min-h-11 rounded bg-agreement-teal px-3 text-xs font-semibold text-bg"
+            >
+              {tourStep === 7 ? "DONE" : "NEXT"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Mission Status Bar (Thin strip at the bottom; compact scrollable chips on mobile) */}
       <footer className="relative z-30 border-t border-border bg-surface/90 backdrop-blur-md">
         <div className="mx-auto flex h-11 max-w-screen-2xl items-center px-4 sm:px-6 lg:px-8">
-          <div className="flex w-full items-center gap-3 overflow-x-auto whitespace-nowrap font-mono text-[11px] text-text-secondary scrollbar-none sm:gap-4 lg:justify-between">
+          <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 py-2 font-mono text-[11px] text-text-secondary sm:gap-x-4 lg:justify-between">
             {/* DATA SOURCE: NASA FIRMS */}
             <div className="flex shrink-0 items-center gap-1.5">
               <span className="text-text-secondary">DATA SOURCE:</span>
               <strong className="text-text">NASA FIRMS</strong>
+              <button
+                type="button"
+                onClick={refreshGlobalLayer}
+                className="ml-2 min-h-9 rounded border border-border px-2 text-[10px] text-text-secondary hover:border-data-orange hover:text-text"
+              >
+                REFRESH GLOBAL LAYER
+              </button>
               {telemetryQuery.isPending ? (
-                <span className="inline-flex items-center gap-1.5 text-text-secondary" aria-label="Loading data source status">
+                <span
+                  className="inline-flex items-center gap-1.5 text-text-secondary"
+                  aria-label="Loading data source status"
+                >
                   <span className="inline-block h-2 w-16 animate-pulse rounded bg-surface-elevated" />
-                  <span>· SYNCING</span>
+                  <span>· LOADING</span>
                 </span>
               ) : telemetry.status === "unavailable" ? (
                 <span className="font-semibold text-critical-red">· DATA SOURCE UNAVAILABLE</span>
@@ -391,7 +547,7 @@ function HomePage() {
                         : "border border-border bg-surface font-medium text-text-secondary"
                     }`}
                   >
-                    {telemetry.isRecentPull ? "LIVE" : "STORED RECORDS"}
+                    STORED RECORDS
                   </span>
                   {telemetry.latestAcqDate && (
                     <span className="text-[10px] text-text-secondary">
@@ -413,7 +569,13 @@ function HomePage() {
                   isModisAvailable ? "font-semibold text-data-blue" : "text-text-secondary/60"
                 }
               >
-                {telemetryQuery.isPending ? "SYNCING" : isModisAvailable ? "AVAILABLE" : "UNAVAILABLE"}
+                {telemetryQuery.isPending
+                  ? "LOADING"
+                  : isModisAvailable
+                    ? "AVAILABLE"
+                    : telemetryQuery.isError
+                      ? "UNAVAILABLE — QUERY ERROR"
+                      : "UNAVAILABLE — NO STORED ROWS"}
               </span>
             </div>
 
@@ -428,7 +590,13 @@ function HomePage() {
                   isViirsAvailable ? "font-semibold text-thermal-orange" : "text-text-secondary/60"
                 }
               >
-                {telemetryQuery.isPending ? "SYNCING" : isViirsAvailable ? "AVAILABLE" : "UNAVAILABLE"}
+                {telemetryQuery.isPending
+                  ? "LOADING"
+                  : isViirsAvailable
+                    ? "AVAILABLE"
+                    : telemetryQuery.isError
+                      ? "UNAVAILABLE — QUERY ERROR"
+                      : "UNAVAILABLE — NO STORED ROWS"}
               </span>
             </div>
 
@@ -444,7 +612,13 @@ function HomePage() {
                     : "text-text-secondary/60"
                 }
               >
-                {isHarmonizedActive ? "ACTIVE" : "UNAVAILABLE"}
+                {telemetryQuery.isPending
+                  ? "LOADING"
+                  : isHarmonizedActive
+                    ? "ACTIVE"
+                    : telemetryQuery.isError
+                      ? "UNAVAILABLE — QUERY ERROR"
+                      : "UNAVAILABLE — NO STORED ROWS"}
               </span>
             </div>
 
@@ -455,10 +629,12 @@ function HomePage() {
               <span>HISTORICAL:</span>
               <span className="text-text">
                 {telemetryQuery.isPending
-                  ? "SYNCING"
+                  ? "LOADING"
                   : telemetry.baselineDays > 0
                     ? `${telemetry.baselineDays} DAYS BASELINE`
-                    : "UNAVAILABLE"}
+                    : telemetryQuery.isError
+                      ? "UNAVAILABLE — QUERY ERROR"
+                      : "UNAVAILABLE — NO STORED ROWS"}
               </span>
             </div>
           </div>

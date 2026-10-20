@@ -145,6 +145,44 @@ export default function AboutPage() {
           </div>
         </section>
 
+        <section className="mt-8 rounded-lg border border-border bg-surface p-5 text-sm leading-relaxed text-text">
+          <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-text">
+            WHO IT&apos;S FOR
+          </h2>
+          <p className="mt-3">
+            Researchers, students and local analysts who need to compare MODIS and VIIRS fire
+            records without learning two data formats.
+          </p>
+          <p className="mt-3">
+            <strong>WHY BANGLADESH:</strong> Fire detections in South Asia change strongly with
+            season and cloud cover. TerraFlux makes those differences visible so a quiet or busy day
+            is not over-read.
+          </p>
+          <p className="mt-3">
+            <strong>WHAT IT IS NOT:</strong> Not an alert system and not a confirmed-fire map.
+          </p>
+          {/* [TEAM EDIT: add one real, verified local use case] */}
+          <div className="mt-5 border-t border-border pt-4 text-xs text-text-secondary">
+            <p>
+              We acknowledge the use of data and/or imagery from NASA&apos;s Fire Information for
+              Resource Management System (FIRMS), part of NASA&apos;s Earth Science Data and
+              Information System (ESDIS).
+            </p>
+            <p className="mt-2">
+              Earth texture: NASA Visible Earth. Map credits: OpenStreetMap contributors, CARTO.
+              Libraries: Three.js, react-globe.gl, Leaflet.
+            </p>
+            <a
+              className="mt-2 inline-flex min-h-11 items-center text-data-blue underline"
+              href="https://github.com/mursalin999/TerraFlux"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Repository
+            </a>
+          </div>
+        </section>
+
         {/* AI-Assisted Development Disclosure */}
         <section className="mt-8 rounded-lg border border-border bg-surface p-5">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-data-blue">

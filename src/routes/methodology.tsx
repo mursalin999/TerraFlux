@@ -151,8 +151,8 @@ export function MethodologyPage() {
         </div>
 
         {/* Clean Scientific SVG Vector Flow */}
-        <div className="-mx-1 overflow-x-auto overscroll-x-contain px-1 pb-3 [scrollbar-width:thin]">
-          <div className="min-w-[780px] snap-x snap-mandatory">
+        <div className="hidden overflow-x-auto overscroll-x-contain px-1 pb-3 [scrollbar-width:thin] md:block">
+          <div className="min-w-[780px]">
             <svg viewBox="0 0 860 160" className="w-full h-auto">
               <defs>
                 <linearGradient id="modisGrad" x1="0" y1="0" x2="1" y2="0">
@@ -324,7 +324,7 @@ export function MethodologyPage() {
         </div>
 
         {/* Step Explanations (Accordion / Expandable Cards) */}
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {PIPELINE_STEPS.map((step) => {
             const isExpanded = expandedStep === step.id;
             return (
@@ -339,7 +339,7 @@ export function MethodologyPage() {
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className="text-[10px] font-bold uppercase tracking-wider"
+                    className="text-[11px] font-bold uppercase tracking-wider"
                     style={{ color: step.color }}
                   >
                     {step.title}
@@ -385,7 +385,7 @@ export function MethodologyPage() {
               <CheckCircle2 className="h-5 w-5" />
               <span>WHAT TERRAFLUX KNOWS (OBSERVABLE)</span>
             </div>
-            <ul className="mt-4 space-y-3 text-xs leading-relaxed text-text">
+            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-text">
               <li className="flex items-start gap-2">
                 <span className="text-agreement-teal font-bold">•</span>
                 <span>
@@ -430,7 +430,7 @@ export function MethodologyPage() {
               <XCircle className="h-5 w-5" />
               <span>WHAT TERRAFLUX DOES NOT KNOW (UNOBSERVABLE)</span>
             </div>
-            <ul className="mt-4 space-y-3 text-xs leading-relaxed text-text">
+            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-text">
               <li className="flex items-start gap-2">
                 <span className="text-critical-red font-bold">•</span>
                 <span>
