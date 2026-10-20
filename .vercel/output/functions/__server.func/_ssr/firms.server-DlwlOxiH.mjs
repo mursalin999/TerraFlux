@@ -1,4 +1,4 @@
-//#region node_modules/.nitro/vite/services/ssr/assets/firms.server-Ddze8PYh.js
+//#region node_modules/.nitro/vite/services/ssr/assets/firms.server-DlwlOxiH.js
 function validateBbox(bbox) {
 	const parts = bbox.split(",").map((p) => Number(p.trim()));
 	if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) throw new Error("bbox must be \"west,south,east,north\" with four numbers");
@@ -126,7 +126,10 @@ async function fetchAndHarmonize(opts) {
 		"TSS_DISABLE_CSRF_MIDDLEWARE_WARNING": "false",
 		"TSS_INLINE_CSS_ENABLED": "false",
 		"TSS_ROUTER_BASEPATH": "",
-		"TSS_SERVER_FN_BASE": "/_serverFn/"
+		"TSS_SERVER_FN_BASE": "/_serverFn/",
+		"VITE_SUPABASE_PROJECT_ID": "nvodgsvqhjwwrqbfrkfc",
+		"VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_IrsvnlbCi2WxhnljjP7vig_Ku2Wc1YF",
+		"VITE_SUPABASE_URL": "https://c--bbafee09-c587-4388-9b19-6e832f97bc63-prod.lovable.cloud"
 	}["VITE_FIRMS_MAP_KEY"] || {
 		"BASE_URL": "/",
 		"DEV": false,
@@ -139,7 +142,10 @@ async function fetchAndHarmonize(opts) {
 		"TSS_DISABLE_CSRF_MIDDLEWARE_WARNING": "false",
 		"TSS_INLINE_CSS_ENABLED": "false",
 		"TSS_ROUTER_BASEPATH": "",
-		"TSS_SERVER_FN_BASE": "/_serverFn/"
+		"TSS_SERVER_FN_BASE": "/_serverFn/",
+		"VITE_SUPABASE_PROJECT_ID": "nvodgsvqhjwwrqbfrkfc",
+		"VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_IrsvnlbCi2WxhnljjP7vig_Ku2Wc1YF",
+		"VITE_SUPABASE_URL": "https://c--bbafee09-c587-4388-9b19-6e832f97bc63-prod.lovable.cloud"
 	}["FIRMS_MAP_KEY"]))?.trim();
 	if (!mapKey) throw new Error("FIRMS_MAP_KEY is not set in Vercel environment variables. Please set FIRMS_MAP_KEY in Vercel Project Settings -> Environment Variables and trigger a fresh redeploy.");
 	validateBbox(opts.bbox);

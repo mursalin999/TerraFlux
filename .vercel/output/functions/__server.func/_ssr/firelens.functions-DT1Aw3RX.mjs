@@ -2,7 +2,7 @@ import { a as parseBbox, n as REGIONS } from "./regions--TbXEuvW.mjs";
 import { a as TSS_SERVER_FUNCTION, l as createServerFn } from "./createServerFn-DDDJMFWM.mjs";
 import { a as objectType, i as numberType, n as booleanType, o as stringType, r as enumType, t as arrayType } from "../_libs/zod.mjs";
 import { t as createClient } from "../_libs/supabase__supabase-js.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/firelens.functions-Dfbz6fft.js
+//#region node_modules/.nitro/vite/services/ssr/assets/firelens.functions-DT1Aw3RX.js
 var createServerRpc = (serverFnMeta, splitImportFn) => {
 	const url = "/_serverFn/" + serverFnMeta.id;
 	return Object.assign(splitImportFn, {
@@ -22,7 +22,7 @@ var fetchFireData = createServerFn({ method: "POST" }).inputValidator((data) => 
 	days: numberType().int().min(1).max(5),
 	date: stringType().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
 }).parse(data)).handler(fetchFireData_createServerFn_handler, async ({ data }) => {
-	const { fetchAndHarmonize, upsertDetections } = await import("./firms.server-Ddze8PYh.mjs");
+	const { fetchAndHarmonize, upsertDetections } = await import("./firms.server-DlwlOxiH.mjs");
 	const rows = await fetchAndHarmonize(data);
 	return {
 		rows,
@@ -39,7 +39,7 @@ var backfillFireData = createServerFn({ method: "POST" }).inputValidator((data) 
 	start_date: stringType().regex(/^\d{4}-\d{2}-\d{2}$/),
 	end_date: stringType().regex(/^\d{4}-\d{2}-\d{2}$/)
 }).parse(data)).handler(backfillFireData_createServerFn_handler, async ({ data }) => {
-	const { fetchAndHarmonize, upsertDetections, chunkDateRange } = await import("./firms.server-Ddze8PYh.mjs");
+	const { fetchAndHarmonize, upsertDetections, chunkDateRange } = await import("./firms.server-DlwlOxiH.mjs");
 	const starts = chunkDateRange(data.start_date, data.end_date);
 	let chunks = 0;
 	let stored = 0;
@@ -75,7 +75,10 @@ function publicClient() {
 		"TSS_DISABLE_CSRF_MIDDLEWARE_WARNING": "false",
 		"TSS_INLINE_CSS_ENABLED": "false",
 		"TSS_ROUTER_BASEPATH": "",
-		"TSS_SERVER_FN_BASE": "/_serverFn/"
+		"TSS_SERVER_FN_BASE": "/_serverFn/",
+		"VITE_SUPABASE_PROJECT_ID": "nvodgsvqhjwwrqbfrkfc",
+		"VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_IrsvnlbCi2WxhnljjP7vig_Ku2Wc1YF",
+		"VITE_SUPABASE_URL": "https://c--bbafee09-c587-4388-9b19-6e832f97bc63-prod.lovable.cloud"
 	}["VITE_SUPABASE_URL"];
 	const key = typeof process !== "undefined" && (process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["VITE_SUPABASE_PUBLISHABLE_KEY"]) || typeof import.meta !== "undefined" && {
 		"BASE_URL": "/",
@@ -89,7 +92,10 @@ function publicClient() {
 		"TSS_DISABLE_CSRF_MIDDLEWARE_WARNING": "false",
 		"TSS_INLINE_CSS_ENABLED": "false",
 		"TSS_ROUTER_BASEPATH": "",
-		"TSS_SERVER_FN_BASE": "/_serverFn/"
+		"TSS_SERVER_FN_BASE": "/_serverFn/",
+		"VITE_SUPABASE_PROJECT_ID": "nvodgsvqhjwwrqbfrkfc",
+		"VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_IrsvnlbCi2WxhnljjP7vig_Ku2Wc1YF",
+		"VITE_SUPABASE_URL": "https://c--bbafee09-c587-4388-9b19-6e832f97bc63-prod.lovable.cloud"
 	}["VITE_SUPABASE_PUBLISHABLE_KEY"];
 	if (!url || !key) return null;
 	try {
@@ -383,7 +389,7 @@ var triggerGlobalPull = createServerFn({ method: "POST" }).inputValidator((data)
 	secret: stringType().min(1)
 }).parse(data)).handler(triggerGlobalPull_createServerFn_handler, async ({ data }) => {
 	if (data.secret !== process.env.FIRELENS_INGEST_TOKEN) throw new Error("Unauthorized");
-	const { supabaseAdmin } = await import("./firms.server-Ddze8PYh.mjs");
+	const { supabaseAdmin } = await import("./firms.server-DlwlOxiH.mjs");
 	const { data: result, error } = await supabaseAdmin().functions.invoke("pull-global-firms", { body: data });
 	if (error) throw new Error(`Edge function error: ${error.message}`);
 	return result;

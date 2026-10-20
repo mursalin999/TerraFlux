@@ -18,6 +18,7 @@ const nitro = isProductionBuild
   ? ({
       preset: "vercel",
       vercel: { entryFormat: "node", functions: { runtime: "nodejs22.x" } },
+      noExternals: ["tslib", "@supabase/functions-js"],
     } as const)
   : undefined;
 

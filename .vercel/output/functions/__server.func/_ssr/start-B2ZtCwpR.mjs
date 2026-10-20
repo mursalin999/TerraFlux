@@ -1,7 +1,7 @@
 import { t as createClient } from "../_libs/supabase__supabase-js.mjs";
 import { n as createMiddleware, t as createCsrfMiddleware } from "./createCsrfMiddleware-B2To0gPJ.mjs";
 import { t as renderErrorPage } from "./ssr.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/start-Dmkz5y6b.js
+//#region node_modules/.nitro/vite/services/ssr/assets/start-B2ZtCwpR.js
 function dedupeSerializationAdapters(deduped, serializationAdapters) {
 	for (let i = 0, len = serializationAdapters.length; i < len; i++) {
 		const current = serializationAdapters[i];
@@ -128,7 +128,10 @@ function createSupabaseClient() {
 		"TSS_DISABLE_CSRF_MIDDLEWARE_WARNING": "false",
 		"TSS_INLINE_CSS_ENABLED": "false",
 		"TSS_ROUTER_BASEPATH": "",
-		"TSS_SERVER_FN_BASE": "/_serverFn/"
+		"TSS_SERVER_FN_BASE": "/_serverFn/",
+		"VITE_SUPABASE_PROJECT_ID": "nvodgsvqhjwwrqbfrkfc",
+		"VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_IrsvnlbCi2WxhnljjP7vig_Ku2Wc1YF",
+		"VITE_SUPABASE_URL": "https://c--bbafee09-c587-4388-9b19-6e832f97bc63-prod.lovable.cloud"
 	}["VITE_SUPABASE_URL"] || {
 		"BASE_URL": "/",
 		"DEV": false,
@@ -141,7 +144,10 @@ function createSupabaseClient() {
 		"TSS_DISABLE_CSRF_MIDDLEWARE_WARNING": "false",
 		"TSS_INLINE_CSS_ENABLED": "false",
 		"TSS_ROUTER_BASEPATH": "",
-		"TSS_SERVER_FN_BASE": "/_serverFn/"
+		"TSS_SERVER_FN_BASE": "/_serverFn/",
+		"VITE_SUPABASE_PROJECT_ID": "nvodgsvqhjwwrqbfrkfc",
+		"VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_IrsvnlbCi2WxhnljjP7vig_Ku2Wc1YF",
+		"VITE_SUPABASE_URL": "https://c--bbafee09-c587-4388-9b19-6e832f97bc63-prod.lovable.cloud"
 	}["NEXT_PUBLIC_SUPABASE_URL"] || process.env["SUPABASE_URL"] || process.env["NEXT_PUBLIC_SUPABASE_URL"];
 	const SUPABASE_PUBLISHABLE_KEY = {
 		"BASE_URL": "/",
@@ -155,7 +161,10 @@ function createSupabaseClient() {
 		"TSS_DISABLE_CSRF_MIDDLEWARE_WARNING": "false",
 		"TSS_INLINE_CSS_ENABLED": "false",
 		"TSS_ROUTER_BASEPATH": "",
-		"TSS_SERVER_FN_BASE": "/_serverFn/"
+		"TSS_SERVER_FN_BASE": "/_serverFn/",
+		"VITE_SUPABASE_PROJECT_ID": "nvodgsvqhjwwrqbfrkfc",
+		"VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_IrsvnlbCi2WxhnljjP7vig_Ku2Wc1YF",
+		"VITE_SUPABASE_URL": "https://c--bbafee09-c587-4388-9b19-6e832f97bc63-prod.lovable.cloud"
 	}["VITE_SUPABASE_PUBLISHABLE_KEY"] || {
 		"BASE_URL": "/",
 		"DEV": false,
@@ -168,7 +177,10 @@ function createSupabaseClient() {
 		"TSS_DISABLE_CSRF_MIDDLEWARE_WARNING": "false",
 		"TSS_INLINE_CSS_ENABLED": "false",
 		"TSS_ROUTER_BASEPATH": "",
-		"TSS_SERVER_FN_BASE": "/_serverFn/"
+		"TSS_SERVER_FN_BASE": "/_serverFn/",
+		"VITE_SUPABASE_PROJECT_ID": "nvodgsvqhjwwrqbfrkfc",
+		"VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_IrsvnlbCi2WxhnljjP7vig_Ku2Wc1YF",
+		"VITE_SUPABASE_URL": "https://c--bbafee09-c587-4388-9b19-6e832f97bc63-prod.lovable.cloud"
 	}["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"] || process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"];
 	if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 		console.warn("[Supabase] Missing credentials; using mock in-memory client.");
