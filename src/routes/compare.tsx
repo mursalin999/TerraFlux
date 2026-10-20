@@ -148,11 +148,11 @@ function Compare() {
         <div className="mt-6 grid gap-6 lg:mt-0 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
           <div className="relative h-[420px] overflow-hidden rounded-lg border border-border bg-bg lg:h-[620px]">
             {/* Viewport projection mode switcher: 3D GLOBE vs 2D MAP */}
-            <div className="absolute left-3 top-3 z-20 flex items-center gap-1 rounded-md border border-border/80 bg-surface/90 p-1 font-mono text-[10px] shadow-xl backdrop-blur-md">
+            <div className="absolute left-3 top-3 z-20 flex min-h-11 max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1 rounded-md border border-border/80 bg-surface/90 p-1 font-mono text-[11px] shadow-xl backdrop-blur-md">
               <button
                 type="button"
                 onClick={() => setMapProjection("3D")}
-                className={`flex items-center gap-1.5 rounded px-2.5 py-1 uppercase transition-colors ${
+                className={`flex min-h-11 items-center gap-1.5 rounded px-3 py-2 uppercase transition-colors ${
                   mapProjection === "3D"
                     ? "border border-data-blue bg-data-blue/20 text-data-blue font-semibold"
                     : "text-text-secondary hover:text-text"
@@ -164,7 +164,7 @@ function Compare() {
               <button
                 type="button"
                 onClick={() => setMapProjection("2D")}
-                className={`flex items-center gap-1.5 rounded px-2.5 py-1 uppercase transition-colors ${
+                className={`flex min-h-11 items-center gap-1.5 rounded px-3 py-2 uppercase transition-colors ${
                   mapProjection === "2D"
                     ? "border border-thermal-orange bg-thermal-orange/20 text-thermal-orange font-semibold"
                     : "text-text-secondary hover:text-text"
@@ -208,9 +208,15 @@ function Compare() {
                   MODIS (1 KM)
                 </div>
                 <div className="mt-2 font-mono text-3xl font-semibold text-data-blue">
-                  {modisTotal.toLocaleString()}
+                  {dailyQuery.isLoading
+                    ? "LOADING"
+                    : modisTotal > 0
+                      ? modisTotal.toLocaleString()
+                      : dailyQuery.isError
+                        ? "UNAVAILABLE — QUERY ERROR"
+                        : "UNAVAILABLE — NO STORED ROWS"}
                 </div>
-                <div className="mt-1 font-mono text-[10px] uppercase text-text-secondary">
+                <div className="mt-1 font-mono text-[11px] uppercase text-text-secondary">
                   OBSERVATIONS IN RANGE
                 </div>
               </div>
@@ -220,9 +226,15 @@ function Compare() {
                   VIIRS (375 M)
                 </div>
                 <div className="mt-2 font-mono text-3xl font-semibold text-thermal-orange">
-                  {viirsTotal.toLocaleString()}
+                  {dailyQuery.isLoading
+                    ? "LOADING"
+                    : viirsTotal > 0
+                      ? viirsTotal.toLocaleString()
+                      : dailyQuery.isError
+                        ? "UNAVAILABLE — QUERY ERROR"
+                        : "UNAVAILABLE — NO STORED ROWS"}
                 </div>
-                <div className="mt-1 font-mono text-[10px] uppercase text-text-secondary">
+                <div className="mt-1 font-mono text-[11px] uppercase text-text-secondary">
                   OBSERVATIONS IN RANGE
                 </div>
               </div>

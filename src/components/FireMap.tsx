@@ -59,7 +59,7 @@ export default function FireMap({
       ? detections.filter((_, i) => i % Math.ceil(detections.length / MAX_MARKERS) === 0)
       : detections;
 
-  const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const tileUrl = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 
   return (
     <div className="relative h-full w-full">
@@ -72,7 +72,7 @@ export default function FireMap({
       >
         <Recenter center={center} zoom={zoom} />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url={tileUrl}
         />
         {shown.map((d, i) => {

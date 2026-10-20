@@ -1,13 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   X,
   Calendar as CalendarIcon,
@@ -274,7 +266,7 @@ export function ActivityAnalysis({
           <div>
             <div className="flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-anomaly-amber" />
-              <p className="font-mono text-[10px] tracking-[0.2em] text-anomaly-amber uppercase">
+              <p className="font-mono text-[11px] tracking-[0.2em] text-anomaly-amber uppercase">
                 WHY WAS THIS DAY UNUSUAL?
               </p>
             </div>
@@ -365,10 +357,16 @@ export function ActivityAnalysis({
           </div>
 
           {/* Baseline Limited Warning */}
-          {days.length < 14 && (
+          {days.length < 365 && (
             <div className="rounded border border-anomaly-amber/40 bg-anomaly-amber/10 p-3 font-mono text-xs text-anomaly-amber">
-              <span className="font-bold">BASELINE LIMITED:</span> {days.length} days stored. Small
-              sample sizes can exaggerate percentile shifts.
+              <span
+                className="font-bold"
+                title="Fewer than 12 months of stored data, so seasonal patterns are not covered."
+              >
+                LIMITED BASELINE
+              </span>
+              : {days.length} days stored. Fewer than 12 months of stored data, so seasonal patterns
+              are not covered.
             </div>
           )}
 
@@ -398,7 +396,7 @@ export function ActivityAnalysis({
 
           {/* Mini Map of Day Detections */}
           <div>
-            <div className="mb-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-text-secondary">
+            <div className="mb-2 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider text-text-secondary">
               <span>DAY'S DETECTION LOCATIONS</span>
               <span>{dayDetections.length.toLocaleString()} POINTS</span>
             </div>
@@ -430,7 +428,7 @@ export function ActivityTimeline({
 }: ActivityTimelineProps) {
   const [scale, setScale] = useState<Scale>("daily");
   const [series, setSeries] = useState<Series>("COMBINED");
-  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(true);
   const [hovered, setHovered] = useState<DayCount | null>(null);
   const [activeAnalysisDate, setActiveAnalysisDate] = useState<string | null>(null);
 
@@ -467,7 +465,7 @@ export function ActivityTimeline({
     [activeValue, allValues],
   );
 
-  const baselineLimited = days.length < 14;
+  const baselineLimited = days.length < 365;
 
   const handleDayClick = (dateStr: string) => {
     if (onSelectDate) onSelectDate(dateStr);
@@ -482,7 +480,7 @@ export function ActivityTimeline({
       {/* Top Header & Scales */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
         <div>
-          <p className="text-[10px] tracking-[0.2em] text-data-blue uppercase">
+          <p className="text-[11px] tracking-[0.2em] text-data-blue uppercase">
             THERMAL ACTIVITY OVER TIME
           </p>
           <h2 className="mt-0.5 font-headline text-lg font-semibold text-text">
@@ -503,7 +501,7 @@ export function ActivityTimeline({
               role="tab"
               aria-selected={scale === s}
               onClick={() => setScale(s)}
-              className={`rounded px-2.5 py-1 text-[10px] uppercase transition-all ${
+              className={`rounded px-2.5 py-1 text-[11px] uppercase transition-all ${
                 scale === s
                   ? "border border-data-blue/60 bg-data-blue/20 text-data-blue font-semibold"
                   : "text-text-secondary hover:text-text"
@@ -533,7 +531,7 @@ export function ActivityTimeline({
                 role="tab"
                 aria-selected={isSelected}
                 onClick={() => setSeries(ser)}
-                className={`flex items-center gap-1.5 rounded border px-2.5 py-1 text-[10px] uppercase transition-all ${
+                className={`flex items-center gap-1.5 rounded border px-2.5 py-1 text-[11px] uppercase transition-all ${
                   isSelected
                     ? "border-border bg-surface-elevated text-text font-semibold shadow-sm"
                     : "border-transparent text-text-secondary hover:text-text"
@@ -550,7 +548,7 @@ export function ActivityTimeline({
         <button
           type="button"
           onClick={() => setShowHeatmap(!showHeatmap)}
-          className="flex items-center gap-1.5 rounded border border-border px-2.5 py-1 text-[10px] uppercase tracking-wider text-text-secondary transition-colors hover:border-text-secondary hover:text-text"
+          className="flex items-center gap-1.5 rounded border border-border px-2.5 py-1 text-[11px] uppercase tracking-wider text-text-secondary transition-colors hover:border-text-secondary hover:text-text"
         >
           {showHeatmap ? (
             <>
@@ -581,7 +579,7 @@ export function ActivityTimeline({
         <div className="mt-3 overflow-x-auto">
           <div className="h-64 min-w-[560px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
+              <BarChart
                 data={chartData}
                 onMouseMove={(state) => {
                   const item = state?.activePayload?.[0]?.payload as DayCount | undefined;
@@ -663,8 +661,7 @@ export function ActivityTimeline({
                     );
                   }}
                 />
-                <Area
-                  type="monotone"
+                <Bar
                   dataKey={series === "MODIS" ? "modis" : series === "VIIRS" ? "viirs" : "combined"}
                   stroke={
                     series === "MODIS"
@@ -676,14 +673,14 @@ export function ActivityTimeline({
                   fill="url(#timelineGradient)"
                   strokeWidth={2}
                 />
-              </AreaChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
       )}
 
       {/* Footer Metrics & Baseline Caveat */}
-      <footer className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-[10px] text-text-secondary">
+      <footer className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-[11px] text-text-secondary">
         <div>
           <span>
             {activePeriod?.date ?? "Active Period"} ·{" "}

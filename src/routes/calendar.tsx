@@ -142,7 +142,7 @@ function CalendarPage() {
         />
       </div>
 
-      <div className="mt-6 flex gap-2" role="tablist" aria-label="Sensor view">
+      <div className="mt-6 flex flex-wrap gap-2" role="tablist" aria-label="Sensor view">
         {(["combined", "MODIS", "VIIRS"] as Mode[]).map((m) => (
           <button
             key={m}
@@ -200,11 +200,17 @@ function CalendarPage() {
       {/* Aggregate Analytical Metrics */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-border bg-surface p-5 font-mono">
-          <div className="text-[10px] uppercase tracking-wider text-text-secondary">
+          <div className="text-[11px] uppercase tracking-wider text-text-secondary">
             TOTAL OBSERVATIONS
           </div>
           <div className="mt-1 text-2xl font-bold text-text">
-            {total > 0 ? total.toLocaleString() : "Not available"}
+            {query.isLoading
+              ? "LOADING"
+              : total > 0
+                ? total.toLocaleString()
+                : query.isError
+                  ? "UNAVAILABLE — QUERY ERROR"
+                  : "UNAVAILABLE — NO STORED ROWS"}
           </div>
           <div className="mt-1 text-[10px] text-text-secondary">
             {mode === "combined" ? "MODIS + VIIRS combined" : `${mode} detector only`}
@@ -212,11 +218,17 @@ function CalendarPage() {
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-5 font-mono">
-          <div className="text-[10px] uppercase tracking-wider text-text-secondary">
+          <div className="text-[11px] uppercase tracking-wider text-text-secondary">
             PEAK ACQUISITION DAY
           </div>
           <div className="mt-1 text-lg font-bold text-text">
-            {busiest && countForMode(busiest) > 0 ? busiest.date : "Not available"}
+            {query.isLoading
+              ? "LOADING"
+              : busiest && countForMode(busiest) > 0
+                ? busiest.date
+                : query.isError
+                  ? "UNAVAILABLE — QUERY ERROR"
+                  : "UNAVAILABLE — NO STORED ROWS"}
           </div>
           <div className="mt-1 text-[10px] text-text-secondary">
             {busiest && countForMode(busiest) > 0
@@ -226,11 +238,17 @@ function CalendarPage() {
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-5 font-mono">
-          <div className="text-[10px] uppercase tracking-wider text-text-secondary">
+          <div className="text-[11px] uppercase tracking-wider text-text-secondary">
             MAXIMUM MONTH
           </div>
           <div className="mt-1 text-lg font-bold text-text">
-            {busiestMonth ? monthLabel(busiestMonth[0]) : "Not available"}
+            {query.isLoading
+              ? "LOADING"
+              : busiestMonth
+                ? monthLabel(busiestMonth[0])
+                : query.isError
+                  ? "UNAVAILABLE — QUERY ERROR"
+                  : "UNAVAILABLE — NO STORED ROWS"}
           </div>
           <div className="mt-1 text-[10px] text-text-secondary">
             {busiestMonth
@@ -240,11 +258,17 @@ function CalendarPage() {
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-5 font-mono">
-          <div className="text-[10px] uppercase tracking-wider text-text-secondary">
+          <div className="text-[11px] uppercase tracking-wider text-text-secondary">
             ACTIVE INTERVAL
           </div>
           <div className="mt-1 text-lg font-bold text-text">
-            {activeMonths.length > 0 ? `${activeMonths.length} months active` : "Not available"}
+            {query.isLoading
+              ? "LOADING"
+              : activeMonths.length > 0
+                ? `${activeMonths.length} months active`
+                : query.isError
+                  ? "UNAVAILABLE — QUERY ERROR"
+                  : "UNAVAILABLE — NO STORED ROWS"}
           </div>
           <div className="mt-1 text-[10px] text-text-secondary">
             {quietestMonth ? `Lowest: ${monthLabel(quietestMonth[0])}` : "No detections recorded"}

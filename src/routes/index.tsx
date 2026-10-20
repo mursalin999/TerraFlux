@@ -1,7 +1,16 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
 import { Suspense, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ChevronDown, Menu, X, Calendar, Layers, Database, RefreshCw } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  Menu,
+  X,
+  Calendar,
+  Layers,
+  Database,
+  RefreshCw,
+} from "lucide-react";
 import { LogoWithWordmark } from "@/components/LogoMark";
 import {
   getHomeMissionTelemetry,
@@ -179,7 +188,9 @@ function HomePage() {
                     <RefreshCw className="h-4 w-4 text-data-blue" />
                     <div className="flex flex-col">
                       <span className="font-semibold">Fetch NASA FIRMS</span>
-                      <span className="text-[10px] text-text-secondary">Any region and date range</span>
+                      <span className="text-[10px] text-text-secondary">
+                        Any region and date range
+                      </span>
                     </div>
                   </Link>
                 </DropdownMenuItem>
@@ -318,7 +329,7 @@ function HomePage() {
 
       {/* Real Loading Sequence HUD Badge (skips if <300ms) */}
       {showLoaderBadge && loadingStage !== "READY" && (
-        <div className="pointer-events-none absolute right-4 top-20 z-40 flex items-center gap-2 rounded border border-border bg-surface/90 px-3 py-1.5 font-mono text-[11px] text-text backdrop-blur-md sm:right-8">
+        <div className="pointer-events-none absolute right-4 top-20 z-40 flex min-h-11 items-center gap-2 rounded border border-border bg-surface/90 px-3 py-2 font-mono text-[11px] text-text backdrop-blur-md sm:right-8">
           <span className="h-2 w-2 rounded-full bg-data-blue animate-pulse" />
           <span className="font-semibold uppercase tracking-wider">{loadingStage}</span>
         </div>
@@ -369,15 +380,18 @@ function HomePage() {
       {/* Mission Status Bar (Thin strip at the bottom; compact scrollable chips on mobile) */}
       <footer className="relative z-30 border-t border-border bg-surface/90 backdrop-blur-md">
         <div className="mx-auto flex h-11 max-w-screen-2xl items-center px-4 sm:px-6 lg:px-8">
-          <div className="flex w-full items-center gap-3 overflow-x-auto whitespace-nowrap font-mono text-[11px] text-text-secondary scrollbar-none sm:gap-4 lg:justify-between">
+          <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 py-2 font-mono text-[11px] text-text-secondary sm:gap-x-4 lg:justify-between">
             {/* DATA SOURCE: NASA FIRMS */}
             <div className="flex shrink-0 items-center gap-1.5">
               <span className="text-text-secondary">DATA SOURCE:</span>
               <strong className="text-text">NASA FIRMS</strong>
               {telemetryQuery.isPending ? (
-                <span className="inline-flex items-center gap-1.5 text-text-secondary" aria-label="Loading data source status">
+                <span
+                  className="inline-flex items-center gap-1.5 text-text-secondary"
+                  aria-label="Loading data source status"
+                >
                   <span className="inline-block h-2 w-16 animate-pulse rounded bg-surface-elevated" />
-                  <span>· SYNCING</span>
+                  <span>· LOADING</span>
                 </span>
               ) : telemetry.status === "unavailable" ? (
                 <span className="font-semibold text-critical-red">· DATA SOURCE UNAVAILABLE</span>
@@ -413,7 +427,13 @@ function HomePage() {
                   isModisAvailable ? "font-semibold text-data-blue" : "text-text-secondary/60"
                 }
               >
-                {telemetryQuery.isPending ? "SYNCING" : isModisAvailable ? "AVAILABLE" : "UNAVAILABLE"}
+                {telemetryQuery.isPending
+                  ? "LOADING"
+                  : isModisAvailable
+                    ? "AVAILABLE"
+                    : telemetryQuery.isError
+                      ? "UNAVAILABLE — QUERY ERROR"
+                      : "UNAVAILABLE — NO STORED ROWS"}
               </span>
             </div>
 
@@ -428,7 +448,13 @@ function HomePage() {
                   isViirsAvailable ? "font-semibold text-thermal-orange" : "text-text-secondary/60"
                 }
               >
-                {telemetryQuery.isPending ? "SYNCING" : isViirsAvailable ? "AVAILABLE" : "UNAVAILABLE"}
+                {telemetryQuery.isPending
+                  ? "LOADING"
+                  : isViirsAvailable
+                    ? "AVAILABLE"
+                    : telemetryQuery.isError
+                      ? "UNAVAILABLE — QUERY ERROR"
+                      : "UNAVAILABLE — NO STORED ROWS"}
               </span>
             </div>
 
@@ -444,7 +470,13 @@ function HomePage() {
                     : "text-text-secondary/60"
                 }
               >
-                {isHarmonizedActive ? "ACTIVE" : "UNAVAILABLE"}
+                {telemetryQuery.isPending
+                  ? "LOADING"
+                  : isHarmonizedActive
+                    ? "ACTIVE"
+                    : telemetryQuery.isError
+                      ? "UNAVAILABLE — QUERY ERROR"
+                      : "UNAVAILABLE — NO STORED ROWS"}
               </span>
             </div>
 
@@ -455,10 +487,12 @@ function HomePage() {
               <span>HISTORICAL:</span>
               <span className="text-text">
                 {telemetryQuery.isPending
-                  ? "SYNCING"
+                  ? "LOADING"
                   : telemetry.baselineDays > 0
                     ? `${telemetry.baselineDays} DAYS BASELINE`
-                    : "UNAVAILABLE"}
+                    : telemetryQuery.isError
+                      ? "UNAVAILABLE — QUERY ERROR"
+                      : "UNAVAILABLE — NO STORED ROWS"}
               </span>
             </div>
           </div>
