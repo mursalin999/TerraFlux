@@ -1,5 +1,5 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Globe2, Map as MapIcon } from "lucide-react";
 import {
@@ -19,6 +19,9 @@ import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
 import FireMap from "@/components/FireMap";
 import EarthGlobe from "@/components/EarthGlobe";
 import CompareChart from "@/components/CompareChart";
+import { FindingsPanel } from "@/components/FindingsPanel";
+import { UnusualDayDrawer } from "@/components/UnusualDayDrawer";
+import { computeAnalyticalGrid } from "@/lib/analyticalGrid";
 
 export const Route = createFileRoute("/compare")({
   head: () => ({
@@ -70,16 +73,23 @@ function Compare() {
       getDailyCounts({ data: { ...bboxParts, start_date: startDate, end_date: endDate } }),
   });
 
-  const detections = mapQuery.data ?? [];
+  const detections = useMemo(() => mapQuery.data ?? [], [mapQuery.data]);
   const days = dailyQuery.data ?? [];
   const modisTotal = days.reduce((s, d) => s + d.modis, 0);
   const viirsTotal = days.reduce((s, d) => s + d.viirs, 0);
   const chartMax = Math.max(1, ...days.map((d) => d.modis + d.viirs));
-  const strongestDisagreement = days.reduce<(typeof days)[number] | null>(
-    (best, day) =>
-      !best || Math.abs(day.modis - day.viirs) > Math.abs(best.modis - best.viirs) ? day : best,
-    null,
+  const gridAnalysis = useMemo(
+    () => computeAnalyticalGrid(detections, startDate, endDate),
+    [detections, startDate, endDate],
   );
+  const agreementRate = useMemo(() => {
+    if (gridAnalysis.cells.length === 0) return null;
+    return (
+      gridAnalysis.cells.filter((cell) => cell.modisCount > 0 && cell.viirsCount > 0).length /
+      gridAnalysis.cells.length
+    );
+  }, [gridAnalysis.cells]);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   return (
     <div className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
@@ -93,6 +103,48 @@ function Compare() {
         <p className="mt-1 font-mono text-xs text-text-secondary">
           Comparing 1 km MODIS nadir observations with 375 m VIIRS I-band detections over{" "}
           {region.name}.
+        </p>
+      </div>
+
+      <div className="mt-6">
+        <FindingsPanel
+          days={days}
+          agreementRate={agreementRate}
+          sampleCells={gridAnalysis.cells.length}
+          onSelectDay={setSelectedDay}
+        />
+      </div>
+
+      <div className="mt-6 rounded-lg border border-border bg-surface p-5">
+        <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
+          <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-text">
+            GRID SENSITIVITY
+          </h2>
+          <span className="font-mono text-[11px] text-agreement-teal">0.15° TerraFlux grid</span>
+        </div>
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          {[0.05, 0.1, 0.15, 0.25].map((size) => {
+            const result = computeAnalyticalGrid(detections, startDate, endDate, size);
+            const rate = result.cells.length
+              ? result.cells.filter((cell) => cell.modisCount > 0 && cell.viirsCount > 0).length /
+                result.cells.length
+              : null;
+            return (
+              <div
+                key={size}
+                className={`rounded border p-2 text-center ${size === 0.15 ? "border-agreement-teal bg-agreement-teal/10" : "border-border bg-surface-elevated"}`}
+              >
+                <div className="font-mono text-xs text-text">{size.toFixed(2)}°</div>
+                <div className="mt-1 font-mono text-sm text-agreement-teal">
+                  {rate == null ? "—" : `${Math.round(rate * 100)}%`}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-xs text-text-secondary">
+          Same observations, different cell size: shows how much agreement depends on the grid
+          choice.
         </p>
       </div>
 
@@ -293,7 +345,7 @@ function Compare() {
                         <div className="h-72 w-full animate-pulse bg-surface-elevated/40" />
                       }
                     >
-                      <CompareChart data={days} />
+                      <CompareChart data={days} onDateClick={setSelectedDay} />
                     </Suspense>
                   </ClientOnly>
                 </div>
@@ -302,6 +354,14 @@ function Compare() {
           </div>
         </div>
       </div>
+
+      <UnusualDayDrawer
+        day={days.find((day) => day.date === selectedDay) ?? null}
+        observations={detections}
+        analysis={gridAnalysis}
+        regionBbox={bboxParts}
+        onClose={() => setSelectedDay(null)}
+      />
 
       {selectedObs && (
         <ObservationInspector

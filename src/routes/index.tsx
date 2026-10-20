@@ -356,6 +356,40 @@ function HomePage() {
             framework designed to reveal patterns, differences and unusual periods across Earth.
           </p>
 
+          {!telemetryQuery.isPending && telemetryQuery.data && (
+            <div className="mt-6 rounded border border-border bg-surface/80 p-3 font-mono text-[11px] backdrop-blur-sm">
+              <div className="font-semibold uppercase tracking-wider text-text">SNAPSHOT</div>
+              <p className="mt-2 text-text-secondary">
+                MODIS {telemetry.modisCount.toLocaleString()} · VIIRS{" "}
+                {telemetry.viirsCount.toLocaleString()} · RATIO{" "}
+                {telemetry.modisCount > 0
+                  ? `${(telemetry.viirsCount / telemetry.modisCount).toFixed(1)}x`
+                  : "—"}
+              </p>
+              <p className="mt-1 text-text-secondary">
+                Stored data: {telemetry.baselineDays.toLocaleString()} days
+              </p>
+            </div>
+          )}
+
+          <div className="mt-5 max-w-lg border-l-2 border-agreement-teal pl-3 text-xs leading-relaxed text-text-secondary sm:text-sm">
+            <p>
+              <strong className="text-text">WHO IT&apos;S FOR:</strong> Researchers, students and
+              local analysts who need to compare MODIS and VIIRS fire records without learning two
+              data formats.
+            </p>
+            <p className="mt-2">
+              <strong className="text-text">WHY BANGLADESH:</strong> Fire detections in South Asia
+              change strongly with season and cloud cover. TerraFlux makes those differences visible
+              so a quiet or busy day is not over-read.
+            </p>
+            <p className="mt-2">
+              <strong className="text-text">WHAT IT IS NOT:</strong> Not an alert system and not a
+              confirmed-fire map.
+            </p>
+            {/* [TEAM EDIT: add one real, verified local use case] */}
+          </div>
+
           {/* Primary CTA and Secondary Link */}
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <Link

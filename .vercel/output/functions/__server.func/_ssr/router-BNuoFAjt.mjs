@@ -2,14 +2,14 @@ import { i as __toESM } from "../_runtime.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { S as useRouter, _ as lazyRouteComponent, b as Link, d as Scripts, f as HeadContent, g as Outlet, h as createRouter, p as useRouterState, v as createFileRoute, y as createRootRouteWithContext } from "../_libs/@tanstack/react-router+[...].mjs";
 import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
-import { E as ChevronDown, S as CircleCheck, a as ShieldAlert, d as Menu, g as Earth, h as ExternalLink, k as Calendar, p as Layers, t as X, v as Database, x as CircleX, y as Cpu } from "../_libs/lucide-react.mjs";
+import { A as Calendar, C as CircleCheck, D as ChevronDown, S as CircleX, _ as Earth, a as ShieldAlert, b as Cpu, d as Menu, g as ExternalLink, p as Layers, t as X, y as Database } from "../_libs/lucide-react.mjs";
 import { n as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
 import { t as QueryClient } from "../_libs/tanstack__query-core.mjs";
 import { a as LogoMark, i as DropdownMenuTrigger, n as DropdownMenuContent, o as LogoWithWordmark, r as DropdownMenuItem, t as DropdownMenu } from "./dropdown-menu-j_qlvo2r.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-_GtB_RWm.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-BNuoFAjt.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var styles_default = "/assets/styles-6NsMP53Z.css";
+var styles_default = "/assets/styles-DZYx1yYn.css";
 function reportLovableError(error, context = {}) {
 	if (typeof window === "undefined") return;
 	window.__lovableEvents?.captureException?.(error, {
@@ -456,7 +456,7 @@ function RootComponent() {
 		})
 	});
 }
-var $$splitComponentImporter$3 = () => import("./routes-BoJfsNj9.mjs");
+var $$splitComponentImporter$3 = () => import("./routes-7VUpjdcy.mjs");
 var Route$5 = createFileRoute("/")({
 	head: () => ({ meta: [
 		{ title: "TerraFlux: Earth's thermal story, harmonized" },
@@ -665,6 +665,27 @@ function AboutPage() {
 					})]
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+					className: "mt-8 rounded-lg border border-border bg-surface p-5 text-sm leading-relaxed text-text",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+							className: "font-mono text-xs font-semibold uppercase tracking-wider text-text",
+							children: "WHO IT'S FOR"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "mt-3",
+							children: "Researchers, students and local analysts who need to compare MODIS and VIIRS fire records without learning two data formats."
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+							className: "mt-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "WHY BANGLADESH:" }), " Fire detections in South Asia change strongly with season and cloud cover. TerraFlux makes those differences visible so a quiet or busy day is not over-read."]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+							className: "mt-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "WHAT IT IS NOT:" }), " Not an alert system and not a confirmed-fire map."]
+						})
+					]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 					className: "mt-8 rounded-lg border border-border bg-surface p-5",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-data-blue",
@@ -728,7 +749,7 @@ var Route$3 = createFileRoute("/calendar")({
 	] }),
 	component: lazyRouteComponent($$splitComponentImporter$2, "component")
 });
-var $$splitComponentImporter$1 = () => import("./compare-BHCKf03W.mjs");
+var $$splitComponentImporter$1 = () => import("./compare-BXUHHC6D.mjs");
 var Route$2 = createFileRoute("/compare")({
 	head: () => ({ meta: [
 		{ title: "Sensor Comparison — TerraFlux" },
@@ -755,7 +776,7 @@ var Route$2 = createFileRoute("/compare")({
 	] }),
 	component: lazyRouteComponent($$splitComponentImporter$1, "component")
 });
-var $$splitComponentImporter = () => import("./explore-DsnxSS6g.mjs");
+var $$splitComponentImporter = () => import("./explore-BQl7SSdc.mjs");
 var Route$1 = createFileRoute("/explore")({
 	head: () => ({ meta: [
 		{ title: "Scientific Workspace — TerraFlux" },

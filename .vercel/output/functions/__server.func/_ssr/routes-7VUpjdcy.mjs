@@ -2,11 +2,11 @@ import { i as __toESM } from "../_runtime.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { C as ClientOnly, b as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
-import { E as ChevronDown, d as Menu, j as ArrowRight, k as Calendar, l as RefreshCw, p as Layers, t as X, v as Database } from "../_libs/lucide-react.mjs";
+import { A as Calendar, D as ChevronDown, M as ArrowRight, d as Menu, l as RefreshCw, p as Layers, t as X, y as Database } from "../_libs/lucide-react.mjs";
 import { a as getHomeMissionTelemetry } from "./firelens.functions-C1L89yTy.mjs";
 import { t as useQuery } from "../_libs/tanstack__react-query.mjs";
 import { i as DropdownMenuTrigger, n as DropdownMenuContent, o as LogoWithWordmark, r as DropdownMenuItem, t as DropdownMenu } from "./dropdown-menu-j_qlvo2r.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-BoJfsNj9.js
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-7VUpjdcy.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function GlobeFallback() {
@@ -274,6 +274,59 @@ function HomePage() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 							className: "mt-4 font-sans text-xs leading-relaxed text-text-secondary sm:text-base sm:leading-relaxed",
 							children: "Explore harmonized MODIS and VIIRS active-fire observations through a common analytical framework designed to reveal patterns, differences and unusual periods across Earth."
+						}),
+						!telemetryQuery.isPending && telemetryQuery.data && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "mt-6 rounded border border-border bg-surface/80 p-3 font-mono text-[11px] backdrop-blur-sm",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "font-semibold uppercase tracking-wider text-text",
+									children: "SNAPSHOT"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+									className: "mt-2 text-text-secondary",
+									children: [
+										"MODIS ",
+										telemetry.modisCount.toLocaleString(),
+										" · VIIRS",
+										" ",
+										telemetry.viirsCount.toLocaleString(),
+										" · RATIO",
+										" ",
+										telemetry.modisCount > 0 ? `${(telemetry.viirsCount / telemetry.modisCount).toFixed(1)}x` : "—"
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+									className: "mt-1 text-text-secondary",
+									children: [
+										"Stored data: ",
+										telemetry.baselineDays.toLocaleString(),
+										" days"
+									]
+								})
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "mt-5 max-w-lg border-l-2 border-agreement-teal pl-3 text-xs leading-relaxed text-text-secondary sm:text-sm",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", {
+									className: "text-text",
+									children: "WHO IT'S FOR:"
+								}), " Researchers, students and local analysts who need to compare MODIS and VIIRS fire records without learning two data formats."] }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+									className: "mt-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", {
+										className: "text-text",
+										children: "WHY BANGLADESH:"
+									}), " Fire detections in South Asia change strongly with season and cloud cover. TerraFlux makes those differences visible so a quiet or busy day is not over-read."]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+									className: "mt-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", {
+										className: "text-text",
+										children: "WHAT IT IS NOT:"
+									}), " Not an alert system and not a confirmed-fire map."]
+								})
+							]
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 							className: "mt-6 flex flex-wrap items-center gap-4",

@@ -481,6 +481,28 @@ var Flame = createLucideIcon("flame", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var Info = createLucideIcon("info", [
+	["circle", {
+		cx: "12",
+		cy: "12",
+		r: "10",
+		key: "1mglay"
+	}],
+	["path", {
+		d: "M12 16v-4",
+		key: "1dtifu"
+	}],
+	["path", {
+		d: "M12 8h.01",
+		key: "e9boi3"
+	}]
+]);
+/**
+* @license lucide-react v0.575.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var Layers = createLucideIcon("layers", [
 	["path", {
 		d: "M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z",
@@ -757,4 +779,4 @@ var X = createLucideIcon("x", [["path", {
 	key: "d8bk6v"
 }]]);
 //#endregion
-export { ArrowUpDown as A, CircleAlert as C, Check as D, ChevronDown as E, ChartLine as O, CircleCheck as S, ChevronRight as T, Download as _, ShieldAlert as a, Circle as b, RotateCcw as c, Menu as d, Map as f, Earth as g, ExternalLink as h, SlidersHorizontal as i, ArrowRight as j, Calendar as k, RefreshCw as l, Flame as m, Table as n, Search as o, Layers as p, Sparkles as r, Satellite as s, X as t, Navigation as u, Database as v, ChevronUp as w, CircleX as x, Cpu as y };
+export { Calendar as A, CircleCheck as C, ChevronDown as D, ChevronRight as E, ArrowRight as M, Check as O, CircleX as S, ChevronUp as T, Earth as _, ShieldAlert as a, Cpu as b, RotateCcw as c, Menu as d, Map as f, ExternalLink as g, Flame as h, SlidersHorizontal as i, ArrowUpDown as j, ChartLine as k, RefreshCw as l, Info as m, Table as n, Search as o, Layers as p, Sparkles as r, Satellite as s, X as t, Navigation as u, Download as v, CircleAlert as w, Circle as x, Database as y };

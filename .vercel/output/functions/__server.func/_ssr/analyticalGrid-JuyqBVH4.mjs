@@ -2,8 +2,8 @@ import { i as __toESM } from "../_runtime.mjs";
 import { r as SENSOR_META } from "./regions--TbXEuvW.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
-import { D as Check, j as ArrowRight, p as Layers, r as Sparkles, t as X } from "../_libs/lucide-react.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/ObservationInspector-BdkR5RmB.js
+import { M as ArrowRight, O as Check, p as Layers, r as Sparkles, t as X } from "../_libs/lucide-react.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/analyticalGrid-JuyqBVH4.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var unavailable = "Not available";
@@ -469,5 +469,150 @@ function ObservationInspector({ observation, cell, allCells = [], baselineWindow
 		})
 	] });
 }
+var GRID_CELL_SIZE = .15;
+function computeAnalyticalGrid(observations, startDate, endDate, cellSize = GRID_CELL_SIZE) {
+	const cellMap = /* @__PURE__ */ new Map();
+	for (const obs of observations) {
+		const latIdx = Math.floor(obs.lat / cellSize);
+		const lonIdx = Math.floor(obs.lon / cellSize);
+		const centerLat = Number((latIdx * cellSize + cellSize / 2).toFixed(4));
+		const centerLon = Number((lonIdx * cellSize + cellSize / 2).toFixed(4));
+		const id = `${latIdx}_${lonIdx}`;
+		let cell = cellMap.get(id);
+		if (!cell) {
+			cell = {
+				id,
+				lat: centerLat,
+				lon: centerLon,
+				bounds: {
+					west: Number((lonIdx * cellSize).toFixed(4)),
+					south: Number((latIdx * cellSize).toFixed(4)),
+					east: Number(((lonIdx + 1) * cellSize).toFixed(4)),
+					north: Number(((latIdx + 1) * cellSize).toFixed(4))
+				},
+				modisCount: 0,
+				viirsCount: 0,
+				totalCount: 0,
+				meanFrp: null,
+				maxBrightness: null,
+				dayCount: 0,
+				nightCount: 0,
+				agreementLevel: "NONE",
+				agreementRatio: 0,
+				anomalyPercentile: 0,
+				isAnomaly: false,
+				harmonizedIntensity: 0,
+				observations: []
+			};
+			cellMap.set(id, cell);
+		}
+		cell.observations.push(obs);
+		if (obs.sensor === "MODIS") cell.modisCount += 1;
+		else cell.viirsCount += 1;
+		cell.totalCount += 1;
+		if (obs.day_night === "D") cell.dayCount += 1;
+		if (obs.day_night === "N") cell.nightCount += 1;
+		if (obs.brightness_k != null) cell.maxBrightness = Math.max(cell.maxBrightness ?? 0, obs.brightness_k);
+	}
+	const cells = Array.from(cellMap.values());
+	if (cells.length === 0) return {
+		cells: [],
+		maxCount: 0,
+		p80Count: 0,
+		p90Count: 0,
+		strongAgreementCount: 0,
+		moderateAgreementCount: 0,
+		limitedAgreementCount: 0,
+		noneAgreementCount: 0,
+		totalObservations: 0,
+		baselineWindowLabel: `${startDate} → ${endDate}`
+	};
+	let maxCount = 1;
+	for (const cell of cells) {
+		maxCount = Math.max(maxCount, cell.totalCount);
+		const frpVals = cell.observations.map((o) => o.frp_mw).filter((v) => v != null && v > 0);
+		cell.meanFrp = frpVals.length > 0 ? frpVals.reduce((a, b) => a + b, 0) / frpVals.length : null;
+		const hasModis = cell.modisCount > 0;
+		const hasViirs = cell.viirsCount > 0;
+		const hasHighConf = cell.observations.some((o) => o.confidence_tier === "high");
+		const hasNominalConf = cell.observations.some((o) => o.confidence_tier === "nominal" || o.confidence_tier === "high");
+		if (hasModis && hasViirs) if (hasHighConf || cell.modisCount >= 2 && cell.viirsCount >= 2) {
+			cell.agreementLevel = "STRONG";
+			cell.agreementRatio = 1;
+		} else {
+			cell.agreementLevel = "MODERATE";
+			cell.agreementRatio = .75;
+		}
+		else if (hasNominalConf && (cell.modisCount >= 2 || cell.viirsCount >= 3)) {
+			cell.agreementLevel = "LIMITED";
+			cell.agreementRatio = .45;
+		} else {
+			cell.agreementLevel = "NONE";
+			cell.agreementRatio = .15;
+		}
+	}
+	const sortedCounts = [...cells.map((c) => c.totalCount)].sort((a, b) => a - b);
+	const p80Index = Math.floor(sortedCounts.length * .8);
+	const p90Index = Math.floor(sortedCounts.length * .9);
+	const p80Count = sortedCounts[p80Index] ?? 1;
+	const p90Count = sortedCounts[p90Index] ?? p80Count;
+	let strongAgreementCount = 0;
+	let moderateAgreementCount = 0;
+	let limitedAgreementCount = 0;
+	let noneAgreementCount = 0;
+	for (const cell of cells) {
+		const rank = sortedCounts.filter((c) => c <= cell.totalCount).length;
+		cell.anomalyPercentile = Math.round(rank / sortedCounts.length * 100);
+		cell.isAnomaly = cell.totalCount >= p90Count;
+		const weightedScore = cell.modisCount * 1.15 + cell.viirsCount * .75;
+		cell.harmonizedIntensity = Math.min(1, Math.max(.1, weightedScore / (maxCount * .9)));
+		if (cell.agreementLevel === "STRONG") strongAgreementCount++;
+		else if (cell.agreementLevel === "MODERATE") moderateAgreementCount++;
+		else if (cell.agreementLevel === "LIMITED") limitedAgreementCount++;
+		else noneAgreementCount++;
+	}
+	return {
+		cells,
+		maxCount,
+		p80Count,
+		p90Count,
+		strongAgreementCount,
+		moderateAgreementCount,
+		limitedAgreementCount,
+		noneAgreementCount,
+		totalObservations: observations.length,
+		baselineWindowLabel: `${startDate} → ${endDate}`
+	};
+}
+var AGREEMENT_DEFINITIONS = {
+	STRONG: {
+		label: "STRONG",
+		color: "#56D6C9",
+		bg: "rgba(86, 214, 201, 0.25)",
+		border: "rgba(86, 214, 201, 0.8)",
+		criteria: "Dual-sensor correspondence: MODIS (1 km) and VIIRS (375 m) both detected anomalies in this cell."
+	},
+	MODERATE: {
+		label: "MODERATE",
+		color: "#56D6C9",
+		bg: "rgba(86, 214, 201, 0.18)",
+		border: "rgba(86, 214, 201, 0.55)",
+		criteria: "Dual-sensor correspondence with nominal confidence across separate overpasses."
+	},
+	LIMITED: {
+		label: "LIMITED",
+		color: "#91A0B5",
+		bg: "rgba(145, 160, 181, 0.15)",
+		border: "rgba(145, 160, 181, 0.4)",
+		criteria: "Single-sensor detection only. Awaiting cross-sensor overpass confirmation."
+	},
+	NONE: {
+		label: "NONE",
+		color: "#91A0B5",
+		bg: "rgba(145, 160, 181, 0.08)",
+		border: "rgba(145, 160, 181, 0.25)",
+		criteria: "Marginal or low-confidence anomaly without multi-sensor confirmation."
+	}
+};
 //#endregion
-export { ObservationInspector as t };
+export { ObservationInspector as n, computeAnalyticalGrid as r, AGREEMENT_DEFINITIONS as t };
