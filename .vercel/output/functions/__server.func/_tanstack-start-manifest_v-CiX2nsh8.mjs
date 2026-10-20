@@ -1,4 +1,4 @@
-//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-WVxcXshA.js
+//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-CiX2nsh8.js
 var tsrStartManifest = () => ({ routes: {
 	__root__: {
 		filePath: "/vercel/share/v0-project/src/routes/__root.tsx",
@@ -11,21 +11,21 @@ var tsrStartManifest = () => ({ routes: {
 			"/methodology"
 		],
 		preloads: [
-			"/assets/index-0JZVmq31.js",
+			"/assets/index-DjAtxbxB.js",
 			"/assets/clsx-BHFsf9zG.js",
 			"/assets/layers-BFqUr-Df.js"
 		],
 		scripts: [{ attrs: {
 			type: "module",
 			async: !0,
-			src: "/assets/index-0JZVmq31.js"
+			src: "/assets/index-DjAtxbxB.js"
 		} }]
 	},
 	"/": {
 		filePath: "/vercel/share/v0-project/src/routes/index.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/routes--xwnO7YY.js",
+			"/assets/routes-Zd0LIWNE.js",
 			"/assets/firelens.functions--AAyoa00.js",
 			"/assets/react-globe.gl-Ul3onpbU.js"
 		]
@@ -34,10 +34,10 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "/vercel/share/v0-project/src/routes/calendar.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/calendar-DKdsAjcw.js",
+			"/assets/calendar-D9dHXdQS.js",
 			"/assets/firelens.functions--AAyoa00.js",
 			"/assets/EmptyState-DAf3Jzft.js",
-			"/assets/ActivityTimeline-DzY7k8QT.js",
+			"/assets/ActivityTimeline-UPG29k1g.js",
 			"/assets/NasaFirmsFetcher-DN13ZIPp.js"
 		]
 	},
@@ -46,11 +46,11 @@ var tsrStartManifest = () => ({ routes: {
 		children: void 0,
 		css: ["/assets/FireMap-vh-t_kPv.css"],
 		preloads: [
-			"/assets/compare-CdhnPPt-.js",
+			"/assets/compare-CGYVdhVD.js",
 			"/assets/firelens.functions--AAyoa00.js",
 			"/assets/EmptyState-DAf3Jzft.js",
 			"/assets/react-globe.gl-Ul3onpbU.js",
-			"/assets/FireMap-CvPGKxJq.js",
+			"/assets/FireMap-BLTy3yTN.js",
 			"/assets/NasaFirmsFetcher-DN13ZIPp.js"
 		]
 	},
@@ -59,12 +59,12 @@ var tsrStartManifest = () => ({ routes: {
 		children: void 0,
 		css: ["/assets/FireMap-vh-t_kPv.css"],
 		preloads: [
-			"/assets/explore-KIpsrfY0.js",
+			"/assets/explore-BPVmUWGH.js",
 			"/assets/firelens.functions--AAyoa00.js",
 			"/assets/EmptyState-DAf3Jzft.js",
 			"/assets/react-globe.gl-Ul3onpbU.js",
-			"/assets/ActivityTimeline-DzY7k8QT.js",
-			"/assets/FireMap-CvPGKxJq.js"
+			"/assets/ActivityTimeline-UPG29k1g.js",
+			"/assets/FireMap-BLTy3yTN.js"
 		]
 	}
 } });

@@ -18,6 +18,7 @@ interface ExploreGlobeProps {
   selectedCell: GridCell | null;
   onSelectObservation: (obs: ObservationPoint | null) => void;
   onSelectCell: (cell: GridCell | null) => void;
+  onResetView?: () => void;
 }
 
 interface RenderPoint extends ObservationPoint {
@@ -53,11 +54,17 @@ export default function ExploreGlobe({
   selectedCell,
   onSelectObservation,
   onSelectCell,
+  onResetView,
 }: ExploreGlobeProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 700 });
   const [cameraAltitude, setCameraAltitude] = useState(1.0);
+  const resetView = useCallback(() => {
+    globeRef.current?.pointOfView({ lat: 20, lng: 0, altitude: 2.4 }, 900);
+    setCameraAltitude(2.4);
+    onResetView?.();
+  }, [onResetView]);
 
   // Resize observer
   useEffect(() => {
@@ -153,8 +160,8 @@ export default function ExploreGlobe({
 
   // Points preparation with sensor styling, FRP scaling, and view adaptation
   const customPoints = useMemo(() => {
-    // Hide individual points in pure COMMON GRID view to let the analytical grid shine
-    if (activeView === "COMMON GRID") return [];
+    // Analytical views render their derived cells; native observations stay visible only in NATIVE.
+    if (activeView !== "NATIVE") return [];
 
     const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
     const pointsToRender = isMobile ? filteredObservations.slice(0, 1500) : filteredObservations;
@@ -396,12 +403,19 @@ export default function ExploreGlobe({
       />
 
       {/* Floating View Calibration HUD (bottom right) */}
-      <div className="pointer-events-none absolute bottom-4 right-4 z-20 hidden items-center gap-3 rounded border border-border/80 bg-surface/85 px-3 py-1.5 font-mono text-[10px] text-text-secondary backdrop-blur-md sm:flex">
+      <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded border border-border/80 bg-surface/90 px-2 py-1.5 font-mono text-[10px] text-text-secondary backdrop-blur-md">
         <span>PROJECTION: WGS 84</span>
         <span>·</span>
         <span>GRID CELL: 0.15° (~16.5 km)</span>
         <span>·</span>
-        <span>ALTITUDE: {cameraAltitude.toFixed(2)}</span>
+        <span className="hidden sm:inline">ALTITUDE: {cameraAltitude.toFixed(2)}</span>
+        <button
+          type="button"
+          onClick={resetView}
+          className="min-h-8 rounded border border-border px-2 text-[10px] font-semibold text-text hover:bg-surface-elevated"
+        >
+          RESET VIEW
+        </button>
       </div>
     </div>
   );

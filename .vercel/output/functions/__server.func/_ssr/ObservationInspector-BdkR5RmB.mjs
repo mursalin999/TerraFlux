@@ -3,7 +3,7 @@ import { r as SENSOR_META } from "./regions--TbXEuvW.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { a as require_jsx_runtime } from "../_libs/@radix-ui/react-collection+[...].mjs";
 import { D as Check, j as ArrowRight, p as Layers, r as Sparkles, t as X } from "../_libs/lucide-react.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/ObservationInspector-CbyNurQk.js
+//#region node_modules/.nitro/vite/services/ssr/assets/ObservationInspector-BdkR5RmB.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var unavailable = "Not available";
@@ -334,7 +334,7 @@ function ObservationInspector({ observation, cell, allCells = [], baselineWindow
 		children: fields.map((field) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: "min-w-0",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", {
-				className: "font-mono text-[9px] uppercase tracking-wider text-text-secondary",
+				className: "font-mono text-[11px] uppercase tracking-wider text-text-secondary",
 				children: field.label
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", {
 				className: `mt-0.5 truncate font-mono text-xs ${field.highlight ? "font-semibold text-anomaly-amber" : "text-text"}`,
@@ -348,10 +348,10 @@ function ObservationInspector({ observation, cell, allCells = [], baselineWindow
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "mb-2 flex items-center justify-between border-b border-border/50 pb-1",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-					className: "text-[9px] font-semibold uppercase tracking-wider text-text-secondary",
+					className: "text-[11px] font-semibold uppercase tracking-wider text-text-secondary",
 					children: "SOURCE DATA (NASA FIRMS)"
 				}), isPoint && observation && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-					className: "text-[9px] font-bold",
+					className: "text-[11px] font-bold",
 					style: { color: observation.sensor === "MODIS" ? SENSOR_META.MODIS.color : SENSOR_META.VIIRS.color },
 					children: observation.sensor
 				})]
@@ -361,7 +361,7 @@ function ObservationInspector({ observation, cell, allCells = [], baselineWindow
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "mb-2 flex items-center gap-1.5 border-b border-border/50 pb-1",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Layers, { className: "h-3 w-3 text-agreement-teal" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-						className: "text-[9px] font-semibold uppercase tracking-wider text-text-secondary",
+						className: "text-[11px] font-semibold uppercase tracking-wider text-text-secondary",
 						children: "TERRAFLUX-DERIVED"
 					})]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dl", { children: renderFieldList(derivedFields) })]
@@ -371,10 +371,10 @@ function ObservationInspector({ observation, cell, allCells = [], baselineWindow
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "mb-2 flex items-center justify-between",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-						className: "text-[9px] font-semibold uppercase tracking-wider text-text-secondary",
+						className: "text-[11px] font-semibold uppercase tracking-wider text-text-secondary",
 						children: ["COMMON GRID CELL · ", targetCell.id]
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-						className: "text-[9px] text-text-secondary",
+						className: "text-[11px] text-text-secondary",
 						children: "0.15°"
 					})]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dl", { children: renderFieldList(cellSpecificFields) })]
@@ -432,7 +432,7 @@ function ObservationInspector({ observation, cell, allCells = [], baselineWindow
 							className: "font-mono text-xs font-semibold uppercase tracking-wider text-text",
 							children: "OBSERVATION"
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-							className: "flex gap-1 font-mono text-[9px]",
+							className: "flex gap-1 font-mono text-[11px]",
 							children: [
 								"peek",
 								"half",

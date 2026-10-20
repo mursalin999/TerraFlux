@@ -8,10 +8,10 @@ import { a as useServerFn, i as defaultFilters, n as EmptyState } from "./EmptyS
 import { t as ActivityTimeline } from "./ActivityTimeline-Cfl2VATt.mjs";
 import { i as getDetections, n as fetchFireData, t as backfillFireData } from "./firelens.functions-C1L89yTy.mjs";
 import { r as useQueryClient, t as useQuery } from "../_libs/tanstack__react-query.mjs";
-import { t as ObservationInspector } from "./ObservationInspector-CbyNurQk.mjs";
+import { t as ObservationInspector } from "./ObservationInspector-BdkR5RmB.mjs";
 import { t as cn } from "./utils-C_uf36nf.mjs";
 import { t as Drawer } from "../_libs/vaul.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/explore-Cgfe6SJf.js
+//#region node_modules/.nitro/vite/services/ssr/assets/explore-DsnxSS6g.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var GRID_CELL_SIZE = .15;
@@ -560,6 +560,25 @@ function ExploreWorkspace() {
 		}
 		return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
 	}, [rawDetections]);
+	const viewCaption = (0, import_react.useMemo)(() => {
+		if (activeView === "AGREEMENT") {
+			const counts = gridAnalysis.cells.reduce((acc, cell) => {
+				acc.cells += 1;
+				acc[cell.agreementLevel.toLowerCase()] += 1;
+				return acc;
+			}, {
+				cells: 0,
+				strong: 0,
+				moderate: 0,
+				limited: 0,
+				none: 0
+			});
+			return `AGREEMENT · ${counts.cells} cells · ${counts.strong} strong · ${counts.moderate} moderate · ${counts.limited} limited`;
+		}
+		if (activeView === "COMMON GRID") return `COMMON GRID · ${gridAnalysis.cells.length} cells · ${gridAnalysis.maxCount} max detections`;
+		if (activeView === "ANOMALY") return `ANOMALY · ${gridAnalysis.cells.filter((cell) => cell.isAnomaly).length} cells · ${gridAnalysis.baselineWindowLabel}`;
+		return null;
+	}, [activeView, gridAnalysis]);
 	const sensorCaption = (0, import_react.useMemo)(() => {
 		if (activeSensor === "MODIS") return "MODIS: 1,000 m nadir pixel observations from Terra and Aqua satellites.";
 		if (activeSensor === "VIIRS") return "VIIRS: 375 m high-resolution I-band observations from Suomi NPP and NOAA-20/21.";
@@ -798,14 +817,18 @@ function ExploreWorkspace() {
 			className: "mx-auto flex w-full max-w-[1920px] flex-col gap-3 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-6",
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "order-2 h-[min(58dvh,620px)] min-h-[320px] w-full overflow-hidden rounded-lg border border-border bg-[#030711] shadow-xl sm:h-[min(64dvh,700px)] lg:order-1 lg:h-[min(70dvh,760px)]",
+					className: "order-2 h-[min(62dvh,620px)] min-h-[420px] w-full overflow-hidden rounded-lg border border-border bg-[#030711] shadow-xl sm:h-[min(64dvh,700px)] lg:order-1 lg:h-[min(70dvh,760px)]",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ClientOnly, { fallback: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						className: "flex h-full w-full items-center justify-center font-mono text-xs text-text-secondary",
 						children: "CALIBRATING 3D GEOID…"
 					}) })
 				}),
+				viewCaption && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "order-3 -mt-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary",
+					children: viewCaption
+				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "order-1 flex w-full flex-col gap-3 rounded-lg border border-border bg-surface/95 p-3 font-mono shadow-lg sm:p-4 lg:order-2",
+					className: "order-1 hidden w-full flex-col gap-3 rounded-lg border border-border bg-surface/95 p-3 font-mono shadow-lg sm:flex sm:p-4 lg:order-2",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 							className: "flex min-w-0 flex-wrap items-center gap-3 rounded-lg border border-border/80 bg-surface/90 p-1.5",

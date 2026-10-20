@@ -402,7 +402,7 @@ export function ObservationInspector({
     <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
       {fields.map((field) => (
         <div key={field.label} className="min-w-0">
-          <dt className="font-mono text-[9px] uppercase tracking-wider text-text-secondary">
+          <dt className="font-mono text-[11px] uppercase tracking-wider text-text-secondary">
             {field.label}
           </dt>
           <dd
@@ -422,12 +422,12 @@ export function ObservationInspector({
       {/* SOURCE DATA GROUP */}
       <section>
         <div className="mb-2 flex items-center justify-between border-b border-border/50 pb-1">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
             SOURCE DATA (NASA FIRMS)
           </span>
           {isPoint && observation && (
             <span
-              className="text-[9px] font-bold"
+              className="text-[11px] font-bold"
               style={{
                 color:
                   observation.sensor === "MODIS"
@@ -446,7 +446,7 @@ export function ObservationInspector({
       <section className="border-t border-border pt-3">
         <div className="mb-2 flex items-center gap-1.5 border-b border-border/50 pb-1">
           <Layers className="h-3 w-3 text-agreement-teal" />
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
             TERRAFLUX-DERIVED
           </span>
         </div>
@@ -457,10 +457,10 @@ export function ObservationInspector({
       {targetCell && (
         <section className="rounded border border-border/70 bg-surface-elevated/40 p-2.5">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-text-secondary">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
               COMMON GRID CELL · {targetCell.id}
             </span>
-            <span className="text-[9px] text-text-secondary">0.15°</span>
+            <span className="text-[11px] text-text-secondary">0.15°</span>
           </div>
           <dl>{renderFieldList(cellSpecificFields)}</dl>
         </section>
@@ -528,7 +528,7 @@ export function ObservationInspector({
             <span className="font-mono text-xs font-semibold uppercase tracking-wider text-text">
               OBSERVATION
             </span>
-            <div className="flex gap-1 font-mono text-[9px]">
+            <div className="flex gap-1 font-mono text-[11px]">
               {(["peek", "half", "full"] as const).map((snap) => (
                 <button
                   key={snap}

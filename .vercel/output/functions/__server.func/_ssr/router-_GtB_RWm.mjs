@@ -6,10 +6,10 @@ import { E as ChevronDown, S as CircleCheck, a as ShieldAlert, d as Menu, g as E
 import { n as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
 import { t as QueryClient } from "../_libs/tanstack__query-core.mjs";
 import { a as LogoMark, i as DropdownMenuTrigger, n as DropdownMenuContent, o as LogoWithWordmark, r as DropdownMenuItem, t as DropdownMenu } from "./dropdown-menu-j_qlvo2r.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-WzTTDJJ5.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-_GtB_RWm.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var styles_default = "/assets/styles-Cx47B1xN.css";
+var styles_default = "/assets/styles-6NsMP53Z.css";
 function reportLovableError(error, context = {}) {
 	if (typeof window === "undefined") return;
 	window.__lovableEvents?.captureException?.(error, {
@@ -728,7 +728,7 @@ var Route$3 = createFileRoute("/calendar")({
 	] }),
 	component: lazyRouteComponent($$splitComponentImporter$2, "component")
 });
-var $$splitComponentImporter$1 = () => import("./compare-3kThuLO0.mjs");
+var $$splitComponentImporter$1 = () => import("./compare-BHCKf03W.mjs");
 var Route$2 = createFileRoute("/compare")({
 	head: () => ({ meta: [
 		{ title: "Sensor Comparison — TerraFlux" },
@@ -755,7 +755,7 @@ var Route$2 = createFileRoute("/compare")({
 	] }),
 	component: lazyRouteComponent($$splitComponentImporter$1, "component")
 });
-var $$splitComponentImporter = () => import("./explore-Cgfe6SJf.mjs");
+var $$splitComponentImporter = () => import("./explore-DsnxSS6g.mjs");
 var Route$1 = createFileRoute("/explore")({
 	head: () => ({ meta: [
 		{ title: "Scientific Workspace — TerraFlux" },

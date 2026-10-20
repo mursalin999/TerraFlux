@@ -8,8 +8,8 @@ import { i as defaultFilters, n as EmptyState, r as RegionSelect, t as DateRange
 import { r as getDailyCounts } from "./firelens.functions-C1L89yTy.mjs";
 import { t as useQuery } from "../_libs/tanstack__react-query.mjs";
 import { t as NasaFirmsFetcher } from "./NasaFirmsFetcher-B61ZlWsW.mjs";
-import { t as ObservationInspector } from "./ObservationInspector-CbyNurQk.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/compare-3kThuLO0.js
+import { t as ObservationInspector } from "./ObservationInspector-BdkR5RmB.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/compare-BHCKf03W.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function Compare() {
