@@ -162,6 +162,25 @@ export default function AboutPage() {
             <strong>WHAT IT IS NOT:</strong> Not an alert system and not a confirmed-fire map.
           </p>
           {/* [TEAM EDIT: add one real, verified local use case] */}
+          <div className="mt-5 border-t border-border pt-4 text-xs text-text-secondary">
+            <p>
+              We acknowledge the use of data and/or imagery from NASA&apos;s Fire Information for
+              Resource Management System (FIRMS), part of NASA&apos;s Earth Science Data and
+              Information System (ESDIS).
+            </p>
+            <p className="mt-2">
+              Earth texture: NASA Visible Earth. Map credits: OpenStreetMap contributors, CARTO.
+              Libraries: Three.js, react-globe.gl, Leaflet.
+            </p>
+            <a
+              className="mt-2 inline-flex min-h-11 items-center text-data-blue underline"
+              href="https://github.com/mursalin999/TerraFlux"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Repository
+            </a>
+          </div>
         </section>
 
         {/* AI-Assisted Development Disclosure */}

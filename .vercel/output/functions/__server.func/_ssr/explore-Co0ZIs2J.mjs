@@ -11,7 +11,7 @@ import { r as useQueryClient, t as useQuery } from "../_libs/tanstack__react-que
 import { n as ObservationInspector, r as computeAnalyticalGrid, t as AGREEMENT_DEFINITIONS } from "./analyticalGrid-JuyqBVH4.mjs";
 import { t as cn } from "./utils-C_uf36nf.mjs";
 import { t as Drawer } from "../_libs/vaul.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/explore-BQl7SSdc.js
+//#region node_modules/.nitro/vite/services/ssr/assets/explore-Co0ZIs2J.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function ObservationsTableModal({ isOpen, onClose, observations, regionName }) {
@@ -683,6 +683,7 @@ function ExploreWorkspace() {
 					children: viewCaption
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					"aria-live": "polite",
 					className: "order-1 hidden w-full flex-col gap-3 rounded-lg border border-border bg-surface/95 p-3 font-mono shadow-lg sm:flex sm:p-4 lg:order-2",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {

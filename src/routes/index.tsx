@@ -65,6 +65,18 @@ function GlobeFallback() {
 
 function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [tourStep, setTourStep] = useState<number | null>(null);
+  const [tourPaused, setTourPaused] = useState(false);
+  const tourCaptions = [
+    "Earth: start with the full stored observation view.",
+    "Fly to Bangladesh: inspect the selected region.",
+    "MODIS only: hollow blue rings show 1 km observations.",
+    "VIIRS only: orange dots show 375 m observations.",
+    "Harmonized: derived activity combines both sensors.",
+    "Agreement: correspondence between satellite observations.",
+    "Largest gap day: compare the live daily sensor totals.",
+    "Methods: read what TerraFlux knows and does not know.",
+  ];
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("INITIALIZING EARTH");
   const [showLoaderBadge, setShowLoaderBadge] = useState(false);
 
@@ -96,6 +108,19 @@ function HomePage() {
   const observations = observationsQuery.data ?? [];
 
   // Skip loader if ready in under 300 ms
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tour") === "1") setTourStep(0);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setTourStep(null);
+      if (event.key === "ArrowRight" && tourStep != null)
+        setTourStep((step) => Math.min(7, (step ?? 0) + 1));
+      if (event.key === "ArrowLeft" && tourStep != null)
+        setTourStep((step) => Math.max(0, (step ?? 0) - 1));
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [tourStep]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (loadingStage !== "READY") {
@@ -275,6 +300,13 @@ function HomePage() {
           <div className="border-b border-border bg-surface px-4 py-3 sm:hidden">
             <nav className="flex flex-col space-y-1 font-mono text-xs">
               <Link
+                to="/"
+                search={{ tour: "1" }}
+                className="inline-flex min-h-11 items-center justify-center rounded border border-agreement-teal px-4 py-2 font-mono text-xs font-semibold tracking-wider text-agreement-teal transition-colors hover:bg-agreement-teal/10"
+              >
+                GUIDED TOUR
+              </Link>
+              <Link
                 to="/explore"
                 search={{}}
                 onClick={() => setMobileMenuOpen(false)}
@@ -410,6 +442,58 @@ function HomePage() {
           </div>
         </div>
       </section>
+
+      {tourStep != null && (
+        <div
+          className="fixed inset-x-4 bottom-20 z-50 mx-auto max-w-xl rounded-lg border border-agreement-teal/60 bg-surface/95 p-4 shadow-2xl backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Guided tour"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-agreement-teal">
+                GUIDED TOUR · STEP {tourStep + 1} OF 8
+              </p>
+              <p className="mt-2 text-sm text-text">
+                {tourPaused ? "Tour paused. Resume when ready." : tourCaptions[tourStep]}
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Exit guided tour"
+              onClick={() => setTourStep(null)}
+              className="min-h-11 min-w-11 rounded border border-border text-text"
+            >
+              ESC
+            </button>
+          </div>
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setTourPaused((paused) => !paused)}
+              className="min-h-11 rounded border border-border px-3 text-xs text-text"
+            >
+              {tourPaused ? "RESUME" : "PAUSE"}
+            </button>
+            <button
+              type="button"
+              disabled={tourStep === 0}
+              onClick={() => setTourStep((step) => Math.max(0, (step ?? 0) - 1))}
+              className="min-h-11 rounded border border-border px-3 text-xs text-text disabled:opacity-40"
+            >
+              BACK
+            </button>
+            <button
+              type="button"
+              onClick={() => setTourStep((step) => (step != null && step < 7 ? step + 1 : null))}
+              className="min-h-11 rounded bg-agreement-teal px-3 text-xs font-semibold text-bg"
+            >
+              {tourStep === 7 ? "DONE" : "NEXT"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Mission Status Bar (Thin strip at the bottom; compact scrollable chips on mobile) */}
       <footer className="relative z-30 border-t border-border bg-surface/90 backdrop-blur-md">

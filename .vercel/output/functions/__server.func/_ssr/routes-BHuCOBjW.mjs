@@ -6,7 +6,7 @@ import { A as Calendar, D as ChevronDown, M as ArrowRight, d as Menu, l as Refre
 import { a as getHomeMissionTelemetry } from "./firelens.functions-C1L89yTy.mjs";
 import { t as useQuery } from "../_libs/tanstack__react-query.mjs";
 import { i as DropdownMenuTrigger, n as DropdownMenuContent, o as LogoWithWordmark, r as DropdownMenuItem, t as DropdownMenu } from "./dropdown-menu-j_qlvo2r.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-7VUpjdcy.js
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-BHuCOBjW.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function GlobeFallback() {
@@ -23,6 +23,18 @@ function GlobeFallback() {
 }
 function HomePage() {
 	const [mobileMenuOpen, setMobileMenuOpen] = (0, import_react.useState)(false);
+	const [tourStep, setTourStep] = (0, import_react.useState)(null);
+	const [tourPaused, setTourPaused] = (0, import_react.useState)(false);
+	const tourCaptions = [
+		"Earth: start with the full stored observation view.",
+		"Fly to Bangladesh: inspect the selected region.",
+		"MODIS only: hollow blue rings show 1 km observations.",
+		"VIIRS only: orange dots show 375 m observations.",
+		"Harmonized: derived activity combines both sensors.",
+		"Agreement: correspondence between satellite observations.",
+		"Largest gap day: compare the live daily sensor totals.",
+		"Methods: read what TerraFlux knows and does not know."
+	];
 	const [loadingStage, ,] = (0, import_react.useState)("INITIALIZING EARTH");
 	const [showLoaderBadge, setShowLoaderBadge] = (0, import_react.useState)(false);
 	const telemetryQuery = useQuery({
@@ -41,6 +53,16 @@ function HomePage() {
 		hasHarmonized: false,
 		isRecentPull: false
 	};
+	(0, import_react.useEffect)(() => {
+		if (new URLSearchParams(window.location.search).get("tour") === "1") setTourStep(0);
+		const onKeyDown = (event) => {
+			if (event.key === "Escape") setTourStep(null);
+			if (event.key === "ArrowRight" && tourStep != null) setTourStep((step) => Math.min(7, (step ?? 0) + 1));
+			if (event.key === "ArrowLeft" && tourStep != null) setTourStep((step) => Math.max(0, (step ?? 0) - 1));
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [tourStep]);
 	(0, import_react.useEffect)(() => {
 		const timer = setTimeout(() => {
 			if (loadingStage !== "READY") setShowLoaderBadge(true);
@@ -202,6 +224,12 @@ function HomePage() {
 						className: "flex flex-col space-y-1 font-mono text-xs",
 						children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
+								to: "/",
+								search: { tour: "1" },
+								className: "inline-flex min-h-11 items-center justify-center rounded border border-agreement-teal px-4 py-2 font-mono text-xs font-semibold tracking-wider text-agreement-teal transition-colors hover:bg-agreement-teal/10",
+								children: "GUIDED TOUR"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
 								to: "/explore",
 								search: {},
 								onClick: () => setMobileMenuOpen(false),
@@ -347,6 +375,55 @@ function HomePage() {
 						})
 					]
 				})
+			}),
+			tourStep != null && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "fixed inset-x-4 bottom-20 z-50 mx-auto max-w-xl rounded-lg border border-agreement-teal/60 bg-surface/95 p-4 shadow-2xl backdrop-blur-md",
+				role: "dialog",
+				"aria-modal": "true",
+				"aria-label": "Guided tour",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-start justify-between gap-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "font-mono text-[11px] uppercase tracking-wider text-agreement-teal",
+						children: [
+							"GUIDED TOUR · STEP ",
+							tourStep + 1,
+							" OF 8"
+						]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-2 text-sm text-text",
+						children: tourPaused ? "Tour paused. Resume when ready." : tourCaptions[tourStep]
+					})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						type: "button",
+						"aria-label": "Exit guided tour",
+						onClick: () => setTourStep(null),
+						className: "min-h-11 min-w-11 rounded border border-border text-text",
+						children: "ESC"
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mt-4 flex items-center justify-between gap-2",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: () => setTourPaused((paused) => !paused),
+							className: "min-h-11 rounded border border-border px-3 text-xs text-text",
+							children: tourPaused ? "RESUME" : "PAUSE"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							disabled: tourStep === 0,
+							onClick: () => setTourStep((step) => Math.max(0, (step ?? 0) - 1)),
+							className: "min-h-11 rounded border border-border px-3 text-xs text-text disabled:opacity-40",
+							children: "BACK"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: () => setTourStep((step) => step != null && step < 7 ? step + 1 : null),
+							className: "min-h-11 rounded bg-agreement-teal px-3 text-xs font-semibold text-bg",
+							children: tourStep === 7 ? "DONE" : "NEXT"
+						})
+					]
+				})]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("footer", {
 				className: "relative z-30 border-t border-border bg-surface/90 backdrop-blur-md",

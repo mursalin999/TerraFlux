@@ -60,11 +60,35 @@ export default function ExploreGlobe({
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 700 });
   const [cameraAltitude, setCameraAltitude] = useState(1.0);
+  const [isVisible, setIsVisible] = useState(true);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const resetView = useCallback(() => {
     globeRef.current?.pointOfView({ lat: 20, lng: 0, altitude: 2.4 }, 900);
     setCameraAltitude(2.4);
     onResetView?.();
   }, [onResetView]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setPrefersReducedMotion(media.matches);
+    update();
+    media.addEventListener("change", update);
+    const onVisibility = () => setIsVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      media.removeEventListener("change", update);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), {
+      threshold: 0.05,
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // Resize observer
   useEffect(() => {
@@ -107,8 +131,11 @@ export default function ExploreGlobe({
       controls.zoomSpeed = 0.8;
       controls.minDistance = 120;
       controls.maxDistance = 460;
+      controls.enabled = isVisible;
+      controls.autoRotate = false;
+      if (prefersReducedMotion) controls.enableDamping = false;
     }
-  }, []);
+  }, [isVisible, prefersReducedMotion]);
 
   // Keyboard navigation controls for accessibility
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -326,6 +353,7 @@ export default function ExploreGlobe({
       ref={containerRef}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      role="application"
       aria-label="3D Terrestrial Globe Workspace. Use arrow keys to rotate, plus and minus keys to zoom."
       className="relative h-full w-full select-none overflow-hidden bg-[#030711] focus:outline-none focus:ring-1 focus:ring-data-blue/50"
     >
@@ -334,8 +362,8 @@ export default function ExploreGlobe({
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="#030711"
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
-        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+        globeImageUrl="/textures/earth-night.jpg"
+        bumpImageUrl="/textures/earth-night.jpg"
         atmosphereColor="#4DA3FF"
         atmosphereAltitude={0.08}
         // Custom Layer for Observations (MODIS ring vs VIIRS circle with animation scaling)
@@ -411,6 +439,7 @@ export default function ExploreGlobe({
         <span className="hidden sm:inline">ALTITUDE: {cameraAltitude.toFixed(2)}</span>
         <button
           type="button"
+          aria-label="Reset globe view to full Earth"
           onClick={resetView}
           className="min-h-8 rounded border border-border px-2 text-[10px] font-semibold text-text hover:bg-surface-elevated"
         >

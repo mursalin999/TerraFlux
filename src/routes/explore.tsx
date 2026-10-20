@@ -1,5 +1,5 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { Suspense, useMemo, useState, useEffect, useCallback } from "react";
+import { Suspense, lazy, useMemo, useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -41,8 +41,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import ExploreGlobe from "@/components/ExploreGlobe";
-import FireMap from "@/components/FireMap";
+const ExploreGlobe = lazy(() => import("@/components/ExploreGlobe"));
+const FireMap = lazy(() => import("@/components/FireMap"));
 
 export const Route = createFileRoute("/explore")({
   head: () => ({
@@ -446,7 +446,10 @@ function ExploreWorkspace() {
         )}
 
         {/* Dedicated map control toolbar */}
-        <div className="order-1 hidden w-full flex-col gap-3 rounded-lg border border-border bg-surface/95 p-3 font-mono shadow-lg sm:flex sm:p-4 lg:order-2">
+        <div
+          aria-live="polite"
+          className="order-1 hidden w-full flex-col gap-3 rounded-lg border border-border bg-surface/95 p-3 font-mono shadow-lg sm:flex sm:p-4 lg:order-2"
+        >
           {/* Left: Region & Signature 3-Way Control */}
           <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-lg border border-border/80 bg-surface/90 p-1.5">
             {/* Target Region Selector */}

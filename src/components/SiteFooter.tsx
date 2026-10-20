@@ -31,23 +31,43 @@ export function SiteFooter() {
             ground-verified fires.
           </p>
 
-          <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-text-secondary">
-            <span>
-              DATA SOURCE:{" "}
+          <div className="mt-3.5 space-y-2 text-[11px] text-text-secondary">
+            <p>
+              We acknowledge the use of data and/or imagery from NASA&apos;s Fire Information for
+              Resource Management System (FIRMS), part of NASA&apos;s Earth Science Data and
+              Information System (ESDIS).
+            </p>
+            <p>
+              Earth texture: NASA Visible Earth. Map credits: OpenStreetMap contributors, CARTO.
+              Libraries: Three.js, react-globe.gl, Leaflet.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <span>
+                DATA SOURCE:{" "}
+                <a
+                  href="https://firms.modaps.eosdis.nasa.gov/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-data-blue hover:underline inline-flex items-center gap-0.5"
+                >
+                  <span>NASA FIRMS</span>
+                  <ExternalLink className="h-2.5 w-2.5" />
+                </a>
+              </span>
+              <span>·</span>
+              <span>BUILT FOR: NASA SPACE APPS CHALLENGE 2026</span>
+              <span>·</span>
+              <span className="text-text font-medium">NOT AN OFFICIAL NASA PRODUCT</span>
+              <span>·</span>
               <a
-                href="https://firms.modaps.eosdis.nasa.gov/"
+                href="https://github.com/mursalin999/TerraFlux"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-data-blue hover:underline inline-flex items-center gap-0.5"
+                className="text-data-blue hover:underline"
               >
-                <span>NASA FIRMS</span>
-                <ExternalLink className="h-2.5 w-2.5" />
+                REPOSITORY
               </a>
-            </span>
-            <span>·</span>
-            <span>BUILT FOR: NASA SPACE APPS CHALLENGE 2026</span>
-            <span>·</span>
-            <span className="text-text font-medium">NOT AN OFFICIAL NASA PRODUCT</span>
+            </div>
           </div>
         </div>
 

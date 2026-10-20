@@ -6,10 +6,10 @@ import { A as Calendar, C as CircleCheck, D as ChevronDown, S as CircleX, _ as E
 import { n as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
 import { t as QueryClient } from "../_libs/tanstack__query-core.mjs";
 import { a as LogoMark, i as DropdownMenuTrigger, n as DropdownMenuContent, o as LogoWithWordmark, r as DropdownMenuItem, t as DropdownMenu } from "./dropdown-menu-j_qlvo2r.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-BNuoFAjt.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-D1jUKY7-.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var styles_default = "/assets/styles-DZYx1yYn.css";
+var styles_default = "/assets/styles-DC2L21on.css";
 function reportLovableError(error, context = {}) {
 	if (typeof window === "undefined") return;
 	window.__lovableEvents?.captureException?.(error, {
@@ -239,25 +239,40 @@ function SiteFooter() {
 						children: "Independent scientific observation platform harmonizing MODIS and VIIRS satellite active fire observations. Thermal anomalies represent spaceborne radiometric observations, not ground-verified fires."
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-text-secondary",
+						className: "mt-3.5 space-y-2 text-[11px] text-text-secondary",
 						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-								"DATA SOURCE:",
-								" ",
-								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
-									href: "https://firms.modaps.eosdis.nasa.gov/",
-									target: "_blank",
-									rel: "noopener noreferrer",
-									className: "text-data-blue hover:underline inline-flex items-center gap-0.5",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "NASA FIRMS" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExternalLink, { className: "h-2.5 w-2.5" })]
-								})
-							] }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "·" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "BUILT FOR: NASA SPACE APPS CHALLENGE 2026" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "·" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "text-text font-medium",
-								children: "NOT AN OFFICIAL NASA PRODUCT"
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "We acknowledge the use of data and/or imagery from NASA's Fire Information for Resource Management System (FIRMS), part of NASA's Earth Science Data and Information System (ESDIS)." }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Earth texture: NASA Visible Earth. Map credits: OpenStreetMap contributors, CARTO. Libraries: Three.js, react-globe.gl, Leaflet." }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex flex-wrap items-center gap-x-3 gap-y-1.5",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+										"DATA SOURCE:",
+										" ",
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
+											href: "https://firms.modaps.eosdis.nasa.gov/",
+											target: "_blank",
+											rel: "noopener noreferrer",
+											className: "text-data-blue hover:underline inline-flex items-center gap-0.5",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "NASA FIRMS" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExternalLink, { className: "h-2.5 w-2.5" })]
+										})
+									] }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "·" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "BUILT FOR: NASA SPACE APPS CHALLENGE 2026" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "·" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "text-text font-medium",
+										children: "NOT AN OFFICIAL NASA PRODUCT"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "·" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
+										href: "https://github.com/mursalin999/TerraFlux",
+										target: "_blank",
+										rel: "noopener noreferrer",
+										className: "text-data-blue hover:underline",
+										children: "REPOSITORY"
+									})
+								]
 							})
 						]
 					})
@@ -456,7 +471,7 @@ function RootComponent() {
 		})
 	});
 }
-var $$splitComponentImporter$3 = () => import("./routes-7VUpjdcy.mjs");
+var $$splitComponentImporter$3 = () => import("./routes-BHuCOBjW.mjs");
 var Route$5 = createFileRoute("/")({
 	head: () => ({ meta: [
 		{ title: "TerraFlux: Earth's thermal story, harmonized" },
@@ -682,6 +697,23 @@ function AboutPage() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 							className: "mt-3",
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "WHAT IT IS NOT:" }), " Not an alert system and not a confirmed-fire map."]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "mt-5 border-t border-border pt-4 text-xs text-text-secondary",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "We acknowledge the use of data and/or imagery from NASA's Fire Information for Resource Management System (FIRMS), part of NASA's Earth Science Data and Information System (ESDIS)." }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									className: "mt-2",
+									children: "Earth texture: NASA Visible Earth. Map credits: OpenStreetMap contributors, CARTO. Libraries: Three.js, react-globe.gl, Leaflet."
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
+									className: "mt-2 inline-flex min-h-11 items-center text-data-blue underline",
+									href: "https://github.com/mursalin999/TerraFlux",
+									target: "_blank",
+									rel: "noopener noreferrer",
+									children: "Repository"
+								})
+							]
 						})
 					]
 				}),
@@ -776,7 +808,7 @@ var Route$2 = createFileRoute("/compare")({
 	] }),
 	component: lazyRouteComponent($$splitComponentImporter$1, "component")
 });
-var $$splitComponentImporter = () => import("./explore-BQl7SSdc.mjs");
+var $$splitComponentImporter = () => import("./explore-Co0ZIs2J.mjs");
 var Route$1 = createFileRoute("/explore")({
 	head: () => ({ meta: [
 		{ title: "Scientific Workspace — TerraFlux" },
