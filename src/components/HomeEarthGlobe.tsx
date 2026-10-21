@@ -144,7 +144,7 @@ export default function HomeEarthGlobe({
   // Dynamic cap on points: max 3,000 on mobile, 10,000 on desktop
   const customData = useMemo(() => {
     const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    const maxPoints = isMobile ? 3000 : 10000;
+    const maxPoints = isMobile ? 900 : 3000;
 
     let sampled = observations;
     if (observations.length > maxPoints) {
@@ -171,7 +171,7 @@ export default function HomeEarthGlobe({
 
   const globalPoints = useMemo(
     () =>
-      globalCells.map((cell) => ({
+      globalCells.slice(0, 1800).map((cell) => ({
         lat: cell.cell_lat,
         lng: cell.cell_lon,
         size: Math.min(2.8, 0.35 + Math.log2(cell.count + 1) * 0.28),
@@ -225,8 +225,8 @@ export default function HomeEarthGlobe({
             // Atmospheric solar terminator blend
             float dayFactor = smoothstep(-0.14, 0.14, sunDot);
 
-            vec3 dayLit = dayColor.rgb * max(0.16, sunDot * 0.84 + 0.16);
-            vec3 nightLit = nightColor.rgb * 1.35;
+            vec3 dayLit = min(dayColor.rgb * (0.62 + max(0.0, sunDot) * 0.78), vec3(1.0));
+            vec3 nightLit = min(nightColor.rgb * 1.55 + vec3(0.015, 0.02, 0.04), vec3(0.72));
 
             vec3 finalColor = mix(nightLit, dayLit, dayFactor);
             gl_FragColor = vec4(finalColor, 1.0);
@@ -350,10 +350,10 @@ export default function HomeEarthGlobe({
                 transparent: true,
                 opacity: Math.min(0.8, 0.2 + (pt.count ?? 0) / 40),
               });
-              group.add(new THREE.Mesh(new THREE.CircleGeometry(radius, 18), glow));
+              group.add(new THREE.Mesh(new THREE.CircleGeometry(radius, 8), glow));
             } else if (isModis) {
               // MODIS: hollow ring marker (1 km pixel)
-              const ringGeo = new THREE.RingGeometry(radius * 0.65, radius, 16);
+              const ringGeo = new THREE.RingGeometry(radius * 0.65, radius, 8);
               const ringMat = new THREE.MeshBasicMaterial({
                 color: pt.color,
                 side: THREE.DoubleSide,
@@ -363,7 +363,7 @@ export default function HomeEarthGlobe({
               group.add(new THREE.Mesh(ringGeo, ringMat));
             } else {
               // VIIRS: solid circle marker (375 m pixel)
-              const circleGeo = new THREE.CircleGeometry(radius * 0.75, 14);
+              const circleGeo = new THREE.CircleGeometry(radius * 0.75, 8);
               const circleMat = new THREE.MeshBasicMaterial({
                 color: pt.color,
                 side: THREE.DoubleSide,

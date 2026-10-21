@@ -60,7 +60,7 @@ export default function FireMap({
       ? detections.filter((_, i) => i % Math.ceil(detections.length / MAX_MARKERS) === 0)
       : detections;
 
-  const tileUrl = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+  const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   return (
     <div className="relative h-full w-full">
@@ -73,14 +73,13 @@ export default function FireMap({
       >
         <Recenter center={center} zoom={zoom} />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url={tileUrl}
           eventHandlers={{ tileerror: () => setTileError(true) }}
         />
         {tileError && (
           <div className="pointer-events-none absolute inset-x-4 top-4 z-[500] rounded border border-data-orange/50 bg-[#030711]/95 px-3 py-2 font-mono text-[11px] text-text-secondary shadow-lg">
-            BASEMAP UNAVAILABLE — CARTO tiles require no API key. Showing observation points without
-            a basemap.
+            BASEMAP UNAVAILABLE — Showing observation points without a basemap.
           </div>
         )}
         {shown.map((d, i) => {
