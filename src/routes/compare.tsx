@@ -53,6 +53,7 @@ function Compare() {
   const [endDate, setEndDate] = useState(defaults.endDate);
   const [mode, setMode] = useState<Mode>("combined");
   const [mapProjection, setMapProjection] = useState<"3D" | "2D">("3D");
+  const [gridSize, setGridSize] = useState(0.15);
   const [selectedObs, setSelectedObs] = useState<ObservationPoint | null>(null);
 
   const region = getRegion(regionId);
@@ -79,8 +80,8 @@ function Compare() {
   const viirsTotal = days.reduce((s, d) => s + d.viirs, 0);
   const chartMax = Math.max(1, ...days.map((d) => d.modis + d.viirs));
   const gridAnalysis = useMemo(
-    () => computeAnalyticalGrid(detections, startDate, endDate),
-    [detections, startDate, endDate],
+    () => computeAnalyticalGrid(detections, startDate, endDate, gridSize),
+    [detections, startDate, endDate, gridSize],
   );
   const agreementRate = useMemo(() => {
     if (gridAnalysis.cells.length === 0) return null;
@@ -120,7 +121,7 @@ function Compare() {
           <h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-text">
             GRID SENSITIVITY
           </h2>
-          <span className="font-mono text-[11px] text-agreement-teal">0.15° TerraFlux grid</span>
+          <span className="font-mono text-[11px] text-agreement-teal">{gridSize.toFixed(2)}° TerraFlux grid</span>
         </div>
         <div className="mt-4 grid grid-cols-4 gap-2">
           {[0.05, 0.1, 0.15, 0.25].map((size) => {
@@ -130,21 +131,23 @@ function Compare() {
                 result.cells.length
               : null;
             return (
-              <div
+              <button
                 key={size}
-                className={`rounded border p-2 text-center ${size === 0.15 ? "border-agreement-teal bg-agreement-teal/10" : "border-border bg-surface-elevated"}`}
+                type="button"
+                aria-pressed={gridSize === size}
+                onClick={() => setGridSize(size)}
+                className={`rounded border p-2 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-agreement-teal ${gridSize === size ? "border-agreement-teal bg-agreement-teal/10" : "border-border bg-surface-elevated hover:border-agreement-teal/60"}`}
               >
                 <div className="font-mono text-xs text-text">{size.toFixed(2)}°</div>
                 <div className="mt-1 font-mono text-sm text-agreement-teal">
                   {rate == null ? "—" : `${Math.round(rate * 100)}%`}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
         <p className="mt-3 text-xs text-text-secondary">
-          Same observations, different cell size: shows how much agreement depends on the grid
-          choice.
+          Same observations, different cell size: shows how much agreement depends on the grid choice. Selected: {gridSize.toFixed(2)}°.
         </p>
       </div>
 
