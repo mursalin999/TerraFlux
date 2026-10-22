@@ -185,7 +185,7 @@ export const getLiveSnapshot = createServerFn({ method: "GET" }).handler(async (
     };
   }
   const countQuery = (sensor?: "MODIS" | "VIIRS") => {
-    let query = sb.from("fire_detections").select("id", { count: "exact", head: true });
+    let query = sb.from("fire_detections").select("*", { count: "exact", head: true });
     if (sensor) query = query.eq("sensor", sensor);
     return query;
   };
@@ -198,7 +198,7 @@ export const getLiveSnapshot = createServerFn({ method: "GET" }).handler(async (
       const bounds = parseBbox(region.bbox);
       return sb
         .from("fire_detections")
-        .select("id", { count: "exact", head: true })
+        .select("*", { count: "exact", head: true })
         .gte("lon", bounds.west)
         .lte("lon", bounds.east)
         .gte("lat", bounds.south)
@@ -261,14 +261,14 @@ export const getHomeMissionTelemetry = createServerFn({ method: "GET" }).handler
 
     try {
       const [totalRes, modisRes, viirsRes, latestRes, oldestRes] = await Promise.all([
-        sb.from("fire_detections").select("id", { count: "exact", head: true }),
+        sb.from("fire_detections").select("*", { count: "exact", head: true }),
         sb
           .from("fire_detections")
-          .select("id", { count: "exact", head: true })
+          .select("*", { count: "exact", head: true })
           .eq("sensor", "MODIS"),
         sb
           .from("fire_detections")
-          .select("id", { count: "exact", head: true })
+          .select("*", { count: "exact", head: true })
           .eq("sensor", "VIIRS"),
         sb
           .from("fire_detections")
