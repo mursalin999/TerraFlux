@@ -71,13 +71,15 @@ function HomePage() {
   const [tourPaused, setTourPaused] = useState(false);
   const tourCaptions = [
     "Earth: start with the full stored observation view.",
-    "Fly to Bangladesh: inspect the selected region.",
-    "MODIS only: hollow blue rings show 1 km observations.",
-    "VIIRS only: orange dots show 375 m observations.",
-    "Harmonized: derived activity combines both sensors.",
-    "Agreement: correspondence between satellite observations.",
-    "Largest gap day: compare the live daily sensor totals.",
-    "Methods: read what TerraFlux knows and does not know.",
+    "Fly to Bangladesh: the stored view covers the selected region.",
+    "Blend slider: compare MODIS and VIIRS contributions.",
+    "Agreement view: cells contain observations from both sensors.",
+    "Detection inspector: select one stored point to inspect it.",
+    "Compare Key Findings: use the displayed MODIS and VIIRS totals.",
+    "Chance test: read the 500-shuffle permutation result.",
+    "Overpass clock: read UTC bins and local solar time.",
+    "Methodology: read what TerraFlux knows and does not know.",
+    "Playback: scrub stored dates without inventing observations.",
   ];
   const [loadingStage, setLoadingStage] = useState<LoadingStage>("INITIALIZING EARTH");
   const [showLoaderBadge, setShowLoaderBadge] = useState(false);
@@ -130,7 +132,7 @@ function HomePage() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setTourStep(null);
       if (event.key === "ArrowRight" && tourStep != null)
-        setTourStep((step) => Math.min(7, (step ?? 0) + 1));
+        setTourStep((step) => Math.min(9, (step ?? 0) + 1));
       if (event.key === "ArrowLeft" && tourStep != null)
         setTourStep((step) => Math.max(0, (step ?? 0) - 1));
     };
@@ -471,7 +473,7 @@ function HomePage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-wider text-agreement-teal">
-                GUIDED TOUR · STEP {tourStep + 1} OF 8
+                GUIDED TOUR · STEP {tourStep + 1} OF 10
               </p>
               <p className="mt-2 text-sm text-text">
                 {tourPaused ? "Tour paused. Resume when ready." : tourCaptions[tourStep]}
@@ -504,10 +506,10 @@ function HomePage() {
             </button>
             <button
               type="button"
-              onClick={() => setTourStep((step) => (step != null && step < 7 ? step + 1 : null))}
+              onClick={() => setTourStep((step) => (step != null && step < 9 ? step + 1 : null))}
               className="min-h-11 rounded bg-agreement-teal px-3 text-xs font-semibold text-bg"
             >
-              {tourStep === 7 ? "DONE" : "NEXT"}
+              {tourStep === 9 ? "DONE" : "NEXT"}
             </button>
           </div>
         </div>
