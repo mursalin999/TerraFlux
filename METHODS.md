@@ -44,6 +44,28 @@ The public query layer is implemented in `src/lib/firelens.functions.ts` and Sup
 - Data coverage = first daily date, last daily date, and number of returned daily rows.
 - The current findings agreement rate is cells containing both sensors divided by returned grid cells. This differs from the requested cell/day-pair definition; the exact cell/day implementation is UNCLEAR IN CODE.
 
+## Playback
+
+Playback uses the stored acquisition-date range. At date `t`, the visible set is all stored observations with `acq_date <= t`; the UI retains only the trailing three-day window for the animated layer so older points fade out instead of disappearing abruptly. Daily MODIS and VIIRS counts are computed from those stored rows. Playback pauses when the document is hidden and does not auto-start when `prefers-reduced-motion: reduce` is active. `?playback=1` requests autoplay otherwise.
+
+## Permutation chance test
+
+The chance test uses 500 shuffles of the stored MODIS acquisition-date labels while keeping the VIIRS dates fixed. For each shuffle, the selected statistic is recomputed; the reported empirical p-value is `(1 + number of shuffled statistics at least as extreme as observed) / 501`. This is a randomization diagnostic, not a causal probability.
+
+## Overpass clock
+
+Acquisition timestamps are grouped into UTC hour bins (`floor(acq_time / 100)`). Local solar time is approximated as `UTC hour + longitude / 15`, normalized to 0–24 hours. This describes observation timing and is not a local civil-time conversion.
+
+## Evidence strength rule
+
+Evidence is `STRONG` only when both sensors contribute to a cell and either a high-confidence observation is present or each sensor contributes at least two observations. It is `MODERATE` when both sensors are present without the strong condition, `LIMITED` for a one-sensor cell meeting the nominal/high threshold, and `NONE` otherwise. No tier confirms a ground fire.
+
+## Exact NASA FIRMS products
+
+- MODIS: NASA FIRMS MODIS Collection 6.1 NRT active-fire detections, 1 km nominal nadir pixel, from Terra and Aqua.
+- VIIRS: NASA FIRMS VIIRS 375 m NRT active-fire detections, from Suomi-NPP and NOAA-20/21 where supplied by the feed.
+- TerraFlux stores the FIRMS latitude, longitude, acquisition date/time, FRP, brightness, confidence, satellite, resolution, and day/night fields used by the UI.
+
 ## Rendering and sources
 
 Native MODIS observations use hollow rings and VIIRS observations use solid dots. Analytical views use the computed grid cells. NASA FIRMS is the data source; TerraFlux is an independent project and is not an official NASA product.

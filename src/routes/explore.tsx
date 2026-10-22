@@ -33,6 +33,7 @@ import { type ExploreViewMode, type SensorFilterMode } from "@/components/Explor
 import { ObservationsTableModal } from "@/components/ObservationsTableModal";
 import { ObservationInspector } from "@/components/ObservationInspector";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
+import { PlaybackControls } from "@/components/PlaybackControls";
 import { EmptyState } from "@/components/EmptyState";
 import {
   Drawer,
@@ -105,6 +106,7 @@ function ExploreWorkspace() {
   const [selectedCell, setSelectedCell] = useState<GridCell | null>(null);
   const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [selectedAnalysisDate, setSelectedAnalysisDate] = useState<string | null>(null);
+  const [playbackDate, setPlaybackDate] = useState<string | null>(null);
   const [pull, setPull] = useState<PullState>({ status: "idle" });
 
   const queryClient = useQueryClient();
@@ -136,6 +138,13 @@ function ExploreWorkspace() {
   });
 
   const rawDetections = useMemo(() => query.data ?? [], [query.data]);
+  const playbackDates = useMemo(() => Array.from(new Set(rawDetections.map((item) => item.acq_date))).sort(), [rawDetections]);
+  const visibleDetections = useMemo(() => {
+    if (!playbackDate) return rawDetections;
+    const cutoff = new Date(`${playbackDate}T00:00:00Z`);
+    cutoff.setUTCDate(cutoff.getUTCDate() - 3);
+    return rawDetections.filter((item) => item.acq_date <= playbackDate && item.acq_date >= cutoff.toISOString().slice(0, 10));
+  }, [playbackDate, rawDetections]);
 
   // Compute common analytical grid, anomaly percentiles, and agreement levels
   const gridAnalysis = useMemo(() => {
@@ -405,7 +414,7 @@ function ExploreWorkspace() {
             >
               {mapProjection === "3D" ? (
                 <ExploreGlobe
-                  observations={rawDetections}
+observations={visibleDetections}
                   gridCells={gridAnalysis.cells}
                   selectedRegion={region}
                   activeSensor={activeSensor}
@@ -427,8 +436,8 @@ function ExploreWorkspace() {
                 />
               ) : (
                 <FireMap
-                  detections={rawDetections}
-                  center={region.center}
+detections={visibleDetections}
+  center={region.center}
                   zoom={region.zoom}
                   onSelectObservation={(obs) => {
                     setSelectedObs(obs as unknown as ObservationPoint);
@@ -439,8 +448,11 @@ function ExploreWorkspace() {
             </Suspense>
           </ClientOnly>
         </div>
-        {viewCaption && (
-          <p className="order-3 -mt-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
+  <div className="order-3">
+  <PlaybackControls dates={playbackDates} detections={rawDetections} onDateChange={setPlaybackDate} />
+  </div>
+  {viewCaption && (
+  <p className="order-3 -mt-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
             {viewCaption}
           </p>
         )}
@@ -921,8 +933,8 @@ function ExploreWorkspace() {
                 <ActivityTimeline
                   days={timelineDays}
                   detections={rawDetections}
-                  selectedDate={selectedAnalysisDate}
-                  onSelectDate={(date) => setSelectedAnalysisDate(date)}
+  selectedDate={playbackDate ?? selectedAnalysisDate}
+  onSelectDate={(date) => { setSelectedAnalysisDate(date); setPlaybackDate(date); }}
                   onFlyTo={(date) => {
                     const firstOnDate = rawDetections.find((d) => d.acq_date === date);
                     if (firstOnDate) {
