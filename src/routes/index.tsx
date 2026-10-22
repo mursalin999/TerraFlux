@@ -109,6 +109,8 @@ function HomePage() {
     latestAcqDate: null,
     lastIngestTime: null,
     baselineDays: 0,
+    regionsCovered: 0,
+    firstAcqDate: null,
     hasHarmonized: false,
     isRecentPull: false,
   };
@@ -409,14 +411,13 @@ function HomePage() {
             <div className="mt-6 rounded border border-border bg-surface/80 p-3 font-mono text-[11px] backdrop-blur-sm">
               <div className="font-semibold uppercase tracking-wider text-text">SNAPSHOT</div>
               <p className="mt-2 text-text-secondary">
-                MODIS {telemetry.modisCount.toLocaleString()} · VIIRS{" "}
-                {telemetry.viirsCount.toLocaleString()} · RATIO{" "}
-                {telemetry.modisCount > 0
-                  ? `${(telemetry.viirsCount / telemetry.modisCount).toFixed(1)}x`
-                  : "—"}
+                {telemetry.totalDetections.toLocaleString()} detections · {telemetry.regionsCovered} regions
               </p>
               <p className="mt-1 text-text-secondary">
-                Stored data: {telemetry.baselineDays.toLocaleString()} days
+                MODIS {telemetry.modisCount.toLocaleString()} · VIIRS {telemetry.viirsCount.toLocaleString()}
+              </p>
+              <p className="mt-1 text-text-secondary">
+                {telemetry.firstAcqDate ?? "—"} → {telemetry.latestAcqDate ?? "—"} · {telemetry.baselineDays} days stored
               </p>
             </div>
           )}
@@ -536,7 +537,7 @@ function HomePage() {
                   <span>· LOADING</span>
                 </span>
               ) : telemetry.status === "unavailable" ? (
-                <span className="font-semibold text-critical-red">· DATA SOURCE UNAVAILABLE</span>
+                <span className="font-semibold text-critical-red" title={telemetry.errorMessage ?? "Stored data query failed"}>· DATA SOURCE UNAVAILABLE</span>
               ) : (
                 <>
                   <span className="text-text-secondary/70">·</span>
@@ -575,7 +576,7 @@ function HomePage() {
                     ? "AVAILABLE"
                     : telemetryQuery.isError
                       ? "UNAVAILABLE — QUERY ERROR"
-                      : "UNAVAILABLE — NO STORED ROWS"}
+                      : "NO STORED ROWS"}
               </span>
             </div>
 
@@ -596,7 +597,7 @@ function HomePage() {
                     ? "AVAILABLE"
                     : telemetryQuery.isError
                       ? "UNAVAILABLE — QUERY ERROR"
-                      : "UNAVAILABLE — NO STORED ROWS"}
+                      : "NO STORED ROWS"}
               </span>
             </div>
 
@@ -618,7 +619,7 @@ function HomePage() {
                     ? "ACTIVE"
                     : telemetryQuery.isError
                       ? "UNAVAILABLE — QUERY ERROR"
-                      : "UNAVAILABLE — NO STORED ROWS"}
+                      : "NO STORED ROWS"}
               </span>
             </div>
 
@@ -631,10 +632,10 @@ function HomePage() {
                 {telemetryQuery.isPending
                   ? "LOADING"
                   : telemetry.baselineDays > 0
-                    ? `${telemetry.baselineDays} DAYS BASELINE`
+                    ? `${telemetry.baselineDays} DAYS${telemetry.baselineDays < 365 ? " · LIMITED" : ""}`
                     : telemetryQuery.isError
                       ? "UNAVAILABLE — QUERY ERROR"
-                      : "UNAVAILABLE — NO STORED ROWS"}
+                      : "NO STORED ROWS"}
               </span>
             </div>
           </div>

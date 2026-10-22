@@ -147,7 +147,21 @@ export default function HomeEarthGlobe({
     const maxPoints = isMobile ? 900 : 3000;
 
     let sampled = observations;
-    if (observations.length > maxPoints) {
+    if (observations.length > 3000) {
+      const cells = new Map<string, HomeObservation & { cellCount: number; maxFrp: number }>();
+      for (const obs of observations) {
+        const key = `${Math.floor(obs.lat)}:${Math.floor(obs.lon)}:${obs.sensor}`;
+        const current = cells.get(key);
+        const frp = obs.frp_mw ?? 0;
+        if (current) {
+          current.cellCount += 1;
+          current.maxFrp = Math.max(current.maxFrp, frp);
+        } else {
+          cells.set(key, { ...obs, lat: Math.floor(obs.lat) + 0.5, lon: Math.floor(obs.lon) + 0.5, cellCount: 1, maxFrp: frp });
+        }
+      }
+      sampled = [...cells.values()].map((cell) => ({ ...cell, frp_mw: cell.maxFrp || null }));
+    } else if (observations.length > maxPoints) {
       const stride = Math.ceil(observations.length / maxPoints);
       sampled = observations.filter((_, i) => i % stride === 0);
     }
@@ -258,7 +272,8 @@ export default function HomeEarthGlobe({
     const controls = globeRef.current.controls();
     if (controls) {
       controls.autoRotate = !prefersReducedMotion && !isInteracting && !isPanelOpen;
-      controls.autoRotateSpeed = 0.35; // ~0.3 deg/s
+      controls.autoRotateSpeed = 0.22; // restrained rotation
+      globeRef.current.pointOfView({ lat: 23.7, lng: 90.4, altitude: 2.15 }, 0);
       controls.enableDamping = true;
       controls.dampingFactor = 0.06;
       controls.rotateSpeed = 0.7;
