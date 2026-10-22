@@ -573,7 +573,7 @@ function HomePage() {
                 {telemetryQuery.isPending
                   ? "LOADING"
                   : isModisAvailable
-                    ? "AVAILABLE"
+                    ? `AVAILABLE (${telemetry.modisCount.toLocaleString()})`
                     : telemetryQuery.isError
                       ? "UNAVAILABLE — QUERY ERROR"
                       : "NO STORED ROWS"}
@@ -594,7 +594,7 @@ function HomePage() {
                 {telemetryQuery.isPending
                   ? "LOADING"
                   : isViirsAvailable
-                    ? "AVAILABLE"
+                    ? `AVAILABLE (${telemetry.viirsCount.toLocaleString()})`
                     : telemetryQuery.isError
                       ? "UNAVAILABLE — QUERY ERROR"
                       : "NO STORED ROWS"}
