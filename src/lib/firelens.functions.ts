@@ -238,106 +238,76 @@ export interface HomeMissionTelemetry {
   latestAcqDate: string | null;
   lastIngestTime: string | null;
   baselineDays: number;
+  regionsCovered: number;
+  firstAcqDate: string | null;
   hasHarmonized: boolean;
   isRecentPull: boolean;
+  errorMessage?: string;
 }
 
 export const getHomeMissionTelemetry = createServerFn({ method: "GET" }).handler(
   async (): Promise<HomeMissionTelemetry> => {
+    const empty = (errorMessage?: string): HomeMissionTelemetry => ({
+      status: errorMessage ? "unavailable" : "ok",
+      totalDetections: 0,
+      modisCount: 0,
+      viirsCount: 0,
+      latestAcqDate: null,
+      lastIngestTime: null,
+      baselineDays: 0,
+      regionsCovered: 0,
+      firstAcqDate: null,
+      hasHarmonized: false,
+      isRecentPull: false,
+      ...(errorMessage ? { errorMessage } : {}),
+    });
     const sb = publicClient();
-    if (!sb) {
-      return {
-        status: "unavailable",
-        totalDetections: 0,
-        modisCount: 0,
-        viirsCount: 0,
-        latestAcqDate: null,
-        lastIngestTime: null,
-        baselineDays: 0,
-        hasHarmonized: false,
-        isRecentPull: false,
-      };
-    }
+    if (!sb) return empty("Supabase client is not configured");
 
     try {
-      const [totalRes, modisRes, viirsRes, latestRes, oldestRes] = await Promise.all([
-        sb.from("fire_detections").select("*", { count: "exact", head: true }),
-        sb
-          .from("fire_detections")
-          .select("*", { count: "exact", head: true })
-          .eq("sensor", "MODIS"),
-        sb
-          .from("fire_detections")
-          .select("*", { count: "exact", head: true })
-          .eq("sensor", "VIIRS"),
-        sb
-          .from("fire_detections")
-          .select("acq_date,created_at")
-          .order("acq_date", { ascending: false })
-          .limit(1),
-        sb
-          .from("fire_detections")
-          .select("acq_date")
-          .order("acq_date", { ascending: true })
-          .limit(1),
+      const countQuery = (sensor?: "MODIS" | "VIIRS") => {
+        let query = sb.from("fire_detections").select("*", { count: "exact", head: true });
+        if (sensor) query = query.eq("sensor", sensor);
+        return query;
+      };
+      const regionQueries = REGIONS.map((region) => {
+        const bounds = parseBbox(region.bbox);
+        return sb.from("fire_detections").select("*", { count: "exact", head: true })
+          .gte("lon", bounds.west).lte("lon", bounds.east)
+          .gte("lat", bounds.south).lte("lat", bounds.north);
+      });
+      const [totalRes, modisRes, viirsRes, latestRes, oldestRes, ...regionResults] = await Promise.all([
+        countQuery(), countQuery("MODIS"), countQuery("VIIRS"),
+        sb.from("fire_detections").select("acq_date,created_at").order("acq_date", { ascending: false }).limit(1),
+        sb.from("fire_detections").select("acq_date").order("acq_date", { ascending: true }).limit(1),
+        ...regionQueries,
       ]);
+      const firstError = [totalRes, modisRes, viirsRes, latestRes, oldestRes, ...regionResults].find((result) => result.error)?.error;
+      if (firstError) return empty(firstError.message);
 
-      if (totalRes.error) {
-        return {
-          status: "unavailable",
-          totalDetections: 0,
-          modisCount: 0,
-          viirsCount: 0,
-          latestAcqDate: null,
-          lastIngestTime: null,
-          baselineDays: 0,
-          hasHarmonized: false,
-          isRecentPull: false,
-        };
-      }
-
-      const totalDetections = totalRes.count ?? 0;
-      const modisCount = modisRes.count ?? 0;
-      const viirsCount = viirsRes.count ?? 0;
       const latestRow = latestRes.data?.[0];
       const oldestRow = oldestRes.data?.[0];
-
-      let baselineDays = 0;
-      if (latestRow?.acq_date && oldestRow?.acq_date) {
-        const diffMs =
-          new Date(latestRow.acq_date).getTime() - new Date(oldestRow.acq_date).getTime();
-        baselineDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
-      }
-
-      let isRecentPull = false;
-      if (latestRow?.created_at) {
-        const hoursAgo = (Date.now() - new Date(latestRow.created_at).getTime()) / (1000 * 60 * 60);
-        isRecentPull = hoursAgo <= 48;
-      }
-
+      const baselineDays = latestRow?.acq_date && oldestRow?.acq_date
+        ? Math.max(1, Math.round((new Date(latestRow.acq_date).getTime() - new Date(oldestRow.acq_date).getTime()) / 86400000) + 1)
+        : 0;
+      const modisCount = modisRes.count ?? 0;
+      const viirsCount = viirsRes.count ?? 0;
+      const lastIngestTime = latestRow?.created_at ?? null;
       return {
         status: "ok",
-        totalDetections,
+        totalDetections: totalRes.count ?? 0,
         modisCount,
         viirsCount,
         latestAcqDate: latestRow?.acq_date ?? null,
-        lastIngestTime: latestRow?.created_at ?? null,
+        lastIngestTime,
         baselineDays,
+        regionsCovered: regionResults.filter((result) => (result.count ?? 0) > 0).length,
+        firstAcqDate: oldestRow?.acq_date ?? null,
         hasHarmonized: modisCount > 0 && viirsCount > 0,
-        isRecentPull,
+        isRecentPull: lastIngestTime ? (Date.now() - new Date(lastIngestTime).getTime()) / 3600000 <= 48 : false,
       };
-    } catch {
-      return {
-        status: "unavailable",
-        totalDetections: 0,
-        modisCount: 0,
-        viirsCount: 0,
-        latestAcqDate: null,
-        lastIngestTime: null,
-        baselineDays: 0,
-        hasHarmonized: false,
-        isRecentPull: false,
-      };
+    } catch (error) {
+      return empty(error instanceof Error ? error.message : "Stored data query failed");
     }
   },
 );
@@ -362,17 +332,21 @@ export const getRecentGlobeObservations = createServerFn({ method: "GET" }).hand
     windowStart.setUTCDate(windowStart.getUTCDate() - 6);
     const windowStartStr = windowStart.toISOString().slice(0, 10);
 
-    const { data: rows, error } = await sb
-      .from("fire_detections")
-      .select(
-        "lat,lon,acq_date,acq_time,sensor,satellite,resolution_m,brightness_k,brightness2_k,frp_mw,confidence_tier,day_night",
-      )
-      .gte("acq_date", windowStartStr)
-      .order("acq_date", { ascending: false })
-      .limit(10000);
-
-    if (error || !rows) return [];
-    return rows;
+    const regionRows = await Promise.all(
+      REGIONS.map(async (region) => {
+        const bounds = parseBbox(region.bbox);
+        const { data, error } = await sb
+          .from("fire_detections")
+          .select("lat,lon,acq_date,acq_time,sensor,satellite,resolution_m,brightness_k,brightness2_k,frp_mw,confidence_tier,day_night")
+          .gte("lon", bounds.west).lte("lon", bounds.east)
+          .gte("lat", bounds.south).lte("lat", bounds.north)
+          .gte("acq_date", windowStartStr)
+          .order("acq_date", { ascending: false }).limit(3000);
+        if (error) throw error;
+        return data ?? [];
+      }),
+    );
+    return Array.from(new Map(regionRows.flat().map((row) => [`${row.lat}:${row.lon}:${row.acq_date}:${row.sensor}:${row.acq_time}`, row])).values());
   } catch {
     return [];
   }
