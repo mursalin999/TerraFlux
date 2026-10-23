@@ -409,20 +409,7 @@ function HomePage() {
             framework designed to reveal patterns, differences and unusual periods across Earth.
           </p>
 
-          {!telemetryQuery.isPending && telemetryQuery.data && (
-            <div className="mt-6 rounded border border-border bg-surface/80 p-3 font-mono text-[11px] backdrop-blur-sm">
-              <div className="font-semibold uppercase tracking-wider text-text">SNAPSHOT</div>
-              <p className="mt-2 text-text-secondary">
-                {telemetry.totalDetections.toLocaleString()} detections · {telemetry.regionsCovered} regions
-              </p>
-              <p className="mt-1 text-text-secondary">
-                MODIS {telemetry.modisCount.toLocaleString()} · VIIRS {telemetry.viirsCount.toLocaleString()}
-              </p>
-              <p className="mt-1 text-text-secondary">
-                {telemetry.firstAcqDate ?? "—"} → {telemetry.latestAcqDate ?? "—"} · {telemetry.baselineDays} days stored
-              </p>
-            </div>
-          )}
+
 
           <div className="mt-5 max-w-lg border-l-2 border-agreement-teal pl-3 text-xs leading-relaxed text-text-secondary sm:text-sm">
             <p>
