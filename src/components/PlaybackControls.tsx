@@ -8,7 +8,7 @@ interface PlaybackControlsProps {
 }
 
 export function PlaybackControls({ dates, detections, onDateChange }: PlaybackControlsProps) {
-  const [index, setIndex] = useState(Math.max(0, dates.length - 1));
+  const [index, setIndex] = useState(0);
   const [speed, setSpeed] = useState<1 | 2 | 4>(1);
   const [playing, setPlaying] = useState(false);
   const currentDate = dates[index] ?? dates[dates.length - 1] ?? "—";
@@ -23,7 +23,7 @@ export function PlaybackControls({ dates, detections, onDateChange }: PlaybackCo
   }, [currentDate, detections]);
 
   useEffect(() => {
-    onDateChange(currentDate);
+    if (currentDate !== "—") onDateChange(currentDate);
   }, [currentDate, onDateChange]);
 
   useEffect(() => {

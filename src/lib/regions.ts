@@ -37,6 +37,24 @@ export const REGIONS: Region[] = [
     center: [37.5, -119.5],
     zoom: 6,
   },
+  {
+    id: "europe-firebelt",
+    name: "Southern Europe",
+    bbox: "-10.0,35.0,42.0,52.0",
+    center: [43.0, 16.0],
+    zoom: 4,
+  },
+  {
+    id: "africa-firebelt",
+    name: "Africa Fire Belt",
+    bbox: "-17.0,-35.0,52.0,18.0",
+    center: [-4.0, 18.0],
+    zoom: 4,
+  },
+  { id: "spain-portugal", name: "Iberia", bbox: "-10.0,35.0,4.5,44.5", center: [40.0, -4.0], zoom: 5 },
+  { id: "italy-greece", name: "Italy & Greece", bbox: "11.0,34.0,29.0,47.0", center: [41.0, 18.0], zoom: 5 },
+  { id: "zambia-zimbabwe", name: "Zambia & Zimbabwe", bbox: "21.0,-23.0,34.0,-8.0", center: [-16.0, 28.0], zoom: 5 },
+  { id: "south-africa", name: "South Africa", bbox: "16.0,-35.0,33.0,-22.0", center: [-29.0, 24.0], zoom: 5 },
 ];
 
 export const DEFAULT_REGION: Region = REGIONS[0]!;
