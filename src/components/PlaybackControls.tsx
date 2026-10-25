@@ -11,7 +11,7 @@ export function PlaybackControls({ dates, detections, onDateChange }: PlaybackCo
   const [index, setIndex] = useState(0);
   const [speed, setSpeed] = useState<1 | 2 | 4>(1);
   const [playing, setPlaying] = useState(false);
-  const currentDate = dates[index] ?? dates[dates.length - 1] ?? "—";
+  const currentDate = dates[index] ?? dates[0] ?? "—";
 
   const counts = useMemo(() => {
     const visible = detections.filter((item) => item.acq_date <= currentDate);
@@ -55,7 +55,11 @@ export function PlaybackControls({ dates, detections, onDateChange }: PlaybackCo
   return (
     <section className="rounded border border-border bg-surface/90 p-3 font-mono" aria-label="Playback controls">
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={() => setPlaying((value) => !value)} className="inline-flex min-h-10 items-center gap-2 rounded border border-agreement-teal px-3 text-[11px] text-agreement-teal">
+        <button type="button" onClick={() => setPlaying((value) => {
+          if (value) return false;
+          if (index >= dates.length - 1) setIndex(0);
+          return dates.length > 1;
+        })} className="inline-flex min-h-10 items-center gap-2 rounded border border-agreement-teal px-3 text-[11px] text-agreement-teal">
           {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
           {playing ? "PAUSE" : "PLAY"}
         </button>
