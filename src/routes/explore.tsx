@@ -138,7 +138,10 @@ function ExploreWorkspace() {
   });
 
   const rawDetections = useMemo(() => query.data ?? [], [query.data]);
-  const playbackDates = useMemo(() => Array.from(new Set(rawDetections.map((item) => item.acq_date))).sort(), [rawDetections]);
+  const playbackDates = useMemo(
+    () => Array.from(new Set(rawDetections.map((item) => item.acq_date).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))).sort(),
+    [rawDetections],
+  );
   const visibleDetections = useMemo(() => {
     if (!playbackDate) return rawDetections;
     const cutoff = new Date(`${playbackDate}T00:00:00Z`);
