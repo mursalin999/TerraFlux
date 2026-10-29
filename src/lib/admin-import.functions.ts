@@ -42,21 +42,15 @@ export const getImportSummary = createServerFn({ method: "POST" })
   .inputValidator((data: { password: string }) => data)
   .handler(async ({ data }) => {
     authorize(data.password);
-    const { data: rows, error } = await (supabaseAdmin as any)
-      .from("fire_detections")
-      .select("product,acq_date")
-      .not("product", "is", null)
-      .order("acq_date", { ascending: true });
+    const { data, error } = await (supabaseAdmin as any).rpc("firms_archive_summary");
     if (error) throw new Error(`Summary query failed: ${error.message}`);
-    const summary = new Map<string, { product: string; year: number; rows: number; firstDate: string; lastDate: string }>();
-    for (const row of rows ?? []) {
-      const year = Number(String(row.acq_date).slice(0, 4));
-      const key = `${row.product}:${year}`;
-      const current = summary.get(key);
-      if (current) { current.rows += 1; current.lastDate = String(row.acq_date); }
-      else summary.set(key, { product: row.product, year, rows: 1, firstDate: String(row.acq_date), lastDate: String(row.acq_date) });
-    }
-    return [...summary.values()].sort((a, b) => b.year - a.year || a.product.localeCompare(b.product));
+    return (data ?? []).map((row: { product: string; year: number; rows: number; first_date: string; last_date: string }) => ({
+      product: row.product,
+      year: row.year,
+      rows: row.rows,
+      firstDate: row.first_date,
+      lastDate: row.last_date,
+    }));
   });
 
 export { PRODUCT };
