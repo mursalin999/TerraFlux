@@ -42,9 +42,9 @@ export const getImportSummary = createServerFn({ method: "POST" })
   .inputValidator((data: { password: string }) => data)
   .handler(async ({ data }) => {
     authorize(data.password);
-    const { data, error } = await (supabaseAdmin as any).rpc("firms_archive_summary");
+    const { data: summaryRows, error } = await (supabaseAdmin as any).rpc("firms_archive_summary");
     if (error) throw new Error(`Summary query failed: ${error.message}`);
-    return (data ?? []).map((row: { product: string; year: number; rows: number; first_date: string; last_date: string }) => ({
+    return (summaryRows ?? []).map((row: { product: string; year: number; rows: number; first_date: string; last_date: string }) => ({
       product: row.product,
       year: row.year,
       rows: row.rows,
