@@ -15,6 +15,7 @@ import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as MethodologyRouteImport } from './routes/methodology'
+import { Route as AdminImportRouteImport } from './routes/admin/import'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const MethodologyRoute = MethodologyRouteImport.update({
   path: '/methodology',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminImportRoute = AdminImportRouteImport.update({
+  id: '/admin/import',
+  path: '/admin/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof CompareRoute
   '/explore': typeof ExploreRoute
   '/methodology': typeof MethodologyRoute
+  '/admin/import': typeof AdminImportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/compare': typeof CompareRoute
   '/explore': typeof ExploreRoute
   '/methodology': typeof MethodologyRoute
+  '/admin/import': typeof AdminImportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,13 +79,27 @@ export interface FileRoutesById {
   '/compare': typeof CompareRoute
   '/explore': typeof ExploreRoute
   '/methodology': typeof MethodologyRoute
+  '/admin/import': typeof AdminImportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/about' | '/calendar' | '/compare' | '/explore' | '/methodology'
+    | '/'
+    | '/about'
+    | '/calendar'
+    | '/compare'
+    | '/explore'
+    | '/methodology'
+    | '/admin/import'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/calendar' | '/compare' | '/explore' | '/methodology'
+  to:
+    | '/'
+    | '/about'
+    | '/calendar'
+    | '/compare'
+    | '/explore'
+    | '/methodology'
+    | '/admin/import'
   id:
     | '__root__'
     | '/'
@@ -86,6 +108,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/explore'
     | '/methodology'
+    | '/admin/import'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,6 +118,7 @@ export interface RootRouteChildren {
   CompareRoute: typeof CompareRoute
   ExploreRoute: typeof ExploreRoute
   MethodologyRoute: typeof MethodologyRoute
+  AdminImportRoute: typeof AdminImportRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -141,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MethodologyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/import': {
+      id: '/admin/import'
+      path: '/admin/import'
+      fullPath: '/admin/import'
+      preLoaderRoute: typeof AdminImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -151,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompareRoute: CompareRoute,
   ExploreRoute: ExploreRoute,
   MethodologyRoute: MethodologyRoute,
+  AdminImportRoute: AdminImportRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -16,6 +16,9 @@ export interface HarmonizedRow {
   confidence_tier: "low" | "nominal" | "high";
   confidence_raw: string | null;
   day_night: "D" | "N" | null;
+  product?: string;
+  processing?: "NRT" | "SP";
+  source_file_name?: string;
 }
 
 export const FIRMS_SOURCES = {
@@ -85,7 +88,7 @@ function modisConfidenceTier(score: number | null): "low" | "nominal" | "high" {
   return "high";
 }
 
-export function harmonizeModis(rows: Record<string, string>[]): HarmonizedRow[] {
+export function harmonizeModis(rows: Record<string, string>[], metadata: Pick<HarmonizedRow, "product" | "processing" | "source_file_name"> = {}): HarmonizedRow[] {
   const out: HarmonizedRow[] = [];
   for (const r of rows) {
     const lat = num(r["latitude"]);
@@ -96,7 +99,7 @@ export function harmonizeModis(rows: Record<string, string>[]): HarmonizedRow[] 
       lat,
       lon,
       acq_date: r["acq_date"],
-      acq_time: r["acq_time"],
+      acq_time: String(r["acq_time"]).replace(/\\D/g, "").padStart(4, "0"),
       sensor: "MODIS",
       satellite: r["satellite"] === "T" ? "T" : "A",
       resolution_m: 1000,
@@ -106,12 +109,13 @@ export function harmonizeModis(rows: Record<string, string>[]): HarmonizedRow[] 
       confidence_tier: modisConfidenceTier(conf),
       confidence_raw: r["confidence"] ?? null,
       day_night: r["daynight"] === "N" ? "N" : r["daynight"] === "D" ? "D" : null,
+      ...metadata,
     });
   }
   return out;
 }
 
-export function harmonizeViirs(rows: Record<string, string>[]): HarmonizedRow[] {
+export function harmonizeViirs(rows: Record<string, string>[], metadata: Pick<HarmonizedRow, "product" | "processing" | "source_file_name"> = {}): HarmonizedRow[] {
   const out: HarmonizedRow[] = [];
   for (const r of rows) {
     const lat = num(r["latitude"]);
@@ -122,7 +126,7 @@ export function harmonizeViirs(rows: Record<string, string>[]): HarmonizedRow[] 
       lat,
       lon,
       acq_date: r["acq_date"],
-      acq_time: r["acq_time"],
+      acq_time: String(r["acq_time"]).replace(/\\D/g, "").padStart(4, "0"),
       sensor: "VIIRS",
       satellite: r["satellite"] ?? "N20",
       resolution_m: 375,
@@ -132,6 +136,7 @@ export function harmonizeViirs(rows: Record<string, string>[]): HarmonizedRow[] 
       confidence_tier: c.startsWith("h") ? "high" : c.startsWith("n") ? "nominal" : "low",
       confidence_raw: r["confidence"] ?? null,
       day_night: r["daynight"] === "N" ? "N" : r["daynight"] === "D" ? "D" : null,
+      ...metadata,
     });
   }
   return out;
