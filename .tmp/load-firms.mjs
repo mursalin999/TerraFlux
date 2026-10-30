@@ -1,0 +1,53 @@
+import fs from 'node:fs';
+import Papa from 'papaparse';
+
+const url = process.env.SUPABASE_URL;
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+if (!url || !key) throw new Error('Supabase server credentials are unavailable');
+
+const bbox = { west: 88.0, south: 20.5, east: 92.7, north: 26.7 };
+const files = [
+  ['fire_archive_M-C61.csv', 'MODIS Aqua', 'MODIS', 'A', 'SP'],
+  ['fire_nrt_M-C61.csv', 'MODIS Aqua', 'MODIS', 'A', 'NRT'],
+  ['fire_archive_J1V-C2.csv', 'VIIRS NOAA-20', 'VIIRS', 'N20', 'SP'],
+  ['fire_nrt_J2V-C2.csv', 'VIIRS NOAA-21', 'VIIRS', 'N21', 'NRT'],
+  ['fire_archive_J2V-C2.csv', 'VIIRS NOAA-21', 'VIIRS', 'N21', 'SP'],
+  ['fire_nrt_SV-C2.csv', 'VIIRS S-NPP', 'VIIRS', 'N', 'NRT'],
+  ['fire_archive_SV-C2.csv', 'VIIRS S-NPP', 'VIIRS', 'N', 'SP'],
+];
+
+function num(value) { const n = Number(value); return value === '' || !Number.isFinite(n) ? null : n; }
+function normalize(rows, product, sensor, satellite, processing, sourceFileName) {
+  return rows.flatMap((r) => {
+    const lat = num(r.latitude), lon = num(r.longitude);
+    if (lat === null || lon === null || !r.acq_date || !r.acq_time || lat < bbox.south || lat > bbox.north || lon < bbox.west || lon > bbox.east) return [];
+    const confidence = sensor === 'MODIS' ? num(r.confidence) : null;
+    const tier = sensor === 'MODIS' ? (confidence === null || confidence < 30 ? 'low' : confidence < 80 ? 'nominal' : 'high') : ((r.confidence || '').toLowerCase().startsWith('h') ? 'high' : (r.confidence || '').toLowerCase().startsWith('n') ? 'nominal' : 'low');
+    return [{
+      lat, lon, acq_date: r.acq_date, acq_time: String(r.acq_time).replace(/\\D/g, '').padStart(4, '0'), sensor,
+      satellite: sensor === 'MODIS' ? satellite : (r.satellite || satellite), resolution_m: sensor === 'MODIS' ? 1000 : 375,
+      brightness_k: num(r.brightness ?? r.bright_ti4), brightness2_k: num(r.bright_t31 ?? r.bright_ti5), frp_mw: num(r.frp),
+      confidence_tier: tier, confidence_raw: r.confidence ?? null, day_night: r.daynight === 'N' ? 'N' : r.daynight === 'D' ? 'D' : null,
+      product, processing, source_file_name: sourceFileName,
+    }];
+  });
+}
+
+async function rpc(rows) {
+  const response = await fetch(`${url}/rest/v1/rpc/import_fire_detections`, { method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ _rows: rows }) });
+  const body = await response.text();
+  if (!response.ok) throw new Error(`RPC ${response.status}: ${body.slice(0, 500)}`);
+  return JSON.parse(body);
+}
+
+for (const [file, product, sensor, satellite, processing] of files) {
+  const text = fs.readFileSync(`/vercel/share/v0-project/.tmp/${file}`, 'utf8');
+  const parsed = Papa.parse(text, { header: true, skipEmptyLines: true }).data;
+  const rows = normalize(parsed, product, sensor, satellite, processing, file);
+  let inserted = 0, updated = 0, skipped = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    const result = await rpc(rows.slice(i, i + 500));
+    inserted += result.inserted || 0; updated += result.updated || 0; skipped += result.skipped || 0;
+  }
+  console.log(JSON.stringify({ file, sourceRows: parsed.length, bangladeshRows: rows.length, inserted, updated, skipped }));
+}
