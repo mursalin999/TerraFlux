@@ -7,10 +7,7 @@ if (!url || !key) throw new Error('Supabase server credentials are unavailable')
 
 const bbox = { west: 88.0, south: 20.5, east: 92.7, north: 26.7 };
 const files = [
-  ['fire_archive_M-C61.csv', 'MODIS Aqua', 'MODIS', 'A', 'SP'],
-  ['fire_nrt_M-C61.csv', 'MODIS Aqua', 'MODIS', 'A', 'NRT'],
   ['fire_archive_J1V-C2.csv', 'VIIRS NOAA-20', 'VIIRS', 'N20', 'SP'],
-  ['fire_nrt_J2V-C2.csv', 'VIIRS NOAA-21', 'VIIRS', 'N21', 'NRT'],
   ['fire_archive_J2V-C2.csv', 'VIIRS NOAA-21', 'VIIRS', 'N21', 'SP'],
   ['fire_nrt_SV-C2.csv', 'VIIRS S-NPP', 'VIIRS', 'N', 'NRT'],
   ['fire_archive_SV-C2.csv', 'VIIRS S-NPP', 'VIIRS', 'N', 'SP'],
