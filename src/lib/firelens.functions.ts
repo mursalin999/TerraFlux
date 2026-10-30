@@ -117,26 +117,31 @@ export const getDetections = createServerFn({ method: "GET" })
     if (!sb) {
       return [];
     }
-    let q = sb
-      .from("fire_detections")
-      .select(
-        "lat,lon,acq_date,acq_time,sensor,satellite,resolution_m,brightness_k,brightness2_k,frp_mw,confidence_tier,day_night",
-      )
-      .gte("lon", data.west)
-      .lte("lon", data.east)
-      .gte("lat", data.south)
-      .lte("lat", data.north)
-      .gte("acq_date", data.start_date)
-      .lte("acq_date", data.end_date)
-      .order("acq_date", { ascending: true })
-      .limit(20000);
-    if (data.sensors?.length) q = q.in("sensor", data.sensors);
-    if (data.confidence?.length) q = q.in("confidence_tier", data.confidence);
-    const { data: rows, error } = await q;
-    if (error || !rows) {
-      return [];
+    const pageSize = 1000;
+    const allRows: Array<Record<string, unknown>> = [];
+    for (let offset = 0; offset < 100000; offset += pageSize) {
+      let query = sb
+        .from("fire_detections")
+        .select(
+          "lat,lon,acq_date,acq_time,sensor,satellite,resolution_m,brightness_k,brightness2_k,frp_mw,confidence_tier,day_night",
+        )
+        .gte("lon", data.west)
+        .lte("lon", data.east)
+        .gte("lat", data.south)
+        .lte("lat", data.north)
+        .gte("acq_date", data.start_date)
+        .lte("acq_date", data.end_date)
+        .order("acq_date", { ascending: true })
+        .order("acq_time", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (data.sensors?.length) query = query.in("sensor", data.sensors);
+      if (data.confidence?.length) query = query.in("confidence_tier", data.confidence);
+      const { data: page, error } = await query;
+      if (error || !page) return [];
+      allRows.push(...page);
+      if (page.length < pageSize) break;
     }
-    return rows;
+    return allRows;
   });
 
 // Daily counts per sensor — powers the calendar heatmap and comparison chart.
@@ -149,18 +154,24 @@ export const getDailyCounts = createServerFn({ method: "GET" })
     if (!sb) {
       return [];
     }
-    const { data: rows, error } = await sb
-      .from("fire_detections")
-      .select("acq_date,sensor")
-      .gte("lon", data.west)
-      .lte("lon", data.east)
-      .gte("lat", data.south)
-      .lte("lat", data.north)
-      .gte("acq_date", data.start_date)
-      .lte("acq_date", data.end_date)
-      .limit(100000);
-    if (error || !rows) {
-      return [];
+    const pageSize = 1000;
+    const rows: Array<{ acq_date: string; sensor: "MODIS" | "VIIRS" }> = [];
+    for (let offset = 0; offset < 100000; offset += pageSize) {
+      const { data: page, error } = await sb
+        .from("fire_detections")
+        .select("acq_date,sensor")
+        .gte("lon", data.west)
+        .lte("lon", data.east)
+        .gte("lat", data.south)
+        .lte("lat", data.north)
+        .gte("acq_date", data.start_date)
+        .lte("acq_date", data.end_date)
+        .order("acq_date", { ascending: true })
+        .order("acq_time", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (error || !page) return [];
+      rows.push(...page);
+      if (page.length < pageSize) break;
     }
     const counts = new Map<string, { date: string; modis: number; viirs: number }>();
     for (const r of rows) {
