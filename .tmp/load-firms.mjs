@@ -43,7 +43,12 @@ async function rpc(rows) {
 for (const [file, product, sensor, satellite, processing] of files) {
   const text = fs.readFileSync(`/vercel/share/v0-project/.tmp/${file}`, 'utf8');
   const parsed = Papa.parse(text, { header: true, skipEmptyLines: true }).data;
-  const rows = normalize(parsed, product, sensor, satellite, processing, file);
+  const normalized = normalize(parsed, product, sensor, satellite, processing, file);
+  const uniqueRows = new Map(normalized.map((row) => [
+    [row.lat, row.lon, row.acq_date, row.acq_time, row.sensor, row.satellite].join('|'),
+    row,
+  ]));
+  const rows = [...uniqueRows.values()];
   let inserted = 0, updated = 0, skipped = 0;
   for (let i = 0; i < rows.length; i += 500) {
     const result = await rpc(rows.slice(i, i + 500));
