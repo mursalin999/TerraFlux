@@ -17,11 +17,21 @@ export function AdminImportForm() {
   const [paused, setPaused] = useState(false);
   const [summary, setSummary] = useState<Array<{ product: string; year: number; rows: number; firstDate: string; lastDate: string }>>([]);
   const abortRef = useRef(false);
+  const headerCheckedRef = useRef(false);
   const pauseRef = useRef(false);
   const startedRef = useRef(0);
   const rowsRef = useRef<Record<string, string>[]>([]);
 
-  const loadSummary = async () => { if (!password) return; try { setSummary(await getImportSummary({ data: { password } })); } catch (error) { setProgress((p) => ({ ...p, errors: [...p.errors, error instanceof Error ? error.message : String(error)] })); } };
+  const loadSummary = async () => {
+    if (!password) return;
+    try {
+      const result = await getImportSummary({ data: { password } });
+      if (!Array.isArray(result)) throw new Error("Summary response was not a list.");
+      setSummary(result);
+    } catch (error) {
+      setProgress((p) => ({ ...p, errors: [...p.errors, error instanceof Error ? error.message : String(error)] }));
+    }
+  };
   useEffect(() => { void loadSummary(); }, []);
 
   const setPause = (value: boolean) => { pauseRef.current = value; setPaused(value); };
@@ -34,12 +44,13 @@ export function AdminImportForm() {
 
   const start = () => {
     if (!file || !password) return;
-    abortRef.current = false; setPause(false); setRunning(true); setProgress(initial); startedRef.current = Date.now(); rowsRef.current = [];
+    abortRef.current = false; setPause(false); setRunning(true); setProgress(initial); startedRef.current = Date.now(); rowsRef.current = []; headerCheckedRef.current = false;
     Papa.parse<Record<string, string>>(file, {
       header: true, worker: true, chunkSize: 1024 * 1024,
       chunk: async (result, parser) => {
         parser.pause();
-        if (progress.read === 0) {
+        if (!headerCheckedRef.current) {
+          headerCheckedRef.current = true;
           const headers = Object.keys(result.data[0] ?? {}).map((key) => key.toLowerCase());
           const expected = headers.includes("brightness") ? "MODIS" : headers.includes("bright_ti4") ? "VIIRS" : "UNKNOWN";
           if ((productKey.startsWith("MODIS") && expected !== "MODIS") || (productKey.startsWith("VIIRS") && expected !== "VIIRS")) { parser.abort(); setProgress((p) => ({ ...p, errors: [...p.errors, `This file looks like ${expected}, but you chose ${PRODUCT[productKey].label}.`] })); setRunning(false); return; }
