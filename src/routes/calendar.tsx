@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { REGIONS, getRegion, parseBbox } from "@/lib/regions";
 import { RegionSelect, DateRangeInputs, defaultFilters } from "@/components/FireControls";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
-import { getDailyCounts, getDetections } from "@/lib/firelens.functions";
+import { getDailyCounts, getDetections, getMonthlySeries } from "@/lib/firelens.functions";
+import { CalendarAnalysis } from "@/components/CalendarAnalysis";
 import { EmptyState } from "@/components/EmptyState";
 import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
 
@@ -31,13 +32,15 @@ export const Route = createFileRoute("/calendar")({
 });
 
 type Mode = "combined" | "MODIS" | "VIIRS";
+type CalendarTab = "month" | "daily";
 
 function CalendarPage() {
   const defaults = defaultFilters();
   const navigate = useNavigate();
   const [regionId, setRegionId] = useState(defaults.regionId);
-  const [startDate, setStartDate] = useState(defaults.startDate);
+  const [startDate, setStartDate] = useState("2000-01-01");
   const [endDate, setEndDate] = useState(defaults.endDate);
+  const [tab, setTab] = useState<CalendarTab>("month");
   const [mode, setMode] = useState<Mode>("combined");
   const [selectedDayForAnalysis, setSelectedDayForAnalysis] = useState<string | null>(null);
 
@@ -52,13 +55,17 @@ function CalendarPage() {
       }),
   });
 
+  const monthlyQuery = useQuery({
+    queryKey: ["monthly-calendar", regionId, startDate, endDate],
+    queryFn: () => getMonthlySeries({ data: { ...bboxParts, start_date: startDate, end_date: endDate } }),
+    staleTime: 300000,
+  });
+
   const detectionsQuery = useQuery({
     queryKey: ["detections-calendar", regionId, startDate, endDate],
-    queryFn: () =>
-      getDetections({
-        data: { ...bboxParts, start_date: startDate, end_date: endDate },
-      }),
+    queryFn: () => getDetections({ data: { ...bboxParts, start_date: startDate, end_date: endDate, sample_limit: 4000 } }),
     staleTime: 60000,
+    enabled: tab === "daily",
   });
 
   const days = query.data ?? [];
@@ -142,29 +149,14 @@ function CalendarPage() {
         />
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-2" role="tablist" aria-label="Sensor view">
-        {(["combined", "MODIS", "VIIRS"] as Mode[]).map((m) => (
-          <button
-            key={m}
-            role="tab"
-            aria-selected={mode === m}
-            onClick={() => setMode(m)}
-            className={`rounded border px-3 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
-              mode === m
-                ? m === "MODIS"
-                  ? "border-data-blue bg-data-blue/20 text-data-blue font-semibold"
-                  : m === "VIIRS"
-                    ? "border-thermal-orange bg-thermal-orange/20 text-thermal-orange font-semibold"
-                    : "border-anomaly-amber bg-anomaly-amber/20 text-anomaly-amber font-semibold"
-                : "border-border bg-surface text-text-secondary hover:text-text"
-            }`}
-          >
-            {m === "combined" ? "HARMONIZED (BOTH)" : m}
-          </button>
-        ))}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-border" role="tablist" aria-label="Calendar view">
+        <div className="flex gap-2"><button type="button" role="tab" aria-selected={tab === "month"} onClick={() => setTab("month")} className={`border-b-2 px-3 py-2 font-mono text-xs uppercase tracking-wider ${tab === "month" ? "border-anomaly-amber text-anomaly-amber" : "border-transparent text-text-secondary"}`}>Month by year</button><button type="button" role="tab" aria-selected={tab === "daily"} onClick={() => setTab("daily")} className={`border-b-2 px-3 py-2 font-mono text-xs uppercase tracking-wider ${tab === "daily" ? "border-anomaly-amber text-anomaly-amber" : "border-transparent text-text-secondary"}`}>Daily</button></div>
+        {tab === "daily" && <div className="flex flex-wrap gap-2" role="group" aria-label="Daily sensor measure">{(["combined", "MODIS", "VIIRS"] as Mode[]).map((m) => <button key={m} type="button" onClick={() => setMode(m)} className={`rounded border px-3 py-1.5 font-mono text-xs uppercase tracking-wider ${mode === m ? "border-anomaly-amber bg-anomaly-amber/15 text-anomaly-amber" : "border-border bg-surface text-text-secondary"}`}>{m === "combined" ? "Harmonized (both)" : m}</button>)}</div>}
       </div>
 
-      <div className="mt-6">
+      {tab === "month" && <div className="mt-6"><CalendarAnalysis rows={(monthlyQuery.data ?? []) as import("@/lib/harmonize").MonthlyAggregate[]} days={days} regionName={region.name} startDate={startDate} endDate={endDate} /></div>}
+
+      {tab === "daily" && <div className="mt-6">
         {query.isLoading && (
           <div className="rounded-lg border border-border bg-surface p-16 text-center font-mono text-xs text-text-secondary">
             Reading stored observations…
@@ -195,7 +187,6 @@ function CalendarPage() {
             }}
           />
         )}
-      </div>
 
       {/* Aggregate Analytical Metrics */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -275,6 +266,7 @@ function CalendarPage() {
           </div>
         </div>
       </div>
+      </div>}
     </div>
   );
 }
