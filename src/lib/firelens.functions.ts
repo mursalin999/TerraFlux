@@ -108,6 +108,7 @@ const detectionsQuerySchema = z.object({
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   sensors: z.array(z.enum(["MODIS", "VIIRS"])).optional(),
   confidence: z.array(z.enum(["low", "nominal", "high"])).optional(),
+  sample_limit: z.number().int().min(1000).max(10000).optional(),
 });
 
 export const getDetections = createServerFn({ method: "GET" })
@@ -119,7 +120,8 @@ export const getDetections = createServerFn({ method: "GET" })
     }
     const pageSize = 1000;
     const allRows: Array<Record<string, unknown>> = [];
-    for (let offset = 0; offset < 100000; offset += pageSize) {
+    const maximumRows = data.sample_limit ?? 100000;
+    for (let offset = 0; offset < maximumRows; offset += pageSize) {
       let query = sb
         .from("fire_detections")
         .select(
@@ -133,7 +135,7 @@ export const getDetections = createServerFn({ method: "GET" })
         .lte("acq_date", data.end_date)
         .order("acq_date", { ascending: true })
         .order("acq_time", { ascending: true })
-        .range(offset, offset + pageSize - 1);
+        .range(offset, Math.min(offset + pageSize, maximumRows) - 1);
       if (data.sensors?.length) query = query.in("sensor", data.sensors);
       if (data.confidence?.length) query = query.in("confidence_tier", data.confidence);
       const { data: page, error } = await query;

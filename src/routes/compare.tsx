@@ -51,7 +51,7 @@ type Mode = SensorId | "combined";
 function Compare() {
   const defaults = defaultFilters();
   const [regionId, setRegionId] = useState(defaults.regionId);
-  const [startDate, setStartDate] = useState(defaults.startDate);
+  const [startDate, setStartDate] = useState("2020-01-01");
   const [endDate, setEndDate] = useState(defaults.endDate);
   const [mode, setMode] = useState<Mode>("combined");
   const [mapProjection, setMapProjection] = useState<"3D" | "2D">("3D");
@@ -66,7 +66,7 @@ function Compare() {
     queryKey: ["compare-map", regionId, startDate, endDate, mode],
     queryFn: () =>
       getDetections({
-        data: { ...bboxParts, start_date: startDate, end_date: endDate, sensors },
+        data: { ...bboxParts, start_date: startDate, end_date: endDate, sensors, sample_limit: 6000 },
       }),
   });
 
