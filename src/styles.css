@@ -238,3 +238,9 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+
+.calendar-hatched {
+  background-color: var(--surface-elevated);
+  background-image: repeating-linear-gradient(135deg, rgba(145, 160, 181, 0.22) 0, rgba(145, 160, 181, 0.22) 1px, transparent 1px, transparent 5px);
+}
