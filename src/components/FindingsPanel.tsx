@@ -59,8 +59,9 @@ export function FindingsPanel({
       (monthCounts.get(day.date.slice(0, 7)) ?? 0) + day.modis + day.viirs,
     );
   const busiestMonth = [...monthCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
-  const firstDate = days[0]?.date ?? null;
-  const lastDate = days[days.length - 1]?.date ?? null;
+  const activeDays = days.filter((day) => day.modis + day.viirs > 0);
+  const firstDate = activeDays[0]?.date ?? null;
+  const lastDate = activeDays[activeDays.length - 1]?.date ?? null;
 
   return (
     <section
@@ -144,7 +145,7 @@ export function FindingsPanel({
           <div className="font-mono text-[11px] uppercase text-text-secondary">DATA COVERAGE</div>
           <p className="mt-1 font-mono text-xs text-text">
             {firstDate && lastDate
-              ? `${firstDate} to ${lastDate}, ${days.length} days`
+              ? `${firstDate} to ${lastDate}, ${activeDays.length} active days`
               : "Not available"}
           </p>
         </div>

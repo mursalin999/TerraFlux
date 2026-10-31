@@ -148,39 +148,21 @@ export const getDetections = createServerFn({ method: "GET" })
 
 // Daily counts per sensor — powers the calendar heatmap and comparison chart.
 export const getDailyCounts = createServerFn({ method: "GET" })
-  .inputValidator((data) =>
-    detectionsQuerySchema.omit({ sensors: true, confidence: true }).parse(data),
-  )
+  .inputValidator((data) => detectionsQuerySchema.omit({ sensors: true, confidence: true }).parse(data))
   .handler(async ({ data }) => {
     const sb = publicClient();
-    if (!sb) {
-      return [];
-    }
-    const pageSize = 1000;
-    const rows: Array<{ acq_date: string; sensor: "MODIS" | "VIIRS" }> = [];
-    for (let offset = 0; offset < 100000; offset += pageSize) {
-      const { data: page, error } = await sb
-        .from("fire_detections")
-        .select("acq_date,sensor")
-        .gte("lon", data.west)
-        .lte("lon", data.east)
-        .gte("lat", data.south)
-        .lte("lat", data.north)
-        .gte("acq_date", data.start_date)
-        .lte("acq_date", data.end_date)
-        .order("acq_date", { ascending: true })
-        .order("acq_time", { ascending: true })
-        .range(offset, offset + pageSize - 1);
-      if (error || !page) return [];
-      rows.push(...page);
-      if (page.length < pageSize) break;
-    }
+    if (!sb) return [];
+    const { data: rows, error } = await sb.rpc("daily_series", {
+      p_west: data.west, p_south: data.south, p_east: data.east, p_north: data.north,
+      p_from_date: data.start_date, p_to_date: data.end_date,
+    });
+    if (error || !rows) return [];
     const counts = new Map<string, { date: string; modis: number; viirs: number }>();
-    for (const r of rows) {
-      const entry = counts.get(r.acq_date) ?? { date: r.acq_date, modis: 0, viirs: 0 };
-      if (r.sensor === "MODIS") entry.modis += 1;
-      else entry.viirs += 1;
-      counts.set(r.acq_date, entry);
+    for (const row of rows as Array<{ day: string; sensor_group: string; raw_detections: number }>) {
+      const entry = counts.get(row.day) ?? { date: row.day, modis: 0, viirs: 0 };
+      if (row.sensor_group === "MODIS") entry.modis = Number(row.raw_detections);
+      else entry.viirs += Number(row.raw_detections);
+      counts.set(row.day, entry);
     }
     return [...counts.values()].sort((a, b) => a.date.localeCompare(b.date));
   });
