@@ -104,8 +104,8 @@ export function buildHarmonizedSeries(rows: MonthlyAggregate[], fromDate: string
     const group = byMonth.get(month);
     const modis = has(group?.MODIS) ? group?.MODIS?.burning_cell_days ?? null : null;
     const viirs = viirsReference(month);
-    const harmonized = viirs != null ? viirs : k != null && modis != null ? modis * k : null;
-    return { month, modis, viirsReference: viirs, harmonized, errorLow: harmonized != null && viirs == null && typicalErrorPercent != null ? harmonized * (1 - typicalErrorPercent / 100) : null, errorHigh: harmonized != null && viirs == null && typicalErrorPercent != null ? harmonized * (1 + typicalErrorPercent / 100) : null, complete: complete.includes(month), currentMonth: month === currentMonth };
+    const harmonized = k != null && modis != null ? modis * k : viirs;
+    return { month, modis, viirsReference: viirs, harmonized, errorLow: harmonized != null && typicalErrorPercent != null ? harmonized * (1 - typicalErrorPercent / 100) : null, errorHigh: harmonized != null && typicalErrorPercent != null ? harmonized * (1 + typicalErrorPercent / 100) : null, complete: complete.includes(month), currentMonth: month === currentMonth };
   });
   const ratioDenominator = overlap.reduce((sum, month) => sum + (byMonth.get(month)?.MODIS?.raw_detections ?? 0), 0);
   const rawRatio = ratioDenominator ? overlap.reduce((sum, month) => sum + (byMonth.get(month)?.VIIRS_SNPP?.raw_detections ?? byMonth.get(month)?.VIIRS_N20?.raw_detections ?? 0), 0) / ratioDenominator : null;

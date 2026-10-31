@@ -6,7 +6,7 @@ All chart values come from stored `fire_detections` rows through the `monthly_se
 - `g = sum(S-NPP burning cell-days) / sum(NOAA-20 burning cell-days)` across complete months where both groups have stored detections.
 - The VIIRS reference uses S-NPP when available; otherwise NOAA-20 multiplied by `g`.
 - `k = sum(VIIRS reference burning cell-days) / sum(MODIS burning cell-days)` across complete overlap months. It is only reported when there are at least 36 overlap months.
-- Harmonized values use the VIIRS reference whenever it exists. Earlier MODIS-only months use `MODIS burning cell-days × k`.
+- Harmonized values use `MODIS burning cell-days × k` whenever MODIS exists, including months where VIIRS is also present. This keeps the bridge auditable: a tooltip can always be checked with the displayed MODIS value and k. VIIRS-only months use the VIIRS reference directly.
 - Leave-one-year-out error recalculates `k` without each validation year and reports the median absolute percentage error for non-zero VIIRS months.
 - `r²` is Pearson correlation squared for monthly MODIS and VIIRS-reference burning cell-days in the overlap.
 - Raw-count ratio is `sum(VIIRS raw detections) / sum(MODIS raw detections)` in the overlap. Raw counts are never added across sensors.
