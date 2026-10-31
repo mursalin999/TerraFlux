@@ -30,6 +30,9 @@ import {
 } from "@/lib/analyticalGrid";
 import { type ObservationPoint } from "@/components/EarthGlobe";
 import { type ExploreViewMode, type SensorFilterMode } from "@/components/ExploreGlobe";
+import { CustomAreaControls } from "@/components/CustomAreaControls";
+import { bboxCenter } from "@/lib/custom-area";
+import { useCustomArea } from "@/hooks/use-custom-area";
 import { ObservationsTableModal } from "@/components/ObservationsTableModal";
 import { ObservationInspector } from "@/components/ObservationInspector";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
@@ -93,7 +96,7 @@ function monthChunks(start: string, end: string): { start: string; end: string }
 }
 
 function ExploreWorkspace() {
-  const [filters, setFilters] = useState<FireFilters>(defaultFilters);
+  const [filters, setFilters] = useState<FireFilters>(() => ({ ...defaultFilters(), regionId: typeof window !== "undefined" && new URLSearchParams(window.location.search).has("bbox") ? "custom" : defaultFilters().regionId }));
   const [timeScale, setTimeScale] = useState<TimeScale>("daily");
   const [activeSensor, setActiveSensor] = useState<SensorFilterMode>("HARMONIZED");
   const [activeView, setActiveView] = useState<ExploreViewMode>("NATIVE");
@@ -113,8 +116,11 @@ function ExploreWorkspace() {
   const runBackfill = useServerFn(backfillFireData);
   const runFetch = useServerFn(fetchFireData);
 
-  const region = getRegion(filters.regionId);
-  const bboxParts = parseBbox(region.bbox);
+  const [customBbox, setCustomBbox] = useCustomArea(parseBbox(getRegion("bangladesh").bbox));
+  const region = getRegion(filters.regionId === "custom" ? "bangladesh" : filters.regionId);
+  const bboxParts = filters.regionId === "custom" ? customBbox : parseBbox(region.bbox);
+  const mapCenter = filters.regionId === "custom" ? bboxCenter(customBbox) : region.center;
+  const mapZoom = filters.regionId === "custom" ? 7 : region.zoom;
 
   // Viewport-aware cached query by region, dates, and confidence
   const query = useQuery({
@@ -266,12 +272,14 @@ function ExploreWorkspace() {
           }}
           className="mt-1.5 w-full rounded border border-border bg-surface px-3 py-1.5 text-text focus:border-data-blue focus:outline-none"
         >
+          <option value="custom">Custom area</option>
           {REGIONS.map((r) => (
             <option key={r.id} value={r.id}>
               {r.name} ({r.bbox})
             </option>
           ))}
         </select>
+        {filters.regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} />}
       </div>
 
       {/* Date Interval */}
@@ -440,9 +448,10 @@ observations={visibleDetections}
               ) : (
                 <FireMap
 detections={visibleDetections}
-  center={region.center}
-                  zoom={region.zoom}
-                  onSelectObservation={(obs) => {
+          center={mapCenter}
+          zoom={mapZoom}
+          onBboxDrawn={(bbox) => { setFilters((current) => ({ ...current, regionId: "custom" })); setCustomBbox(bbox); }}
+          onSelectObservation={(obs) => {
                     setSelectedObs(obs as unknown as ObservationPoint);
                     setSelectedCell(null);
                   }}

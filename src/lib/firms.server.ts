@@ -37,6 +37,9 @@ export function validateBbox(bbox: string): [number, number, number, number] {
   if (west >= east || south >= north) {
     throw new Error("bbox is inverted: need west < east and south < north");
   }
+  if (east - west > 10 || north - south > 10) {
+    throw new Error("bbox is larger than 10° by 10°");
+  }
   if (south < -90 || north > 90 || west < -180 || east > 180) {
     throw new Error("bbox out of range (lon -180..180, lat -90..90)");
   }
@@ -197,8 +200,8 @@ export async function fetchAndHarmonize(opts: {
     );
   }
   validateBbox(opts.bbox);
-  if (!Number.isInteger(opts.days) || opts.days < 1 || opts.days > 5) {
-    throw new Error("days must be an integer between 1 and 5 — recent-checks endpoint only");
+  if (!Number.isInteger(opts.days) || opts.days < 1 || opts.days > 10) {
+    throw new Error("days must be an integer between 1 and 10");
   }
   const [modisRaw, viirsRaw] = await Promise.all([
     fetchFirmsCsv({ ...opts, mapKey, source: "MODIS_NRT" }),

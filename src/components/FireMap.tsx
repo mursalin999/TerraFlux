@@ -1,7 +1,7 @@
 // Browser-only map module — imported lazily (React.lazy) behind <ClientOnly>.
 // Never import this module statically from a route.
 import "leaflet/dist/leaflet.css";
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents, Rectangle } from "react-leaflet";
 import { useEffect, useState } from "react";
 import { SENSOR_META } from "@/lib/regions";
 
@@ -17,6 +17,16 @@ export interface MapDetection {
   frp_mw: number | null;
   confidence_tier: "low" | "nominal" | "high";
   day_night: "D" | "N" | null;
+}
+
+function DragRectangle({ onComplete }: { onComplete?: (bbox: { west: number; south: number; east: number; north: number }) => void }) {
+  const [drawing, setDrawing] = useState(false);
+  const [start, setStart] = useState<[number, number] | null>(null);
+  const [current, setCurrent] = useState<[number, number] | null>(null);
+  useEffect(() => { const begin = () => setDrawing(true); window.addEventListener("terraflux:draw-rectangle", begin); return () => window.removeEventListener("terraflux:draw-rectangle", begin); }, []);
+  useMapEvents({ mousedown: (event) => { if (drawing) setStart([event.latlng.lat, event.latlng.lng]); }, mousemove: (event) => { if (drawing && start) setCurrent([event.latlng.lat, event.latlng.lng]); }, mouseup: (event) => { if (!drawing || !start) return; const south = Math.min(start[0], event.latlng.lat), north = Math.max(start[0], event.latlng.lat), west = Math.min(start[1], event.latlng.lng), east = Math.max(start[1], event.latlng.lng); onComplete?.({ west, south, east, north }); setDrawing(false); setStart(null); setCurrent(null); } });
+  if (!start || !current) return null;
+  return <Rectangle bounds={[[Math.min(start[0], current[0]), Math.min(start[1], current[1])], [Math.max(start[0], current[0]), Math.max(start[1], current[1])]]} pathOptions={{ color: "#56D6C9", dashArray: "5 5" }} />;
 }
 
 function Recenter({ center, zoom }: { center: [number, number]; zoom: number }) {
@@ -39,6 +49,7 @@ export default function FireMap({
   center: [number, number];
   zoom: number;
   onSelectObservation?: (obs: MapDetection) => void;
+  onBboxDrawn?: (bbox: { west: number; south: number; east: number; north: number }) => void;
 }) {
   const [isMounted, setIsMounted] = useState(false);
   const [tileError, setTileError] = useState(false);
@@ -72,6 +83,7 @@ export default function FireMap({
         attributionControl={false}
       >
         <Recenter center={center} zoom={zoom} />
+        <DragRectangle onComplete={onBboxDrawn} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url={tileUrl}

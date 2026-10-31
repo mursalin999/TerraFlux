@@ -8,6 +8,8 @@ import { getDailyCounts, getDetections, getMonthlySeries } from "@/lib/firelens.
 import { CalendarAnalysis } from "@/components/CalendarAnalysis";
 import { EmptyState } from "@/components/EmptyState";
 import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
+import { CustomAreaControls } from "@/components/CustomAreaControls";
+import { useCustomArea } from "@/hooks/use-custom-area";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
@@ -37,15 +39,16 @@ type CalendarTab = "month" | "daily";
 function CalendarPage() {
   const defaults = defaultFilters();
   const navigate = useNavigate();
-  const [regionId, setRegionId] = useState(defaults.regionId);
+  const [regionId, setRegionId] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("bbox") ? "custom" : defaults.regionId);
   const [startDate, setStartDate] = useState("2020-01-01");
   const [endDate, setEndDate] = useState(defaults.endDate);
   const [tab, setTab] = useState<CalendarTab>("month");
   const [mode, setMode] = useState<Mode>("combined");
   const [selectedDayForAnalysis, setSelectedDayForAnalysis] = useState<string | null>(null);
+  const [customBbox, setCustomBbox] = useCustomArea(parseBbox(getRegion(defaults.regionId).bbox));
 
-  const region = getRegion(regionId);
-  const bboxParts = parseBbox(region.bbox);
+  const region = getRegion(regionId === "custom" ? defaults.regionId : regionId);
+  const bboxParts = regionId === "custom" ? customBbox : parseBbox(region.bbox);
 
   const query = useQuery({
     queryKey: ["daily-counts", regionId, startDate, endDate],
@@ -130,8 +133,8 @@ function CalendarPage() {
             spikes.
           </p>
         </div>
-        <div className="flex flex-wrap items-end gap-4">
-          <RegionSelect value={regionId} onChange={setRegionId} />
+      <div className="flex flex-wrap items-end gap-4">
+        <div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} />}</div>
           <DateRangeInputs
             startDate={startDate}
             endDate={endDate}

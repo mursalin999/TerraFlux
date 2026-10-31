@@ -24,6 +24,9 @@ import CompareChart from "@/components/CompareChart";
 import { FindingsPanel } from "@/components/FindingsPanel";
 import { UnusualDayDrawer } from "@/components/UnusualDayDrawer";
 import { computeAnalyticalGrid } from "@/lib/analyticalGrid";
+import { CustomAreaControls } from "@/components/CustomAreaControls";
+import { bboxCenter } from "@/lib/custom-area";
+import { useCustomArea } from "@/hooks/use-custom-area";
 
 export const Route = createFileRoute("/compare")({
   head: () => ({
@@ -50,16 +53,19 @@ type Mode = SensorId | "combined";
 
 function Compare() {
   const defaults = defaultFilters();
-  const [regionId, setRegionId] = useState(defaults.regionId);
+  const [regionId, setRegionId] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("bbox") ? "custom" : defaults.regionId);
   const [startDate, setStartDate] = useState("2020-01-01");
   const [endDate, setEndDate] = useState(defaults.endDate);
   const [mode, setMode] = useState<Mode>("combined");
   const [mapProjection, setMapProjection] = useState<"3D" | "2D">("3D");
   const [gridSize, setGridSize] = useState(0.15);
   const [selectedObs, setSelectedObs] = useState<ObservationPoint | null>(null);
+  const [customBbox, setCustomBbox] = useCustomArea(parseBbox(defaults.regionId === "bangladesh" ? getRegion("bangladesh").bbox : getRegion(defaults.regionId).bbox));
 
-  const region = getRegion(regionId);
-  const bboxParts = parseBbox(region.bbox);
+  const region = getRegion(regionId === "custom" ? defaults.regionId : regionId);
+  const bboxParts = regionId === "custom" ? customBbox : parseBbox(region.bbox);
+  const mapCenter = regionId === "custom" ? bboxCenter(customBbox) : region.center;
+  const mapZoom = regionId === "custom" ? 7 : region.zoom;
   const sensors = mode === "combined" ? undefined : [mode];
   const mapStartDate = useMemo(() => {
     const date = new Date(`${endDate}T00:00:00Z`);
@@ -186,8 +192,8 @@ function Compare() {
             ANALYSIS PARAMETERS
           </div>
           <div className="flex flex-wrap items-end gap-4 lg:flex-col lg:items-stretch">
-            <RegionSelect value={regionId} onChange={setRegionId} />
-            <DateRangeInputs
+        <div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} />}</div>
+        <DateRangeInputs
               startDate={startDate}
               endDate={endDate}
               onStart={setStartDate}
@@ -265,9 +271,10 @@ function Compare() {
                 ) : (
                   <FireMap
                     detections={detections}
-                    center={region.center}
-                    zoom={region.zoom}
-                    onSelectObservation={(obs) =>
+            center={mapCenter}
+            zoom={mapZoom}
+            onBboxDrawn={(bbox) => { setRegionId("custom"); setCustomBbox(bbox); }}
+            onSelectObservation={(obs) =>
                       setSelectedObs(obs as unknown as ObservationPoint)
                     }
                   />

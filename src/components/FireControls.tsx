@@ -38,6 +38,7 @@ export function RegionSelect({
         onChange={(e) => onChange(e.target.value)}
         className="rounded border border-border bg-surface px-3 py-2 font-mono text-xs text-text focus:border-data-blue focus:outline-none lg:w-full"
       >
+        <option value="custom" className="bg-surface text-text">Custom area</option>
         {REGIONS.map((r) => (
           <option key={r.id} value={r.id} className="bg-surface text-text">
             {r.name} ({r.bbox})
