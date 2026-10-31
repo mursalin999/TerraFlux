@@ -61,12 +61,17 @@ function Compare() {
   const region = getRegion(regionId);
   const bboxParts = parseBbox(region.bbox);
   const sensors = mode === "combined" ? undefined : [mode];
+  const mapStartDate = useMemo(() => {
+    const date = new Date(`${endDate}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() - 365);
+    return date.toISOString().slice(0, 10);
+  }, [endDate]);
 
   const mapQuery = useQuery({
-    queryKey: ["compare-map", regionId, startDate, endDate, mode],
+    queryKey: ["compare-map", regionId, mapStartDate, endDate, mode],
     queryFn: () =>
       getDetections({
-        data: { ...bboxParts, start_date: startDate, end_date: endDate, sensors, sample_limit: 6000 },
+        data: { ...bboxParts, start_date: mapStartDate, end_date: endDate, sensors, sample_limit: 4000 },
       }),
   });
 
@@ -92,8 +97,8 @@ function Compare() {
   const viirsTotal = days.reduce((s, d) => s + d.viirs, 0);
   const chartMax = Math.max(1, ...days.map((d) => d.modis + d.viirs));
   const gridAnalysis = useMemo(
-    () => computeAnalyticalGrid(detections, startDate, endDate, gridSize),
-    [detections, startDate, endDate, gridSize],
+    () => computeAnalyticalGrid(detections, mapStartDate, endDate, gridSize),
+    [detections, mapStartDate, endDate, gridSize],
   );
   const agreementRate = useMemo(() => {
     if (gridAnalysis.cells.length === 0) return null;
@@ -141,7 +146,7 @@ function Compare() {
         </div>
         <div className="mt-4 grid grid-cols-4 gap-2">
           {[0.05, 0.1, 0.15, 0.25].map((size) => {
-            const result = computeAnalyticalGrid(detections, startDate, endDate, size);
+            const result = computeAnalyticalGrid(detections, mapStartDate, endDate, size);
             const rate = result.cells.length
               ? result.cells.filter((cell) => cell.modisCount > 0 && cell.viirsCount > 0).length /
                 result.cells.length
