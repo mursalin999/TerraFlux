@@ -13,6 +13,16 @@ test("uses S-NPP directly and scales NOAA-20 with g", () => {
   assert.equal(result.series.find((item) => item.month === "2020-03-01")?.viirsReference, 20);
 });
 
+test("harmonized tooltip equals MODIS multiplied by k", () => {
+  const rows = Array.from({ length: 38 }, (_, index) => {
+    const date = new Date(Date.UTC(2019, index, 1)).toISOString().slice(0, 10);
+    return [row(date, "MODIS", 10), row(date, "VIIRS_SNPP", 20)];
+  }).flat();
+  const result = buildHarmonizedSeries(rows, "2019-01-01", "2022-02-28");
+  assert.equal(result.k, 2);
+  assert.equal(result.series.find((item) => item.month === "2020-12-01")?.harmonized, 20);
+});
+
 test("refuses to create a bridge with fewer than 36 overlap months", () => {
   const rows = Array.from({ length: 12 }, (_, index) => { const month = `2020-${String(index + 1).padStart(2, "0")}-01`; return [row(month, "MODIS", 10), row(month, "VIIRS_SNPP", 20)].flat(); }).flat();
   assert.equal(buildHarmonizedSeries(rows, "2020-01-01", "2021-01-01").k, null);
