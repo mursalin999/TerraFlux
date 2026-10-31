@@ -183,6 +183,19 @@ export const getDailyCounts = createServerFn({ method: "GET" })
     return [...counts.values()].sort((a, b) => a.date.localeCompare(b.date));
   });
 
+export const getMonthlySeries = createServerFn({ method: "GET" })
+  .inputValidator((data) => detectionsQuerySchema.omit({ sensors: true, confidence: true }).parse(data))
+  .handler(async ({ data }) => {
+    const sb = publicClient();
+    if (!sb) return [];
+    const { data: rows, error } = await sb.rpc("monthly_series", {
+      p_west: data.west, p_south: data.south, p_east: data.east, p_north: data.north,
+      p_from_date: data.start_date, p_to_date: data.end_date,
+    });
+    if (error || !rows) return [];
+    return rows;
+  });
+
 // Database-wide totals for the public Home snapshot. Region coverage means a
 // preset bounding box currently contains at least one stored FIRMS detection.
 export const getLiveSnapshot = createServerFn({ method: "GET" }).handler(async () => {

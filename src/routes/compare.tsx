@@ -1,5 +1,6 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { Suspense, useMemo, useState } from "react";
+import { buildHarmonizedSeries, type MonthlyAggregate } from "@/lib/harmonize";
 import { useQuery } from "@tanstack/react-query";
 import { Globe2, Map as MapIcon } from "lucide-react";
 import {
@@ -11,7 +12,8 @@ import {
   type SensorId,
 } from "@/lib/regions";
 import { RegionSelect, DateRangeInputs, defaultFilters } from "@/components/FireControls";
-import { getDetections, getDailyCounts } from "@/lib/firelens.functions";
+import { getDetections, getDailyCounts, getMonthlySeries } from "@/lib/firelens.functions";
+import { HarmonizationSection } from "@/components/HarmonizationSection";
 import { EmptyState } from "@/components/EmptyState";
 import { ObservationInspector } from "@/components/ObservationInspector";
 import type { ObservationPoint } from "@/components/EarthGlobe";
@@ -74,6 +76,16 @@ function Compare() {
       getDailyCounts({ data: { ...bboxParts, start_date: startDate, end_date: endDate } }),
   });
 
+  const monthlyQuery = useQuery({
+    queryKey: ["monthly-series", regionId, startDate, endDate],
+    queryFn: () => getMonthlySeries({ data: { ...bboxParts, start_date: startDate, end_date: endDate } }),
+  });
+
+  const monthlyAnalysis = useMemo(
+    () => buildHarmonizedSeries((monthlyQuery.data ?? []) as MonthlyAggregate[], startDate, endDate),
+    [monthlyQuery.data, startDate, endDate],
+  );
+
   const detections = useMemo(() => mapQuery.data ?? [], [mapQuery.data]);
   const days = dailyQuery.data ?? [];
   const modisTotal = days.reduce((s, d) => s + d.modis, 0);
@@ -114,6 +126,10 @@ function Compare() {
           sampleCells={gridAnalysis.cells.length}
           onSelectDay={setSelectedDay}
         />
+      </div>
+
+      <div className="mt-6">
+        <HarmonizationSection result={monthlyAnalysis} loading={monthlyQuery.isLoading} />
       </div>
 
       <div className="mt-6 rounded-lg border border-border bg-surface p-5">
