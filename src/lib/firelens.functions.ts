@@ -147,18 +147,33 @@ export const getDetections = createServerFn({ method: "GET" })
   });
 
 // Daily counts per sensor — powers the calendar heatmap and comparison chart.
+function splitIntoYears(start: string, end: string) {
+  const ranges: Array<{ start: string; end: string }> = [];
+  for (let year = Number(start.slice(0, 4)); year <= Number(end.slice(0, 4)); year += 1) {
+    const rangeStart = year === Number(start.slice(0, 4)) ? start : `${year}-01-01`;
+    const rangeEnd = year === Number(end.slice(0, 4)) ? end : `${year}-12-31`;
+    ranges.push({ start: rangeStart, end: rangeEnd });
+  }
+  return ranges;
+}
+
 export const getDailyCounts = createServerFn({ method: "GET" })
   .inputValidator((data) => detectionsQuerySchema.omit({ sensors: true, confidence: true }).parse(data))
   .handler(async ({ data }) => {
     const sb = publicClient();
     if (!sb) return [];
-    const { data: rows, error } = await sb.rpc("daily_series", {
-      p_west: data.west, p_south: data.south, p_east: data.east, p_north: data.north,
-      p_from_date: data.start_date, p_to_date: data.end_date,
-    });
-    if (error || !rows) return [];
+    const ranges = splitIntoYears(data.start_date, data.end_date);
+    const rows: Array<{ day: string; sensor_group: string; raw_detections: number }> = [];
+    for (const range of ranges) {
+      const result = await sb.rpc("daily_series", {
+        p_west: data.west, p_south: data.south, p_east: data.east, p_north: data.north,
+        p_from_date: range.start, p_to_date: range.end,
+      });
+      if (result.error || !result.data) return [];
+      rows.push(...(result.data as typeof rows));
+    }
     const counts = new Map<string, { date: string; modis: number; viirs: number }>();
-    for (const row of rows as Array<{ day: string; sensor_group: string; raw_detections: number }>) {
+    for (const row of rows) {
       const entry = counts.get(row.day) ?? { date: row.day, modis: 0, viirs: 0 };
       if (row.sensor_group === "MODIS") entry.modis = Number(row.raw_detections);
       else entry.viirs += Number(row.raw_detections);
@@ -172,11 +187,15 @@ export const getMonthlySeries = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const sb = publicClient();
     if (!sb) return [];
-    const { data: rows, error } = await sb.rpc("monthly_series", {
-      p_west: data.west, p_south: data.south, p_east: data.east, p_north: data.north,
-      p_from_date: data.start_date, p_to_date: data.end_date,
-    });
-    if (error || !rows) return [];
+    const rows: Array<Record<string, unknown>> = [];
+    for (const range of splitIntoYears(data.start_date, data.end_date)) {
+      const result = await sb.rpc("monthly_series", {
+        p_west: data.west, p_south: data.south, p_east: data.east, p_north: data.north,
+        p_from_date: range.start, p_to_date: range.end,
+      });
+      if (result.error || !result.data) return [];
+      rows.push(...(result.data as Array<Record<string, unknown>>));
+    }
     return rows;
   });
 

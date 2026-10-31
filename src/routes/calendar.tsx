@@ -38,7 +38,7 @@ function CalendarPage() {
   const defaults = defaultFilters();
   const navigate = useNavigate();
   const [regionId, setRegionId] = useState(defaults.regionId);
-  const [startDate, setStartDate] = useState("2000-01-01");
+  const [startDate, setStartDate] = useState("2020-01-01");
   const [endDate, setEndDate] = useState(defaults.endDate);
   const [tab, setTab] = useState<CalendarTab>("month");
   const [mode, setMode] = useState<Mode>("combined");
