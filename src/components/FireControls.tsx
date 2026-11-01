@@ -1,4 +1,6 @@
-import { REGIONS, CONFIDENCE_TIERS, type ConfidenceTier } from "@/lib/regions";
+import { REGIONS, CONFIDENCE_TIERS, parseBbox, type ConfidenceTier } from "@/lib/regions";
+import { useQueries } from "@tanstack/react-query";
+import { getAreaCoverage } from "@/lib/firelens.functions";
 
 export interface FireFilters {
   regionId: string;
@@ -28,6 +30,8 @@ export function RegionSelect({
   value: string;
   onChange: (id: string) => void;
 }) {
+  const coverage = useQueries({ queries: REGIONS.map((region) => { const bbox = parseBbox(region.bbox); return { queryKey: ["coverage-badge", region.id], queryFn: () => getAreaCoverage({ data: bbox }), staleTime: 900000 }; }) });
+  const selectedCoverage = value === "custom" ? null : coverage[REGIONS.findIndex((region) => region.id === value)]?.data;
   return (
     <label className="flex flex-col gap-1 lg:w-full">
       <span className="font-mono text-[11px] uppercase tracking-wider text-text-secondary">
@@ -45,6 +49,7 @@ export function RegionSelect({
           </option>
         ))}
       </select>
+      {selectedCoverage && <span className="font-mono text-[10px] text-text-secondary">Coverage: {selectedCoverage.filter((item) => item.first_date && item.last_date).map((item) => `${item.sensor} ${item.first_date?.slice(0, 7)}–${item.last_date?.slice(0, 7)}`).join(" · ") || "No stored data"}</span>}
     </label>
   );
 }

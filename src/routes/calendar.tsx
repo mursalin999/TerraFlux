@@ -9,6 +9,7 @@ import { CalendarAnalysis } from "@/components/CalendarAnalysis";
 import { EmptyState } from "@/components/EmptyState";
 import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
+import { DownloadMenu } from "@/components/DownloadMenu";
 import { useCustomArea } from "@/hooks/use-custom-area";
 
 export const Route = createFileRoute("/calendar")({
@@ -134,8 +135,8 @@ function CalendarPage() {
           </p>
         </div>
       <div className="flex flex-wrap items-end gap-4">
-        <div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} />}</div>
-          <DateRangeInputs
+<div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} />}</div><DownloadMenu area={region.name} bbox={bboxParts} startDate={startDate} endDate={endDate} displayedDetectionCount={rawDetections.length} monthlyRows={(monthlyQuery.data ?? []) as Record<string, unknown>[]} />
+        <DateRangeInputs
             startDate={startDate}
             endDate={endDate}
             onStart={setStartDate}
@@ -148,8 +149,9 @@ function CalendarPage() {
         <NasaFirmsFetcher
           initialRegionId={regionId}
           initialStartDate={startDate}
-          initialEndDate={endDate}
-        />
+  initialEndDate={endDate}
+  initialBbox={`${bboxParts.west},${bboxParts.south},${bboxParts.east},${bboxParts.north}`}
+  />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-border" role="tablist" aria-label="Calendar view">
@@ -157,7 +159,7 @@ function CalendarPage() {
         {tab === "daily" && <div className="flex flex-wrap gap-2" role="group" aria-label="Daily sensor measure">{(["combined", "MODIS", "VIIRS"] as Mode[]).map((m) => <button key={m} type="button" onClick={() => setMode(m)} className={`rounded border px-3 py-1.5 font-mono text-xs uppercase tracking-wider ${mode === m ? "border-anomaly-amber bg-anomaly-amber/15 text-anomaly-amber" : "border-border bg-surface text-text-secondary"}`}>{m === "combined" ? "Harmonized (both)" : m}</button>)}</div>}
       </div>
 
-      {tab === "month" && <div className="mt-6"><CalendarAnalysis rows={(monthlyQuery.data ?? []) as import("@/lib/harmonize").MonthlyAggregate[]} days={days} regionName={region.name} startDate={startDate} endDate={endDate} /></div>}
+      {tab === "month" && <div className="mt-6"><CalendarAnalysis rows={(monthlyQuery.data ?? []) as import("@/lib/harmonize").MonthlyAggregate[]} days={days} regionName={region.name} startDate={startDate} endDate={endDate} bbox={bboxParts} /></div>}
 
       {tab === "daily" && <div className="mt-6">
         {query.isLoading && (

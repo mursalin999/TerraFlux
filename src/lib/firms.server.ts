@@ -181,6 +181,16 @@ export async function fetchFirmsCsv(opts: {
   return parseCsv(text, source);
 }
 
+const firmsRequests = new Map<string, number[]>();
+
+function enforceFirmsRateLimit(bbox: string) {
+  const now = Date.now();
+  const recent = (firmsRequests.get(bbox) ?? []).filter((timestamp) => now - timestamp < 10 * 60_000);
+  if (recent.length >= 6) throw new Error("FIRMS fetch limit reached for this area. Please try again in a few minutes.");
+  recent.push(now);
+  firmsRequests.set(bbox, recent);
+}
+
 export async function fetchAndHarmonize(opts: {
   bbox: string;
   days: number;
@@ -200,6 +210,7 @@ export async function fetchAndHarmonize(opts: {
     );
   }
   validateBbox(opts.bbox);
+  enforceFirmsRateLimit(opts.bbox);
   if (!Number.isInteger(opts.days) || opts.days < 1 || opts.days > 10) {
     throw new Error("days must be an integer between 1 and 10");
   }

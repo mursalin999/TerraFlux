@@ -9,6 +9,7 @@ interface NasaFirmsFetcherProps {
   initialRegionId?: string;
   initialStartDate?: string;
   initialEndDate?: string;
+  initialBbox?: string;
 }
 
 type FetchStatus =
@@ -27,8 +28,10 @@ export function NasaFirmsFetcher({
   initialRegionId = REGIONS[0]!.id,
   initialStartDate = dateValue(-3),
   initialEndDate = dateValue(0),
+  initialBbox,
 }: NasaFirmsFetcherProps) {
   const [regionId, setRegionId] = useState(initialRegionId);
+  const [bbox, setBbox] = useState(initialBbox ?? getRegion(initialRegionId).bbox);
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
   const [status, setStatus] = useState<FetchStatus>({ kind: "idle" });
@@ -36,6 +39,7 @@ export function NasaFirmsFetcher({
   const runFetch = useServerFn(fetchFireData);
   const queryClient = useQueryClient();
   const region = getRegion(regionId);
+  const activeBbox = regionId === "custom" ? bbox : region.bbox;
 
   const refreshData = async () => {
     if (!startDate || !endDate) {
@@ -50,7 +54,7 @@ export function NasaFirmsFetcher({
     setStatus({ kind: "loading" });
     try {
       const result = await runBackfill({
-        data: { bbox: region.bbox, start_date: startDate, end_date: endDate },
+        data: { bbox: activeBbox, start_date: startDate, end_date: endDate },
       });
       await queryClient.invalidateQueries();
       setStatus({ kind: "success", stored: result.stored });
@@ -65,7 +69,7 @@ export function NasaFirmsFetcher({
   const fetchRecent = async () => {
     setStatus({ kind: "loading" });
     try {
-      const result = await runFetch({ data: { bbox: region.bbox, days: 3 } });
+      const result = await runFetch({ data: { bbox: activeBbox, days: 3 } });
       await queryClient.invalidateQueries();
       setStatus({ kind: "success", stored: result.stored });
     } catch (error) {
@@ -116,6 +120,7 @@ export function NasaFirmsFetcher({
               onChange={(event) => setRegionId(event.target.value)}
               className="min-h-11 rounded border border-border bg-bg px-2.5 text-xs normal-case tracking-normal text-text focus:border-data-blue focus:outline-none"
             >
+              <option value="custom">Custom area from page</option>
               {REGIONS.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}

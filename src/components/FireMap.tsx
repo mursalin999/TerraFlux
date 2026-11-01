@@ -19,6 +19,8 @@ export interface MapDetection {
   day_night: "D" | "N" | null;
 }
 
+function MapBoundsReporter({ onChange }: { onChange?: (bbox: { west: number; south: number; east: number; north: number }) => void }) { const map = useMap(); useEffect(() => { const report = () => { const bounds = map.getBounds(); onChange?.({ west: bounds.getWest(), south: bounds.getSouth(), east: bounds.getEast(), north: bounds.getNorth() }); }; report(); map.on("moveend", report); return () => { map.off("moveend", report); }; }, [map, onChange]); return null; }
+
 function DragRectangle({ onComplete }: { onComplete?: (bbox: { west: number; south: number; east: number; north: number }) => void }) {
   const [drawing, setDrawing] = useState(false);
   const [start, setStart] = useState<[number, number] | null>(null);
@@ -50,6 +52,7 @@ export default function FireMap({
   zoom: number;
   onSelectObservation?: (obs: MapDetection) => void;
   onBboxDrawn?: (bbox: { west: number; south: number; east: number; north: number }) => void;
+  onBoundsChange?: (bbox: { west: number; south: number; east: number; north: number }) => void;
 }) {
   const [isMounted, setIsMounted] = useState(false);
   const [tileError, setTileError] = useState(false);
@@ -83,6 +86,7 @@ export default function FireMap({
         attributionControl={false}
       >
         <Recenter center={center} zoom={zoom} />
+        <MapBoundsReporter onChange={onBoundsChange} />
         <DragRectangle onComplete={onBboxDrawn} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

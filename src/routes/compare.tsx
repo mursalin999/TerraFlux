@@ -25,6 +25,7 @@ import { FindingsPanel } from "@/components/FindingsPanel";
 import { UnusualDayDrawer } from "@/components/UnusualDayDrawer";
 import { computeAnalyticalGrid } from "@/lib/analyticalGrid";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
+import { DownloadMenu } from "@/components/DownloadMenu";
 import { bboxCenter } from "@/lib/custom-area";
 import { useCustomArea } from "@/hooks/use-custom-area";
 
@@ -61,6 +62,7 @@ function Compare() {
   const [gridSize, setGridSize] = useState(0.15);
   const [selectedObs, setSelectedObs] = useState<ObservationPoint | null>(null);
   const [customBbox, setCustomBbox] = useCustomArea(parseBbox(defaults.regionId === "bangladesh" ? getRegion("bangladesh").bbox : getRegion(defaults.regionId).bbox));
+  const [mapBounds, setMapBounds] = useState(customBbox);
 
   const region = getRegion(regionId === "custom" ? defaults.regionId : regionId);
   const bboxParts = regionId === "custom" ? customBbox : parseBbox(region.bbox);
@@ -182,8 +184,9 @@ function Compare() {
         <NasaFirmsFetcher
           initialRegionId={regionId}
           initialStartDate={startDate}
-          initialEndDate={endDate}
-        />
+  initialEndDate={endDate}
+  initialBbox={`${bboxParts.west},${bboxParts.south},${bboxParts.east},${bboxParts.north}`}
+  />
       </div>
 
       <div className="mt-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start lg:gap-6">
@@ -192,8 +195,8 @@ function Compare() {
             ANALYSIS PARAMETERS
           </div>
           <div className="flex flex-wrap items-end gap-4 lg:flex-col lg:items-stretch">
-        <div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} />}</div>
-        <DateRangeInputs
+<div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} mapBounds={mapBounds} />}</div><DownloadMenu area={region.name} bbox={bboxParts} startDate={startDate} endDate={endDate} sensors={sensors} displayedDetectionCount={detections.length} monthlyRows={(monthlyQuery.data ?? []) as Record<string, unknown>[]} />
+          <DateRangeInputs
               startDate={startDate}
               endDate={endDate}
               onStart={setStartDate}
@@ -274,6 +277,7 @@ function Compare() {
             center={mapCenter}
             zoom={mapZoom}
             onBboxDrawn={(bbox) => { setRegionId("custom"); setCustomBbox(bbox); }}
+  onBoundsChange={setMapBounds}
             onSelectObservation={(obs) =>
                       setSelectedObs(obs as unknown as ObservationPoint)
                     }

@@ -31,6 +31,7 @@ import {
 import { type ObservationPoint } from "@/components/EarthGlobe";
 import { type ExploreViewMode, type SensorFilterMode } from "@/components/ExploreGlobe";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
+import { DownloadMenu } from "@/components/DownloadMenu";
 import { bboxCenter } from "@/lib/custom-area";
 import { useCustomArea } from "@/hooks/use-custom-area";
 import { ObservationsTableModal } from "@/components/ObservationsTableModal";
@@ -117,6 +118,7 @@ function ExploreWorkspace() {
   const runFetch = useServerFn(fetchFireData);
 
   const [customBbox, setCustomBbox] = useCustomArea(parseBbox(getRegion("bangladesh").bbox));
+  const [mapBounds, setMapBounds] = useState(customBbox);
   const region = getRegion(filters.regionId === "custom" ? "bangladesh" : filters.regionId);
   const bboxParts = filters.regionId === "custom" ? customBbox : parseBbox(region.bbox);
   const mapCenter = filters.regionId === "custom" ? bboxCenter(customBbox) : region.center;
@@ -279,7 +281,8 @@ function ExploreWorkspace() {
             </option>
           ))}
         </select>
-        {filters.regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} />}
+        {filters.regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} mapBounds={mapBounds} />}
+        <div className="mt-3"><DownloadMenu area={region.name} bbox={bboxParts} startDate={filters.startDate} endDate={filters.endDate} sensors={filters.sensors} confidence={filters.confidence} displayedDetectionCount={rawDetections.length} /></div>
       </div>
 
       {/* Date Interval */}
@@ -444,6 +447,7 @@ observations={visibleDetections}
                     setSelectedObs(null);
                     setSelectedCell(null);
                   }}
+                  onBboxDrawn={(bbox) => { setFilters((current) => ({ ...current, regionId: "custom" })); setCustomBbox(bbox); }}
                 />
               ) : (
                 <FireMap
@@ -451,6 +455,7 @@ detections={visibleDetections}
           center={mapCenter}
           zoom={mapZoom}
           onBboxDrawn={(bbox) => { setFilters((current) => ({ ...current, regionId: "custom" })); setCustomBbox(bbox); }}
+  onBoundsChange={setMapBounds}
           onSelectObservation={(obs) => {
                     setSelectedObs(obs as unknown as ObservationPoint);
                     setSelectedCell(null);
