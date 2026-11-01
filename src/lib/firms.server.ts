@@ -183,12 +183,12 @@ export async function fetchFirmsCsv(opts: {
 
 const firmsRequests = new Map<string, number[]>();
 
-function enforceFirmsRateLimit(bbox: string) {
+function enforceFirmsRateLimit(key: string) {
   const now = Date.now();
-  const recent = (firmsRequests.get(bbox) ?? []).filter((timestamp) => now - timestamp < 10 * 60_000);
+  const recent = (firmsRequests.get(key) ?? []).filter((timestamp) => now - timestamp < 10 * 60_000);
   if (recent.length >= 6) throw new Error("FIRMS fetch limit reached for this area. Please try again in a few minutes.");
   recent.push(now);
-  firmsRequests.set(bbox, recent);
+  firmsRequests.set(key, recent);
 }
 
 export async function fetchAndHarmonize(opts: {
@@ -210,7 +210,7 @@ export async function fetchAndHarmonize(opts: {
     );
   }
   validateBbox(opts.bbox);
-  enforceFirmsRateLimit(opts.bbox);
+  enforceFirmsRateLimit(`${opts.bbox}:${opts.date ?? "latest"}`);
   if (!Number.isInteger(opts.days) || opts.days < 1 || opts.days > 10) {
     throw new Error("days must be an integer between 1 and 10");
   }
@@ -264,7 +264,7 @@ export async function upsertDetections(rows: HarmonizedRow[]): Promise<number> {
   return upserted;
 }
 
-/** Split [startDate, endDate] into consecutive windows of at most 5 days. */
+/** Split [startDate, endDate] into consecutive windows of at most 10 days. */
 export function chunkDateRange(startDate: string, endDate: string): string[] {
   const start = new Date(startDate + "T00:00:00Z");
   const end = new Date(endDate + "T00:00:00Z");
@@ -276,7 +276,7 @@ export function chunkDateRange(startDate: string, endDate: string): string[] {
   const cursor = new Date(start);
   while (cursor <= end) {
     starts.push(cursor.toISOString().slice(0, 10));
-    cursor.setUTCDate(cursor.getUTCDate() + 5);
+    cursor.setUTCDate(cursor.getUTCDate() + 10);
   }
   return starts;
 }
