@@ -32,7 +32,18 @@ export const fetchFireData = createServerFn({ method: "POST" })
     return { rows, stored };
   });
 
-// --- backfill-fire-data: populate a historical range in ≤5-day windows ---
+function splitBboxIntoTiles(bbox: string): string[] {
+  const [west, south, east, north] = bbox.split(",").map(Number);
+  const tiles: string[] = [];
+  for (let tileWest = west!; tileWest < east!; tileWest += 10) {
+    for (let tileSouth = south!; tileSouth < north!; tileSouth += 10) {
+      tiles.push([tileWest, tileSouth, Math.min(tileWest + 10, east!), Math.min(tileSouth + 10, north!)].join(","));
+    }
+  }
+  return tiles;
+}
+
+// --- backfill-fire-data: populate a historical range in ≤5-day windows and ≤10° tiles ---
 export const backfillFireData = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
@@ -49,15 +60,17 @@ export const backfillFireData = createServerFn({ method: "POST" })
     let chunks = 0;
     let stored = 0;
     const errors: string[] = [];
-    // Sequential, not parallel — stays comfortably inside FIRMS's
-    // 5000 requests / 10-minute limit even for a full year of data.
-    for (const date of starts) {
-      try {
-        const rows = await fetchAndHarmonize({ bbox: data.bbox, days: 5, date });
-        stored += await upsertDetections(rows);
-        chunks += 1;
-      } catch (err) {
-        errors.push(`${date}: ${err instanceof Error ? err.message : String(err)}`);
+    const tiles = splitBboxIntoTiles(data.bbox);
+    // Sequential requests avoid saturating NASA FIRMS while covering large presets.
+    for (const tile of tiles) {
+      for (const date of starts) {
+        try {
+          const rows = await fetchAndHarmonize({ bbox: tile, days: 5, date });
+          stored += await upsertDetections(rows);
+          chunks += 1;
+        } catch (err) {
+          errors.push(`${tile} ${date}: ${err instanceof Error ? err.message : String(err)}`);
+        }
       }
     }
     if (stored === 0 && errors.length > 0) {
@@ -112,6 +125,27 @@ const detectionsQuerySchema = z.object({
   sample_limit: z.number().int().min(1000).max(10000).optional(),
 });
 
+export const backfillPresetHistory = createServerFn({ method: "POST" })
+  .inputValidator((data) => z.object({ region_ids: z.array(z.string()).min(1).max(20), start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(data))
+  .handler(async ({ data }) => {
+    const { fetchAndHarmonize, upsertDetections, chunkDateRange } = await import("./firms.server");
+    const results: Array<{ region_id: string; stored: number; errors: string[] }> = [];
+    for (const regionId of data.region_ids) {
+      const region = REGIONS.find((item) => item.id === regionId);
+      if (!region) continue;
+      let stored = 0;
+      const errors: string[] = [];
+      for (const tile of splitBboxIntoTiles(region.bbox)) {
+        for (const date of chunkDateRange(data.start_date, data.end_date)) {
+          try { stored += await upsertDetections(await fetchAndHarmonize({ bbox: tile, days: 5, date })); }
+          catch (error) { errors.push(`${tile} ${date}: ${error instanceof Error ? error.message : String(error)}`); }
+        }
+      }
+      results.push({ region_id: regionId, stored, errors });
+    }
+    return results;
+  });
+
 export const getDetections = createServerFn({ method: "GET" })
   .inputValidator((data) => detectionsQuerySchema.parse(data))
   .handler(async ({ data }) => {
@@ -165,11 +199,11 @@ export const getAreaCoverage = createServerFn({ method: "GET" })
     if (!sb) return [];
     const output: Array<{ sensor: string; first_date: string | null; last_date: string | null; detections: number }> = [];
     for (const sensor of ["MODIS", "VIIRS"] as const) {
-      const { data: rows, error } = await sb.from("fire_detections").select("acq_date").eq("sensor", sensor).gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).order("acq_date", { ascending: true }).limit(1);
+      const { data: rows, count, error } = await sb.from("fire_detections").select("acq_date", { count: "exact" }).eq("sensor", sensor).gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).order("acq_date", { ascending: true }).limit(1);
       if (error) return [];
       const { data: lastRows, error: lastError } = await sb.from("fire_detections").select("acq_date").eq("sensor", sensor).gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).order("acq_date", { ascending: false }).limit(1);
       if (lastError) return [];
-      output.push({ sensor, first_date: rows?.[0]?.acq_date ?? null, last_date: lastRows?.[0]?.acq_date ?? null, detections: 0 });
+      output.push({ sensor, first_date: rows?.[0]?.acq_date ?? null, last_date: lastRows?.[0]?.acq_date ?? null, detections: count ?? 0 });
     }
     return output;
   });

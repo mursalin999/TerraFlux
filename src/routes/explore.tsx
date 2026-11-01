@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { REGIONS, getRegion, parseBbox, SENSOR_META } from "@/lib/regions";
 import { defaultFilters, type FireFilters, type ConfidenceTier } from "@/components/FireControls";
-import { getDetections, fetchFireData, backfillFireData } from "@/lib/firelens.functions";
+import { getDetections, fetchFireData, backfillFireData, backfillPresetHistory } from "@/lib/firelens.functions";
 import {
   computeAnalyticalGrid,
   AGREEMENT_DEFINITIONS,
@@ -116,6 +116,7 @@ function ExploreWorkspace() {
 
   const queryClient = useQueryClient();
   const runBackfill = useServerFn(backfillFireData);
+  const runBackfillPresets = useServerFn(backfillPresetHistory);
   const runFetch = useServerFn(fetchFireData);
 
   const [customBbox, setCustomBbox] = useCustomArea(parseBbox(getRegion("bangladesh").bbox));
@@ -250,6 +251,21 @@ function ExploreWorkspace() {
     }
   };
 
+  const handlePullAllRegions = async () => {
+    const end = new Date();
+    const start = new Date(end);
+    start.setUTCFullYear(start.getUTCFullYear() - 1);
+    const format = (value: Date) => value.toISOString().slice(0, 10);
+    setPull({ status: "running", done: 0, total: REGIONS.length - 1 });
+    try {
+      const results = await runBackfillPresets({ data: { region_ids: REGIONS.filter((item) => item.id !== "bangladesh").map((item) => item.id), start_date: format(start), end_date: format(end) } });
+      await queryClient.invalidateQueries();
+      const stored = results.reduce((sum, result) => sum + result.stored, 0);
+      const errors = results.flatMap((result) => result.errors);
+      setPull(errors.length && stored === 0 ? { status: "error", message: errors[0] ?? "No rows were stored." } : { status: "done", stored });
+    } catch (error) { setPull({ status: "error", message: error instanceof Error ? error.message : "One-year regional backfill failed." }); }
+  };
+
   const resetFilters = () => {
     setFilters(defaultFilters());
     setActiveSensor("HARMONIZED");
@@ -380,6 +396,14 @@ function ExploreWorkspace() {
           >
             <RefreshCw className={`h-3 w-3 ${pull.status === "running" ? "animate-spin" : ""}`} />
             FETCH LAST 3 DAYS
+          </button>
+          <button
+            type="button"
+            onClick={handlePullAllRegions}
+            disabled={pull.status === "running"}
+            className="rounded border border-anomaly-amber/50 bg-anomaly-amber/10 px-3 py-1.5 text-anomaly-amber transition-colors hover:bg-anomaly-amber/20 disabled:opacity-50"
+          >
+            FILL 1-YEAR HISTORY FOR ALL REGIONS
           </button>
           <button
             type="button"

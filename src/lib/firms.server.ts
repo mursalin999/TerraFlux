@@ -183,12 +183,12 @@ export async function fetchFirmsCsv(opts: {
 
 const firmsRequests = new Map<string, number[]>();
 
-function enforceFirmsRateLimit(bbox: string) {
+function enforceFirmsRateLimit(key: string) {
   const now = Date.now();
-  const recent = (firmsRequests.get(bbox) ?? []).filter((timestamp) => now - timestamp < 10 * 60_000);
+  const recent = (firmsRequests.get(key) ?? []).filter((timestamp) => now - timestamp < 10 * 60_000);
   if (recent.length >= 6) throw new Error("FIRMS fetch limit reached for this area. Please try again in a few minutes.");
   recent.push(now);
-  firmsRequests.set(bbox, recent);
+  firmsRequests.set(key, recent);
 }
 
 export async function fetchAndHarmonize(opts: {
@@ -210,9 +210,9 @@ export async function fetchAndHarmonize(opts: {
     );
   }
   validateBbox(opts.bbox);
-  enforceFirmsRateLimit(opts.bbox);
-  if (!Number.isInteger(opts.days) || opts.days < 1 || opts.days > 10) {
-    throw new Error("days must be an integer between 1 and 10");
+  enforceFirmsRateLimit(`${opts.bbox}:${opts.date ?? "latest"}`);
+if (!Number.isInteger(opts.days) || opts.days < 1 || opts.days > 5) {
+  throw new Error("days must be an integer between 1 and 5");
   }
   const [modisRaw, viirsRaw] = await Promise.all([
     fetchFirmsCsv({ ...opts, mapKey, source: "MODIS_NRT" }),
