@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink, ShieldAlert, Cpu, Award, Globe2 } from "lucide-react";
+import { RegionCoverageList } from "@/components/RegionCoverageList";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -101,11 +102,12 @@ export default function AboutPage() {
               </a>
             </div>
             <p className="mt-1 text-xs text-text-secondary">
-              Real-time and historical MODIS NRT (Terra & Aqua) and VIIRS NRT (Suomi-NPP & NOAA-20)
-              calibrated sensor streams.
+              Stored MODIS and VIIRS detections are displayed with the platform, product, processing mode, and date range returned by the database. The coverage panel below is data-driven.
             </p>
           </div>
         </section>
+
+        <section className="mt-8 rounded-lg border border-border bg-surface p-5"><h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-text">STORED COVERAGE</h2><p className="mt-2 text-xs text-text-secondary">Date ranges below are read from stored detections; they are not hand-entered.</p><RegionCoverageList /></section>
 
         {/* Team Emberline Profile */}
         <section className="mt-8 grid gap-5 border-t border-border pt-8 sm:grid-cols-[minmax(0,1.25fr)_minmax(220px,0.75fr)] sm:items-center">
@@ -169,8 +171,7 @@ export default function AboutPage() {
               Information System (ESDIS).
             </p>
             <p className="mt-2">
-              Earth texture: NASA Visible Earth. Map credits: OpenStreetMap contributors, CARTO.
-              Libraries: Three.js, react-globe.gl, Leaflet.
+              Data: NASA FIRMS. Built for NASA Space Apps Challenge 2026. Map tiles: OpenStreetMap contributors. Earth textures: local NASA Visible Earth assets in this repository. Libraries: React, TanStack Router/Start, Supabase, Leaflet, react-leaflet, Three.js, react-globe.gl, Recharts, Zod, and Papa Parse.
             </p>
             <a
               className="mt-2 inline-flex min-h-11 items-center text-data-blue underline"
@@ -190,11 +191,7 @@ export default function AboutPage() {
             <span>AI-ASSISTED DEVELOPMENT DISCLOSURE</span>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-text-secondary">
-            In compliance with NASA Space Apps Challenge competition guidelines, we disclose that
-            generative AI coding assistants (including Claude and Gemini) were used during the
-            hackathon to accelerate scaffolding, boilerplate generation, and scientific UI design.
-            All mathematical harmonization logic, cross-sensor agreement criteria, and data
-            provenance pipelines were directed, validated, and tested by Team Emberline.
+v0 and Claude were used for interface and code drafts and prompt writing. They did not create fire records or alter NASA observations. Team Emberline reviewed the result, including the data handling and scientific wording. The prompts are listed in AI_USE.md in the repository.
           </p>
         </section>
 

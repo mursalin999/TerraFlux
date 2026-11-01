@@ -455,7 +455,7 @@ export function MethodologyPage() {
               <li className="flex items-start gap-2">
                 <span className="text-critical-red font-bold">•</span>
                 <span>
-                  Future fire propagation trajectories, wind-driven spread predictions, or real-time
+                  Future fire propagation trajectories, wind-driven spread forecasts, or real-time
                   tactical evacuation boundaries.
                 </span>
               </li>

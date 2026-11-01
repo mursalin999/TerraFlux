@@ -31,6 +31,7 @@ import {
 import { type ObservationPoint } from "@/components/EarthGlobe";
 import { type ExploreViewMode, type SensorFilterMode } from "@/components/ExploreGlobe";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
+import { RegionCoverageList } from "@/components/RegionCoverageList";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { bboxCenter } from "@/lib/custom-area";
 import { useCustomArea } from "@/hooks/use-custom-area";
@@ -281,6 +282,7 @@ function ExploreWorkspace() {
             </option>
           ))}
         </select>
+        <p className="mt-1 text-[10px] text-text-secondary">Any area up to 10 by 10 degrees. Multi-year history is loaded for Bangladesh.</p>
         {filters.regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} mapBounds={mapBounds} />}
         <div className="mt-3"><DownloadMenu area={region.name} bbox={bboxParts} startDate={filters.startDate} endDate={filters.endDate} sensors={filters.sensors} confidence={filters.confidence} displayedDetectionCount={rawDetections.length} /></div>
       </div>
@@ -481,7 +483,8 @@ detections={visibleDetections}
         >
           {/* Left: Region & Signature 3-Way Control */}
           <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-lg border border-border/80 bg-surface/90 p-1.5">
-            {/* Target Region Selector */}
+            <RegionCoverageList />
+  {/* Target Region Selector */}
             <select
               value={filters.regionId}
               onChange={(e) => {

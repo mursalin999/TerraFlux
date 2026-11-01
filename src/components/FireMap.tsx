@@ -46,6 +46,8 @@ export default function FireMap({
   center,
   zoom,
   onSelectObservation,
+  onBboxDrawn,
+  onBoundsChange,
 }: {
   detections: MapDetection[];
   center: [number, number];

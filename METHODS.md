@@ -1,4 +1,18 @@
-# TerraFlux monthly sensor harmonization
+# TerraFlux methods
+
+All named products, platforms, processing modes, coverage ranges, overlap months, k, g, r², sample counts, and typical error values shown in the application must come from stored query results. This document describes the transformations, not a second source of numeric truth.
+
+## Data and limits
+
+TerraFlux preserves NASA FIRMS detections and does not turn them into confirmed fires. Cloud, smoke, overpass timing, short-lived or small fires, industrial heat, agricultural heat, and other thermal sources affect what is observed. Values before the VIIRS overlap are estimates produced by the MODIS-to-VIIRS bridge.
+
+## Monthly comparison
+
+The app compares month-to-date UTC detections with the stored historical median and percentile labels. A zero means no detections in the selected stored data, which is not proof of no fire and not proof of no observation. MODIS confidence buckets are a TerraFlux estimate, not an official NASA definition.
+
+## Export columns
+
+Detection exports preserve sensor, platform, product, processing, UTC date/time, location, brightness, FRP, native confidence, derived confidence bucket, day/night, and derived grid fields.
 
 All chart values come from stored `fire_detections` rows through the `monthly_series` and `daily_series` SQL functions.
 
