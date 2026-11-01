@@ -65,7 +65,7 @@ export const backfillFireData = createServerFn({ method: "POST" })
     for (const tile of tiles) {
       for (const date of starts) {
         try {
-          const rows = await fetchAndHarmonize({ bbox: tile, days: 10, date });
+          const rows = await fetchAndHarmonize({ bbox: tile, days: 5, date });
           stored += await upsertDetections(rows);
           chunks += 1;
         } catch (err) {
@@ -137,7 +137,7 @@ export const backfillPresetHistory = createServerFn({ method: "POST" })
       const errors: string[] = [];
       for (const tile of splitBboxIntoTiles(region.bbox)) {
         for (const date of chunkDateRange(data.start_date, data.end_date)) {
-          try { stored += await upsertDetections(await fetchAndHarmonize({ bbox: tile, days: 10, date })); }
+          try { stored += await upsertDetections(await fetchAndHarmonize({ bbox: tile, days: 5, date })); }
           catch (error) { errors.push(`${tile} ${date}: ${error instanceof Error ? error.message : String(error)}`); }
         }
       }

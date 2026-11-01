@@ -211,8 +211,8 @@ export async function fetchAndHarmonize(opts: {
   }
   validateBbox(opts.bbox);
   enforceFirmsRateLimit(`${opts.bbox}:${opts.date ?? "latest"}`);
-  if (!Number.isInteger(opts.days) || opts.days < 1 || opts.days > 10) {
-    throw new Error("days must be an integer between 1 and 10");
+if (!Number.isInteger(opts.days) || opts.days < 1 || opts.days > 5) {
+  throw new Error("days must be an integer between 1 and 5");
   }
   const [modisRaw, viirsRaw] = await Promise.all([
     fetchFirmsCsv({ ...opts, mapKey, source: "MODIS_NRT" }),
@@ -264,7 +264,7 @@ export async function upsertDetections(rows: HarmonizedRow[]): Promise<number> {
   return upserted;
 }
 
-/** Split [startDate, endDate] into consecutive windows of at most 10 days. */
+/** Split [startDate, endDate] into consecutive windows of at most 5 days. */
 export function chunkDateRange(startDate: string, endDate: string): string[] {
   const start = new Date(startDate + "T00:00:00Z");
   const end = new Date(endDate + "T00:00:00Z");
@@ -276,7 +276,7 @@ export function chunkDateRange(startDate: string, endDate: string): string[] {
   const cursor = new Date(start);
   while (cursor <= end) {
     starts.push(cursor.toISOString().slice(0, 10));
-    cursor.setUTCDate(cursor.getUTCDate() + 10);
+    cursor.setUTCDate(cursor.getUTCDate() + 5);
   }
   return starts;
 }
