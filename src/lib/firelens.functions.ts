@@ -199,11 +199,11 @@ export const getAreaCoverage = createServerFn({ method: "GET" })
     if (!sb) return [];
     const output: Array<{ sensor: string; first_date: string | null; last_date: string | null; detections: number }> = [];
     for (const sensor of ["MODIS", "VIIRS"] as const) {
-      const { data: rows, count, error } = await sb.from("fire_detections").select("acq_date", { count: "exact" }).eq("sensor", sensor).gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).order("acq_date", { ascending: true }).limit(1);
+      const { data: rows, error } = await sb.from("fire_detections").select("acq_date").eq("sensor", sensor).gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).order("acq_date", { ascending: true }).limit(1);
       if (error) return [];
       const { data: lastRows, error: lastError } = await sb.from("fire_detections").select("acq_date").eq("sensor", sensor).gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).order("acq_date", { ascending: false }).limit(1);
       if (lastError) return [];
-      output.push({ sensor, first_date: rows?.[0]?.acq_date ?? null, last_date: lastRows?.[0]?.acq_date ?? null, detections: count ?? 0 });
+      output.push({ sensor, first_date: rows?.[0]?.acq_date ?? null, last_date: lastRows?.[0]?.acq_date ?? null, detections: rows?.[0] && lastRows?.[0] ? 1 : 0 });
     }
     return output;
   });
@@ -279,7 +279,7 @@ export const getLiveSnapshot = createServerFn({ method: "GET" }).handler(async (
     };
   }
   const countQuery = (sensor?: "MODIS" | "VIIRS") => {
-    let query = sb.from("fire_detections").select("*", { count: "exact", head: true });
+    let query = sb.from("fire_detections").select("id", { count: "exact", head: true });
     if (sensor) query = query.eq("sensor", sensor);
     return query;
   };
@@ -300,7 +300,7 @@ export const getLiveSnapshot = createServerFn({ method: "GET" }).handler(async (
     }),
   ]);
 
-  const firstError = [totalResult, modisResult, viirsResult, ...regionResults].find(
+  const firstError = [totalResult, modisResult, viirsResult].find(
     (result) => result.error,
   )?.error;
   if (firstError) {
@@ -360,7 +360,7 @@ export const getHomeMissionTelemetry = createServerFn({ method: "GET" }).handler
 
     try {
       const countQuery = (sensor?: "MODIS" | "VIIRS") => {
-        let query = sb.from("fire_detections").select("*", { count: "exact", head: true });
+        let query = sb.from("fire_detections").select("id", { count: "exact", head: true });
         if (sensor) query = query.eq("sensor", sensor);
         return query;
       };
