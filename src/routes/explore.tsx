@@ -31,6 +31,7 @@ import {
 import { type ObservationPoint } from "@/components/EarthGlobe";
 import { type ExploreViewMode, type SensorFilterMode } from "@/components/ExploreGlobe";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
+import { DownloadMenu } from "@/components/DownloadMenu";
 import { bboxCenter } from "@/lib/custom-area";
 import { useCustomArea } from "@/hooks/use-custom-area";
 import { ObservationsTableModal } from "@/components/ObservationsTableModal";
@@ -280,6 +281,7 @@ function ExploreWorkspace() {
           ))}
         </select>
         {filters.regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} />}
+        <div className="mt-3"><DownloadMenu area={region.name} bbox={bboxParts} startDate={filters.startDate} endDate={filters.endDate} sensors={filters.sensors} confidence={filters.confidence} displayedDetectionCount={rawDetections.length} /></div>
       </div>
 
       {/* Date Interval */}

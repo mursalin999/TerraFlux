@@ -25,6 +25,7 @@ import { FindingsPanel } from "@/components/FindingsPanel";
 import { UnusualDayDrawer } from "@/components/UnusualDayDrawer";
 import { computeAnalyticalGrid } from "@/lib/analyticalGrid";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
+import { DownloadMenu } from "@/components/DownloadMenu";
 import { bboxCenter } from "@/lib/custom-area";
 import { useCustomArea } from "@/hooks/use-custom-area";
 
@@ -193,8 +194,8 @@ function Compare() {
             ANALYSIS PARAMETERS
           </div>
           <div className="flex flex-wrap items-end gap-4 lg:flex-col lg:items-stretch">
-        <div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} />}</div>
-        <DateRangeInputs
+<div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} />}</div><DownloadMenu area={region.name} bbox={bboxParts} startDate={startDate} endDate={endDate} sensors={sensors} displayedDetectionCount={detections.length} monthlyRows={(monthlyQuery.data ?? []) as Record<string, unknown>[]} />
+          <DateRangeInputs
               startDate={startDate}
               endDate={endDate}
               onStart={setStartDate}

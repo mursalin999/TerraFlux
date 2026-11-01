@@ -174,6 +174,22 @@ export const getAreaCoverage = createServerFn({ method: "GET" })
     return output;
   });
 
+const exportPageSchema = detectionsQuerySchema.extend({ cursor_date: z.string().optional(), cursor_time: z.string().optional(), cursor_id: z.union([z.string(), z.number()]).optional(), page_size: z.number().int().min(1).max(10000).default(10000) });
+export const getDetectionExportPage = createServerFn({ method: "GET" })
+  .inputValidator((data) => exportPageSchema.parse(data))
+  .handler(async ({ data }) => {
+    const sb = publicClient();
+    if (!sb) return { rows: [], next: null, total: 0 };
+    let query = sb.from("fire_detections").select("id,lat,lon,acq_date,acq_time,sensor,satellite,product,processing,brightness_k,brightness2_k,frp_mw,confidence_raw,confidence_tier,day_night").gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).gte("acq_date", data.start_date).lte("acq_date", data.end_date).order("acq_date", { ascending: true }).order("acq_time", { ascending: true }).order("id", { ascending: true }).limit(data.page_size);
+    if (data.sensors?.length) query = query.in("sensor", data.sensors);
+    if (data.confidence?.length) query = query.in("confidence_tier", data.confidence);
+    if (data.cursor_date && data.cursor_time && data.cursor_id !== undefined) query = query.or(`acq_date.gt.${data.cursor_date},and(acq_date.eq.${data.cursor_date},acq_time.gt.${data.cursor_time}),and(acq_date.eq.${data.cursor_date},acq_time.eq.${data.cursor_time},id.gt.${data.cursor_id})`);
+    const { data: rows, error } = await query;
+    if (error || !rows) throw new Error(error?.message ?? "Could not prepare detections download");
+    const last = rows.at(-1) as Record<string, unknown> | undefined;
+    return { rows, next: rows.length === data.page_size && last ? { cursor_date: String(last.acq_date), cursor_time: String(last.acq_time), cursor_id: last.id } : null, total: rows.length };
+  });
+
 export const getDailyCounts = createServerFn({ method: "GET" })
   .inputValidator((data) => detectionsQuerySchema.omit({ sensors: true, confidence: true }).parse(data))
   .handler(async ({ data }) => {
