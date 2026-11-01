@@ -292,7 +292,7 @@ export const getLiveSnapshot = createServerFn({ method: "GET" }).handler(async (
       const bounds = parseBbox(region.bbox);
       return sb
         .from("fire_detections")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .gte("lon", bounds.west)
         .lte("lon", bounds.east)
         .gte("lat", bounds.south)
@@ -366,7 +366,7 @@ export const getHomeMissionTelemetry = createServerFn({ method: "GET" }).handler
       };
       const regionQueries = REGIONS.map((region) => {
         const bounds = parseBbox(region.bbox);
-        return sb.from("fire_detections").select("*", { count: "exact", head: true })
+        return sb.from("fire_detections").select("id", { count: "exact", head: true })
           .gte("lon", bounds.west).lte("lon", bounds.east)
           .gte("lat", bounds.south).lte("lat", bounds.north);
       });
@@ -376,7 +376,7 @@ export const getHomeMissionTelemetry = createServerFn({ method: "GET" }).handler
         sb.from("fire_detections").select("acq_date").order("acq_date", { ascending: true }).limit(1),
         ...regionQueries,
       ]);
-      const firstError = [totalRes, modisRes, viirsRes, latestRes, oldestRes, ...regionResults].find((result) => result.error)?.error;
+      const firstError = [totalRes, latestRes, oldestRes].find((result) => result.error)?.error;
       if (firstError) return empty(firstError.message);
 
       const latestRow = latestRes.data?.[0];
