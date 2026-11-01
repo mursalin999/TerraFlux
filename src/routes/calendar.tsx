@@ -148,8 +148,9 @@ function CalendarPage() {
         <NasaFirmsFetcher
           initialRegionId={regionId}
           initialStartDate={startDate}
-          initialEndDate={endDate}
-        />
+  initialEndDate={endDate}
+  initialBbox={`${bboxParts.west},${bboxParts.south},${bboxParts.east},${bboxParts.north}`}
+  />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-border" role="tablist" aria-label="Calendar view">

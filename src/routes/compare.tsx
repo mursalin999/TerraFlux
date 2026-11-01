@@ -182,8 +182,9 @@ function Compare() {
         <NasaFirmsFetcher
           initialRegionId={regionId}
           initialStartDate={startDate}
-          initialEndDate={endDate}
-        />
+  initialEndDate={endDate}
+  initialBbox={`${bboxParts.west},${bboxParts.south},${bboxParts.east},${bboxParts.north}`}
+  />
       </div>
 
       <div className="mt-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start lg:gap-6">

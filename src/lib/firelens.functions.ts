@@ -9,6 +9,7 @@ const bboxSchema = z
     /^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/,
     "bbox must be west,south,east,north",
   );
+const bboxInputSchema = z.object({ west: z.number(), south: z.number(), east: z.number(), north: z.number() });
 
 // --- fetch-fire-data: pull 1–5 recent days for a bbox and store them ---
 export const fetchFireData = createServerFn({ method: "POST" })
@@ -16,7 +17,7 @@ export const fetchFireData = createServerFn({ method: "POST" })
     z
       .object({
         bbox: bboxSchema,
-        days: z.number().int().min(1).max(5),
+        days: z.number().int().min(1).max(10),
         date: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -156,6 +157,22 @@ function splitIntoYears(start: string, end: string) {
   }
   return ranges;
 }
+
+export const getAreaCoverage = createServerFn({ method: "GET" })
+  .inputValidator((data) => bboxInputSchema.parse(data))
+  .handler(async ({ data }) => {
+    const sb = publicClient();
+    if (!sb) return [];
+    const output: Array<{ sensor: string; first_date: string | null; last_date: string | null; detections: number }> = [];
+    for (const sensor of ["MODIS", "VIIRS"] as const) {
+      const { data: rows, error } = await sb.from("fire_detections").select("acq_date").eq("sensor", sensor).gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).order("acq_date", { ascending: true }).limit(1);
+      if (error) return [];
+      const { data: lastRows, error: lastError } = await sb.from("fire_detections").select("acq_date").eq("sensor", sensor).gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).order("acq_date", { ascending: false }).limit(1);
+      if (lastError) return [];
+      output.push({ sensor, first_date: rows?.[0]?.acq_date ?? null, last_date: lastRows?.[0]?.acq_date ?? null, detections: 0 });
+    }
+    return output;
+  });
 
 export const getDailyCounts = createServerFn({ method: "GET" })
   .inputValidator((data) => detectionsQuerySchema.omit({ sensors: true, confidence: true }).parse(data))
