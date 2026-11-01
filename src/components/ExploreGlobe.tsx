@@ -19,6 +19,7 @@ interface ExploreGlobeProps {
   onSelectObservation: (obs: ObservationPoint | null) => void;
   onSelectCell: (cell: GridCell | null) => void;
   onResetView?: () => void;
+  onBboxDrawn?: (bbox: { west: number; south: number; east: number; north: number }) => void;
 }
 
 interface RenderPoint extends ObservationPoint {
@@ -55,7 +56,12 @@ export default function ExploreGlobe({
   onSelectObservation,
   onSelectCell,
   onResetView,
+  onBboxDrawn,
 }: ExploreGlobeProps) {
+  const [drawing, setDrawing] = useState(false);
+  const [drawStart, setDrawStart] = useState<{ lat: number; lng: number } | null>(null);
+  useEffect(() => { const begin = () => { setDrawing(true); setDrawStart(null); }; window.addEventListener("terraflux:draw-rectangle", begin); return () => window.removeEventListener("terraflux:draw-rectangle", begin); }, []);
+  const handleGlobeClick = useCallback((lat: number, lng: number) => { if (!drawing) return; if (!drawStart) { setDrawStart({ lat, lng }); return; } onBboxDrawn?.({ west: Math.min(drawStart.lng, lng), east: Math.max(drawStart.lng, lng), south: Math.min(drawStart.lat, lat), north: Math.max(drawStart.lat, lat) }); setDrawing(false); setDrawStart(null); }, [drawing, drawStart, onBboxDrawn]);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 700 });
@@ -362,7 +368,8 @@ export default function ExploreGlobe({
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="#030711"
-        globeImageUrl="/textures/earth-night.jpg"
+        onGlobeClick={({ lat, lng }) => handleGlobeClick(lat, lng)}
+  globeImageUrl="/textures/earth-night.jpg"
         bumpImageUrl="/textures/earth-night.jpg"
         atmosphereColor="#4DA3FF"
         atmosphereAltitude={0.08}

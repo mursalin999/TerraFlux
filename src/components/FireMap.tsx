@@ -19,7 +19,7 @@ export interface MapDetection {
   day_night: "D" | "N" | null;
 }
 
-function MapBoundsReporter({ onChange }: { onChange?: (bbox: { west: number; south: number; east: number; north: number }) => void }) { useMapEvents({ moveend: (event) => { const bounds = event.target.getBounds(); onChange?.({ west: bounds.getWest(), south: bounds.getSouth(), east: bounds.getEast(), north: bounds.getNorth() }); } }); return null; }
+function MapBoundsReporter({ onChange }: { onChange?: (bbox: { west: number; south: number; east: number; north: number }) => void }) { const map = useMap(); useEffect(() => { const report = () => { const bounds = map.getBounds(); onChange?.({ west: bounds.getWest(), south: bounds.getSouth(), east: bounds.getEast(), north: bounds.getNorth() }); }; report(); map.on("moveend", report); return () => { map.off("moveend", report); }; }, [map, onChange]); return null; }
 
 function DragRectangle({ onComplete }: { onComplete?: (bbox: { west: number; south: number; east: number; north: number }) => void }) {
   const [drawing, setDrawing] = useState(false);
