@@ -23,7 +23,13 @@ export interface HarmonizedRow {
 
 export const FIRMS_SOURCES = {
   MODIS_NRT: "MODIS_NRT",
+  MODIS_SP: "MODIS_SP",
+  VIIRS_SNPP_NRT: "VIIRS_SNPP_NRT",
+  VIIRS_SNPP_SP: "VIIRS_SNPP_SP",
   VIIRS_NOAA20_NRT: "VIIRS_NOAA20_NRT",
+  VIIRS_NOAA20_SP: "VIIRS_NOAA20_SP",
+  VIIRS_NOAA21_NRT: "VIIRS_NOAA21_NRT",
+  VIIRS_NOAA21_SP: "VIIRS_NOAA21_SP",
 } as const;
 
 export type FirmsSource = keyof typeof FIRMS_SOURCES;
@@ -214,11 +220,14 @@ export async function fetchAndHarmonize(opts: {
 if (!Number.isInteger(opts.days) || opts.days < 1 || opts.days > 5) {
   throw new Error("days must be an integer between 1 and 5");
   }
-  const [modisRaw, viirsRaw] = await Promise.all([
-    fetchFirmsCsv({ ...opts, mapKey, source: "MODIS_NRT" }),
-    fetchFirmsCsv({ ...opts, mapKey, source: "VIIRS_NOAA20_NRT" }),
+  const archive = Boolean(opts.date);
+  const [modisRaw, snppRaw, noaa20Raw, noaa21Raw] = await Promise.all([
+    fetchFirmsCsv({ ...opts, mapKey, source: archive ? "MODIS_SP" : "MODIS_NRT" }),
+    fetchFirmsCsv({ ...opts, mapKey, source: archive ? "VIIRS_SNPP_SP" : "VIIRS_SNPP_NRT" }),
+    fetchFirmsCsv({ ...opts, mapKey, source: archive ? "VIIRS_NOAA20_SP" : "VIIRS_NOAA20_NRT" }),
+    fetchFirmsCsv({ ...opts, mapKey, source: archive ? "VIIRS_NOAA21_SP" : "VIIRS_NOAA21_NRT" }),
   ]);
-  return [...harmonizeModis(modisRaw), ...harmonizeViirs(viirsRaw)];
+  return [...harmonizeModis(modisRaw), ...harmonizeViirs(snppRaw), ...harmonizeViirs(noaa20Raw), ...harmonizeViirs(noaa21Raw)];
 }
 
 export async function upsertDetections(rows: HarmonizedRow[]): Promise<number> {
