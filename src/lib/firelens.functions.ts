@@ -278,48 +278,25 @@ export const getLiveSnapshot = createServerFn({ method: "GET" }).handler(async (
       totalRegions: REGIONS.length,
     };
   }
-  const countQuery = (sensor?: "MODIS" | "VIIRS") => {
-    let query = sb.from("fire_detections").select("id", { count: "exact", head: true });
-    if (sensor) query = query.eq("sensor", sensor);
-    return query;
-  };
-
-  const [totalResult, modisResult, viirsResult, ...regionResults] = await Promise.all([
-    countQuery(),
-    countQuery("MODIS"),
-    countQuery("VIIRS"),
+  const [summaryResult, ...regionResults] = await Promise.all([
+    sb.rpc("fire_data_summary"),
     ...REGIONS.map((region) => {
       const bounds = parseBbox(region.bbox);
-      return sb
-        .from("fire_detections")
-        .select("id", { count: "exact", head: true })
-        .gte("lon", bounds.west)
-        .lte("lon", bounds.east)
-        .gte("lat", bounds.south)
-        .lte("lat", bounds.north);
+      return sb.from("fire_detections").select("id").gte("lon", bounds.west).lte("lon", bounds.east).gte("lat", bounds.south).lte("lat", bounds.north).limit(1);
     }),
   ]);
-
-  const firstError = [totalResult, modisResult, viirsResult].find(
-    (result) => result.error,
-  )?.error;
-  if (firstError) {
-    return {
-      totalDetections: 0,
-      activeSensors: 0,
-      regionsCovered: 0,
-      totalRegions: REGIONS.length,
-    };
+  if (summaryResult.error) {
+    return { totalDetections: 0, activeSensors: 0, regionsCovered: 0, totalRegions: REGIONS.length };
   }
-
-  const modisCount = modisResult.count ?? 0;
-  const viirsCount = viirsResult.count ?? 0;
+  const summary = summaryResult.data?.[0];
+  const modisCount = Number(summary?.modis_detections ?? 0);
+  const viirsCount = Number(summary?.viirs_detections ?? 0);
   const activeSensorsCount = (modisCount > 0 ? 1 : 0) + (viirsCount > 0 ? 1 : 0);
 
   return {
-    totalDetections: totalResult.count ?? 0,
+    totalDetections: Number(summary?.total_detections ?? 0),
     activeSensors: activeSensorsCount,
-    regionsCovered: regionResults.filter((result) => (result.count ?? 0) > 0).length,
+    regionsCovered: regionResults.filter((result) => !result.error && (result.data?.length ?? 0) > 0).length,
     totalRegions: REGIONS.length,
   };
 });
@@ -359,44 +336,31 @@ export const getHomeMissionTelemetry = createServerFn({ method: "GET" }).handler
     if (!sb) return empty("Supabase client is not configured");
 
     try {
-      const countQuery = (sensor?: "MODIS" | "VIIRS") => {
-        let query = sb.from("fire_detections").select("id", { count: "exact", head: true });
-        if (sensor) query = query.eq("sensor", sensor);
-        return query;
-      };
       const regionQueries = REGIONS.map((region) => {
         const bounds = parseBbox(region.bbox);
-        return sb.from("fire_detections").select("id", { count: "exact", head: true })
-          .gte("lon", bounds.west).lte("lon", bounds.east)
-          .gte("lat", bounds.south).lte("lat", bounds.north);
+        return sb.from("fire_detections").select("id").gte("lon", bounds.west).lte("lon", bounds.east).gte("lat", bounds.south).lte("lat", bounds.north).limit(1);
       });
-      const [totalRes, modisRes, viirsRes, latestRes, oldestRes, ...regionResults] = await Promise.all([
-        countQuery(), countQuery("MODIS"), countQuery("VIIRS"),
-        sb.from("fire_detections").select("acq_date,created_at").order("acq_date", { ascending: false }).limit(1),
-        sb.from("fire_detections").select("acq_date").order("acq_date", { ascending: true }).limit(1),
-        ...regionQueries,
-      ]);
-      const firstError = [totalRes, latestRes, oldestRes].find((result) => result.error)?.error;
-      if (firstError) return empty(firstError.message);
-
-      const latestRow = latestRes.data?.[0];
-      const oldestRow = oldestRes.data?.[0];
-      const baselineDays = latestRow?.acq_date && oldestRow?.acq_date
-        ? Math.max(1, Math.round((new Date(latestRow.acq_date).getTime() - new Date(oldestRow.acq_date).getTime()) / 86400000) + 1)
+      const [summaryRes, ...regionResults] = await Promise.all([sb.rpc("fire_data_summary"), ...regionQueries]);
+      if (summaryRes.error) return empty(summaryRes.error.message);
+      const summary = summaryRes.data?.[0];
+      const firstAcqDate = summary?.first_date ?? null;
+      const latestAcqDate = summary?.last_date ?? null;
+      const baselineDays = latestAcqDate && firstAcqDate
+        ? Math.max(1, Math.round((new Date(latestAcqDate).getTime() - new Date(firstAcqDate).getTime()) / 86400000) + 1)
         : 0;
-      const modisCount = modisRes.count ?? 0;
-      const viirsCount = viirsRes.count ?? 0;
-      const lastIngestTime = latestRow?.created_at ?? null;
+      const modisCount = Number(summary?.modis_detections ?? 0);
+      const viirsCount = Number(summary?.viirs_detections ?? 0);
+      const lastIngestTime = null;
       return {
         status: "ok",
         totalDetections: totalRes.count ?? 0,
         modisCount,
         viirsCount,
-        latestAcqDate: latestRow?.acq_date ?? null,
+        latestAcqDate,
         lastIngestTime,
         baselineDays,
-        regionsCovered: regionResults.filter((result) => (result.count ?? 0) > 0).length,
-        firstAcqDate: oldestRow?.acq_date ?? null,
+        regionsCovered: regionResults.filter((result) => !result.error && (result.data?.length ?? 0) > 0).length,
+        firstAcqDate,
         hasHarmonized: modisCount > 0 && viirsCount > 0,
         isRecentPull: lastIngestTime ? (Date.now() - new Date(lastIngestTime).getTime()) / 3600000 <= 48 : false,
       };
