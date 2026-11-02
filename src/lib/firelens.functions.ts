@@ -153,32 +153,18 @@ export const getDetections = createServerFn({ method: "GET" })
     if (!sb) {
       return [];
     }
-    const pageSize = 1000;
-    const allRows: Array<Record<string, unknown>> = [];
-    const maximumRows = data.sample_limit ?? 100000;
-    for (let offset = 0; offset < maximumRows; offset += pageSize) {
-      let query = sb
-        .from("fire_detections")
-        .select(
-          "lat,lon,acq_date,acq_time,sensor,satellite,resolution_m,brightness_k,brightness2_k,frp_mw,confidence_tier,day_night",
-        )
-        .gte("lon", data.west)
-        .lte("lon", data.east)
-        .gte("lat", data.south)
-        .lte("lat", data.north)
-        .gte("acq_date", data.start_date)
-        .lte("acq_date", data.end_date)
-        .order("acq_date", { ascending: true })
-        .order("acq_time", { ascending: true })
-        .range(offset, Math.min(offset + pageSize, maximumRows) - 1);
-      if (data.sensors?.length) query = query.in("sensor", data.sensors);
-      if (data.confidence?.length) query = query.in("confidence_tier", data.confidence);
-      const { data: page, error } = await query;
-      if (error || !page) return [];
-      allRows.push(...page);
-      if (page.length < pageSize) break;
-    }
-    return allRows;
+    const maximumRows = Math.min(data.sample_limit ?? 10000, 10000);
+    let query = sb
+      .from("fire_detections")
+      .select("lat,lon,acq_date,acq_time,sensor,satellite,resolution_m,brightness_k,brightness2_k,frp_mw,confidence_tier,day_night")
+      .gte("lon", data.west).lte("lon", data.east)
+      .gte("lat", data.south).lte("lat", data.north)
+      .gte("acq_date", data.start_date).lte("acq_date", data.end_date)
+      .limit(maximumRows);
+    if (data.sensors?.length) query = query.in("sensor", data.sensors);
+    if (data.confidence?.length) query = query.in("confidence_tier", data.confidence);
+    const { data: rows, error } = await query;
+    return error || !rows ? [] : rows;
   });
 
 // Daily counts per sensor — powers the calendar heatmap and comparison chart.
