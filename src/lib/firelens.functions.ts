@@ -183,15 +183,14 @@ export const getAreaCoverage = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const sb = publicClient();
     if (!sb) return [];
-    const output: Array<{ sensor: string; first_date: string | null; last_date: string | null; detections: number }> = [];
-    for (const sensor of ["MODIS", "VIIRS"] as const) {
-      const { data: rows, error } = await sb.from("fire_detections").select("acq_date").eq("sensor", sensor).gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).order("acq_date", { ascending: true }).limit(1);
-      if (error) return [];
-      const { data: lastRows, error: lastError } = await sb.from("fire_detections").select("acq_date").eq("sensor", sensor).gte("lon", data.west).lte("lon", data.east).gte("lat", data.south).lte("lat", data.north).order("acq_date", { ascending: false }).limit(1);
-      if (lastError) return [];
-      output.push({ sensor, first_date: rows?.[0]?.acq_date ?? null, last_date: lastRows?.[0]?.acq_date ?? null, detections: rows?.[0] && lastRows?.[0] ? 1 : 0 });
-    }
-    return output;
+    const { data: rows, error } = await sb.rpc("area_coverage", {
+      p_west: data.west,
+      p_south: data.south,
+      p_east: data.east,
+      p_north: data.north,
+    });
+    if (error || !rows) return [];
+    return rows as Array<{ sensor: string; first_date: string | null; last_date: string | null; detections: number }>;
   });
 
 const exportPageSchema = detectionsQuerySchema.extend({ cursor_date: z.string().optional(), cursor_time: z.string().optional(), cursor_id: z.union([z.string(), z.number()]).optional(), page_size: z.number().int().min(1).max(10000).default(10000) });
