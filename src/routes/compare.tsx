@@ -17,7 +17,6 @@ import { HarmonizationSection } from "@/components/HarmonizationSection";
 import { EmptyState } from "@/components/EmptyState";
 import { ObservationInspector } from "@/components/ObservationInspector";
 import type { ObservationPoint } from "@/components/EarthGlobe";
-import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
 import FireMap from "@/components/FireMap";
 import EarthGlobe from "@/components/EarthGlobe";
 import CompareChart from "@/components/CompareChart";
@@ -180,15 +179,6 @@ function Compare() {
         </p>
       </div>
 
-      <div className="mt-6">
-        <NasaFirmsFetcher
-          initialRegionId={regionId}
-          initialStartDate={startDate}
-  initialEndDate={endDate}
-  initialBbox={`${bboxParts.west},${bboxParts.south},${bboxParts.east},${bboxParts.north}`}
-  />
-      </div>
-
       <div className="mt-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start lg:gap-6">
         <aside className="space-y-5 lg:sticky lg:top-20 lg:rounded-lg lg:border lg:border-border lg:bg-surface lg:p-5">
           <div className="border-b border-border pb-3 font-mono text-xs font-semibold uppercase tracking-wider text-text">
@@ -301,7 +291,7 @@ function Compare() {
                       ? modisTotal.toLocaleString()
                       : dailyQuery.isError
                         ? "UNAVAILABLE — QUERY ERROR"
-                        : "UNAVAILABLE — NO STORED ROWS"}
+                        : "NO OBSERVATIONS IN RANGE"}
                 </div>
                 <div className="mt-1 font-mono text-[11px] uppercase text-text-secondary">
                   OBSERVATIONS IN RANGE
@@ -319,7 +309,7 @@ function Compare() {
                       ? viirsTotal.toLocaleString()
                       : dailyQuery.isError
                         ? "UNAVAILABLE — QUERY ERROR"
-                        : "UNAVAILABLE — NO STORED ROWS"}
+                        : "NO OBSERVATIONS IN RANGE"}
                 </div>
                 <div className="mt-1 font-mono text-[11px] uppercase text-text-secondary">
                   OBSERVATIONS IN RANGE

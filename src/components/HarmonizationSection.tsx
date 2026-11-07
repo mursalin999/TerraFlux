@@ -7,7 +7,7 @@ function formatMonth(value: string) { return value.slice(0, 7); }
 
 export function HarmonizationSection({ result, loading }: { result: HarmonizationResult | null; loading?: boolean }) {
   if (loading) return <div className="rounded-lg border border-border bg-surface p-5 font-mono text-xs text-text-secondary">Loading stored monthly aggregates…</div>;
-  if (!result || !result.series.length) return <div className="rounded-lg border border-border bg-surface p-5 font-mono text-xs text-text-secondary">No stored monthly observations for this selection.</div>;
+  if (!result || !result.series.length) return <div className="rounded-lg border border-border bg-surface p-5 font-mono text-xs text-text-secondary">No monthly observations in this selection.</div>;
   const overlap = result.series.filter((item) => item.modis != null && item.viirsReference != null);
   const years = [...new Set(overlap.map((item) => item.month.slice(0, 4)))];
   const colors = ["#4E9BD6", "#6CB7A5", "#B8C96B", "#E0A04B", "#E56B4F", "#C45AA8"];

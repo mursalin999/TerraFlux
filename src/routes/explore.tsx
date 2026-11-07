@@ -141,6 +141,7 @@ function ExploreWorkspace() {
           start_date: filters.startDate,
           end_date: filters.endDate,
           confidence: filters.confidence.length ? filters.confidence : undefined,
+          sample_limit: 10000,
         },
       }),
     staleTime: 120000,
@@ -380,54 +381,6 @@ function ExploreWorkspace() {
         </div>
       </div>
 
-      {/* NASA FIRMS Data Pull Action */}
-      <div className="space-y-2 border-t border-border pt-4">
-        <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-text-secondary">
-          <span>DATA PULL</span>
-          <span className="text-[9px] text-text-secondary/70">NASA FIRMS API</span>
-        </div>
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={handlePullRecent}
-            disabled={pull.status === "running"}
-            className="flex items-center justify-center gap-2 rounded bg-data-blue px-3 py-1.5 font-semibold text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-3 w-3 ${pull.status === "running" ? "animate-spin" : ""}`} />
-            FETCH LAST 3 DAYS
-          </button>
-          <button
-            type="button"
-            onClick={handlePullAllRegions}
-            disabled={pull.status === "running"}
-            className="rounded border border-anomaly-amber/50 bg-anomaly-amber/10 px-3 py-1.5 text-anomaly-amber transition-colors hover:bg-anomaly-amber/20 disabled:opacity-50"
-          >
-            FILL 1-YEAR HISTORY FOR ALL REGIONS
-          </button>
-          <button
-            type="button"
-            onClick={handlePullHistory}
-            disabled={pull.status === "running"}
-            className="rounded border border-border bg-surface px-3 py-1.5 text-text transition-colors hover:bg-surface-elevated disabled:opacity-50"
-          >
-            FETCH NASA FIRMS DATE RANGE
-          </button>
-        </div>
-        <div className="text-[10px] text-text-secondary">
-          {pull.status === "running" && (
-            <span className="text-anomaly-amber">
-              Ingesting from FIRMS… chunk {pull.done} / {pull.total}
-            </span>
-          )}
-          {pull.status === "done" && (
-            <span className="text-agreement-teal">
-              Ingest complete: {pull.stored.toLocaleString()} records stored.
-            </span>
-          )}
-          {pull.status === "error" && <span className="text-critical-red">{pull.message}</span>}
-          {pull.status === "idle" && "Queries directly verified NASA FIRMS endpoints."}
-        </div>
-      </div>
     </div>
   );
 

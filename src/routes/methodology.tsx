@@ -38,15 +38,15 @@ const PIPELINE_STEPS = [
     subtitle: "Raw telemetry integrity & unmanipulated values",
     color: "#94a3b8",
     detail:
-      "All ingested observations from NASA FIRMS MODIS NRT and VIIRS NOAA-20 NRT streams are stored in their native formats. Original latitude, longitude, UTC timestamps, radiometric brightness (K), Fire Radiative Power (MW), and detector confidence scores are preserved without alteration or smoothing.",
+      "All ingested observations from NASA FIRMS archive products for MODIS and VIIRS are stored in their native formats. Original latitude, longitude, UTC timestamps, radiometric brightness (K), Fire Radiative Power (MW), and detector confidence scores are preserved without alteration or smoothing.",
   },
   {
     id: "spatial-harmonization",
     title: "2. SPATIAL HARMONIZATION",
-    subtitle: "Equal-angle 0.15° analytical geodetic grid",
+    subtitle: "Equal-angle 0.15° grid; cell-days, g, and k made explicit",
     color: "#38bdf8",
     detail:
-      "MODIS observes at 1,000 m nadir pixel resolution (expanding to ~4,800 m at scan edge), while VIIRS uses 375 m I-band imagery channels. To compare them objectively, TerraFlux projects both sensor datasets onto a uniform 0.15° × 0.15° (~16.5 km) geodetic grid, resolving native footprint scale disparities.",
+      "MODIS observes at 1,000 m nadir pixel resolution (expanding to ~4,800 m at scan edge), while VIIRS uses 375 m I-band imagery channels. TerraFlux compares them on a uniform 0.15° × 0.15° (~16.5 km) geodetic grid. A cell-day counts one occupied grid cell on one UTC date; it is not a raw fire count.",
   },
   {
     id: "temporal-harmonization",
@@ -62,7 +62,7 @@ const PIPELINE_STEPS = [
     subtitle: "Mathematical spatial-temporal concurrence",
     color: "#2dd4bf",
     detail:
-      "Evaluates whether both sensors detected active thermal anomalies in the same 0.15° cell on the same UTC day: STRONG (both MODIS and VIIRS co-detected with nominal/high confidence), MODERATE (co-detected with low/nominal signals), LIMITED (single-instrument detection only), or NONE.",
+      "Evaluates whether both sensors detected active thermal anomalies in the same 0.15° cell on the same UTC day: STRONG (both MODIS and VIIRS co-detected with nominal/high confidence), MODERATE (co-detected with low/nominal signals), LIMITED (single-instrument detection only), or NONE. The VIIRS bridge g scales S-NPP to NOAA-20 during their complete shared months; k then scales MODIS cell-days to the VIIRS reference over complete MODIS/VIIRS overlap months.",
   },
   {
     id: "historical-baseline",

@@ -49,7 +49,7 @@ export function RegionSelect({
           </option>
         ))}
       </select>
-      {selectedCoverage && <span className="font-mono text-[10px] text-text-secondary">Coverage: {selectedCoverage.filter((item) => item.first_date && item.last_date).map((item) => `${item.sensor} ${item.first_date?.slice(0, 7)}–${item.last_date?.slice(0, 7)}`).join(" · ") || "No stored data"}</span>}
+      {selectedCoverage && <span className="font-mono text-[10px] text-text-secondary">Coverage: {selectedCoverage.filter((item) => item.first_date && item.last_date).map((item) => `${item.sensor} ${item.first_date?.slice(0, 7)}–${item.last_date?.slice(0, 7)}`).join(" · ") || "No observations in range"}</span>}
     </label>
   );
 }

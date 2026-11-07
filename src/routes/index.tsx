@@ -526,7 +526,7 @@ function HomePage() {
                   <span>· LOADING</span>
                 </span>
               ) : telemetry.status === "unavailable" ? (
-                <span className="font-semibold text-critical-red" title={telemetry.errorMessage ?? "Stored data query failed"}>· DATA SOURCE UNAVAILABLE</span>
+                <span className="font-semibold text-critical-red" title={telemetry.errorMessage ?? "Stored data query failed"}>· DATA QUERY ERROR</span>
               ) : (
                 <>
                   <span className="text-text-secondary/70">·</span>
@@ -565,7 +565,7 @@ function HomePage() {
                     ? `AVAILABLE (${telemetry.modisCount.toLocaleString()})`
                     : telemetryQuery.isError
                       ? "UNAVAILABLE — QUERY ERROR"
-                      : "NO STORED ROWS"}
+                      : "NO OBSERVATIONS IN RANGE"}
               </span>
             </div>
 
@@ -586,7 +586,7 @@ function HomePage() {
                     ? `AVAILABLE (${telemetry.viirsCount.toLocaleString()})`
                     : telemetryQuery.isError
                       ? "UNAVAILABLE — QUERY ERROR"
-                      : "NO STORED ROWS"}
+                      : "NO OBSERVATIONS IN RANGE"}
               </span>
             </div>
 
@@ -608,7 +608,7 @@ function HomePage() {
                     ? "ACTIVE"
                     : telemetryQuery.isError
                       ? "UNAVAILABLE — QUERY ERROR"
-                      : "NO STORED ROWS"}
+                      : "NO OBSERVATIONS IN RANGE"}
               </span>
             </div>
 
@@ -624,7 +624,7 @@ function HomePage() {
                     ? `${telemetry.baselineDays} DAYS${telemetry.baselineDays < 365 ? " · LIMITED" : ""}`
                     : telemetryQuery.isError
                       ? "UNAVAILABLE — QUERY ERROR"
-                      : "NO STORED ROWS"}
+                      : "NO OBSERVATIONS IN RANGE"}
               </span>
             </div>
           </div>

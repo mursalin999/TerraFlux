@@ -7,7 +7,6 @@ import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { getDailyCounts, getDetections, getMonthlySeries } from "@/lib/firelens.functions";
 import { CalendarAnalysis } from "@/components/CalendarAnalysis";
 import { EmptyState } from "@/components/EmptyState";
-import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { useCustomArea } from "@/hooks/use-custom-area";
@@ -145,15 +144,6 @@ function CalendarPage() {
         </div>
       </div>
 
-      <div className="mt-6">
-        <NasaFirmsFetcher
-          initialRegionId={regionId}
-          initialStartDate={startDate}
-  initialEndDate={endDate}
-  initialBbox={`${bboxParts.west},${bboxParts.south},${bboxParts.east},${bboxParts.north}`}
-  />
-      </div>
-
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-border" role="tablist" aria-label="Calendar view">
         <div className="flex gap-2"><button type="button" role="tab" aria-selected={tab === "month"} onClick={() => setTab("month")} className={`border-b-2 px-3 py-2 font-mono text-xs uppercase tracking-wider ${tab === "month" ? "border-anomaly-amber text-anomaly-amber" : "border-transparent text-text-secondary"}`}>Month by year</button><button type="button" role="tab" aria-selected={tab === "daily"} onClick={() => setTab("daily")} className={`border-b-2 px-3 py-2 font-mono text-xs uppercase tracking-wider ${tab === "daily" ? "border-anomaly-amber text-anomaly-amber" : "border-transparent text-text-secondary"}`}>Daily</button></div>
         {tab === "daily" && <div className="flex flex-wrap gap-2" role="group" aria-label="Daily sensor measure">{(["combined", "MODIS", "VIIRS"] as Mode[]).map((m) => <button key={m} type="button" onClick={() => setMode(m)} className={`rounded border px-3 py-1.5 font-mono text-xs uppercase tracking-wider ${mode === m ? "border-anomaly-amber bg-anomaly-amber/15 text-anomaly-amber" : "border-border bg-surface text-text-secondary"}`}>{m === "combined" ? "Harmonized (both)" : m}</button>)}</div>}
@@ -206,7 +196,7 @@ function CalendarPage() {
                 ? total.toLocaleString()
                 : query.isError
                   ? "UNAVAILABLE — QUERY ERROR"
-                  : "UNAVAILABLE — NO STORED ROWS"}
+                  : "NO OBSERVATIONS IN RANGE"}
           </div>
           <div className="mt-1 text-[10px] text-text-secondary">
             {mode === "combined" ? "MODIS + VIIRS combined" : `${mode} detector only`}
@@ -224,7 +214,7 @@ function CalendarPage() {
                 ? busiest.date
                 : query.isError
                   ? "UNAVAILABLE — QUERY ERROR"
-                  : "UNAVAILABLE — NO STORED ROWS"}
+                  : "NO OBSERVATIONS IN RANGE"}
           </div>
           <div className="mt-1 text-[10px] text-text-secondary">
             {busiest && countForMode(busiest) > 0
@@ -244,7 +234,7 @@ function CalendarPage() {
                 ? monthLabel(busiestMonth[0])
                 : query.isError
                   ? "UNAVAILABLE — QUERY ERROR"
-                  : "UNAVAILABLE — NO STORED ROWS"}
+                  : "NO OBSERVATIONS IN RANGE"}
           </div>
           <div className="mt-1 text-[10px] text-text-secondary">
             {busiestMonth
@@ -264,7 +254,7 @@ function CalendarPage() {
                 ? `${activeMonths.length} months active`
                 : query.isError
                   ? "UNAVAILABLE — QUERY ERROR"
-                  : "UNAVAILABLE — NO STORED ROWS"}
+                  : "NO OBSERVATIONS IN RANGE"}
           </div>
           <div className="mt-1 text-[10px] text-text-secondary">
             {quietestMonth ? `Lowest: ${monthLabel(quietestMonth[0])}` : "No detections recorded"}
