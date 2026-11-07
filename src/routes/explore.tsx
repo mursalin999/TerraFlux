@@ -31,7 +31,6 @@ import {
 import { type ObservationPoint } from "@/components/EarthGlobe";
 import { type ExploreViewMode, type SensorFilterMode } from "@/components/ExploreGlobe";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
-import { RegionCoverageList } from "@/components/RegionCoverageList";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { bboxCenter } from "@/lib/custom-area";
 import { useCustomArea } from "@/hooks/use-custom-area";
@@ -505,9 +504,8 @@ detections={visibleDetections}
           aria-live="polite"
           className="order-1 hidden w-full flex-col gap-3 rounded-lg border border-border bg-surface/95 p-3 font-mono shadow-lg sm:flex sm:p-4 lg:order-2"
         >
-          {/* Left: Region & Signature 3-Way Control */}
-          <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-lg border border-border/80 bg-surface/90 p-1.5">
-            <RegionCoverageList />
+  {/* Left: Region & Signature 3-Way Control */}
+  <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-lg border border-border/80 bg-surface/90 p-1.5">
   {/* Target Region Selector */}
             <select
               value={filters.regionId}

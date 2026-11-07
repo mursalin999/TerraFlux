@@ -201,7 +201,7 @@ export default function ExploreGlobe({
 
     return pointsToRender.map((obs) => {
       const isModis = obs.sensor === "MODIS";
-      const baseRadius = isModis ? 1.8 : 1.25;
+      const baseRadius = isModis ? 0.42 : 0.28;
       const frpScale = obs.frp_mw ? Math.min(1.8, Math.max(0.7, Math.log10(obs.frp_mw + 1))) : 1.0;
       const radius = baseRadius * frpScale;
 
@@ -404,6 +404,7 @@ export default function ExploreGlobe({
           const coords = globeRef.current?.getCoords(pt.lat, pt.lng, pt.altitude);
           if (coords) {
             Object.assign(obj.position, coords);
+            obj.lookAt(0, 0, 0);
           }
         }}
         customLayerLabel={(d: object) => {
