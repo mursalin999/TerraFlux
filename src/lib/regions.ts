@@ -66,7 +66,7 @@ export const SENSOR_META = {
     platforms: "Terra & Aqua",
     resolution_m: 1000,
     pixelLabel: "1 km pixel",
-    color: "#4DA3FF", // --data-blue
+    color: "#FF6A2A", // --thermal-orange
     markerStyle: "hollow-ring",
     description:
       "Aqua & Terra · 1 km nadir resolution · twice-daily revisit per platform · 0–100 confidence score",

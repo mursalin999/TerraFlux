@@ -31,8 +31,10 @@ export function CalendarAnalysis({ rows, days, regionName, startDate, endDate, b
   const rankText = (item: MonthValue) => { const baseline = byCalendarMonth(item.month); const rank = baseline.filter((value) => value > (item.value ?? 0)).length + 1; return `${fullMonthNames[item.month]} ${item.year}: ${(item.value ?? 0).toLocaleString()} ${measure === "raw" ? "raw detections" : "burning cell-days"}, ${baseline.length ? ((item.value ?? 0) / Math.max(median(baseline), 1)).toFixed(1) : "0.0"} times the ${fullMonthNames[item.month]} median, rank ${rank} of ${baseline.length}`; };
   const selected = values.find((item) => item.key === selectedKey) ?? null;
   const detailDays = selected ? days.filter((day) => day.date.startsWith(selected.key)) : [];
+  const currentMonthKey = `${currentYear}-${String(new Date().getUTCMonth() + 1).padStart(2, "0")}`;
+  const currentMonthValue = values.find((item) => item.key === currentMonthKey)?.value ?? 0;
   const earlier = values.filter((item) => item.month === new Date().getUTCMonth() && item.year < currentYear && item.value != null).map((item) => item.value!);
-  const currentValue = values.find((item) => item.year === currentYear && item.month === new Date().getUTCMonth())?.value ?? 0;
+  const currentValue = currentMonthValue;
   const normal = median(earlier);
   const ratio = normal ? currentValue / normal : null;
   const percentile = percentileRank(currentValue, earlier);
@@ -40,8 +42,9 @@ export function CalendarAnalysis({ rows, days, regionName, startDate, endDate, b
   const unusual = [...values].filter((item) => item.value != null && byCalendarMonth(item.month).length > 1).map((item) => ({ ...item, ratio: (item.value ?? 0) / Math.max(median(byCalendarMonth(item.month)), 1) })).sort((a, b) => b.ratio - a.ratio);
   const busiest = [...values].filter((item) => item.value != null).sort((a, b) => (b.value ?? 0) - (a.value ?? 0))[0];
   const averageByMonth = monthNames.map((_, month) => ({ month, value: median(byCalendarMonth(month)) })).sort((a, b) => b.value - a.value);
-  const topThree = [...values].filter((item) => item.value != null).sort((a, b) => (b.value ?? 0) - (a.value ?? 0)).slice(0, 3).reduce((sum, item) => sum + (item.value ?? 0), 0);
-  const total = values.reduce((sum, item) => sum + (item.value ?? 0), 0);
+  const baselineValues = values.filter((item) => item.value != null && item.year < currentYear);
+  const topThree = [...baselineValues].sort((a, b) => (b.value ?? 0) - (a.value ?? 0)).slice(0, 3).reduce((sum, item) => sum + (item.value ?? 0), 0);
+  const total = baselineValues.reduce((sum, item) => sum + (item.value ?? 0), 0);
   const downloadMonth = async () => { if (!selected) return; const monthStart = `${selected.key}-01`; const monthEnd = new Date(Date.UTC(selected.year, selected.month + 1, 0)).toISOString().slice(0, 10); const result = await getDetectionExportPage({ data: { ...bbox, start_date: monthStart, end_date: monthEnd, page_size: 10000 } }); if (result.next) return; downloadBlob(detectionCsv(result.rows as Record<string, unknown>[]), `terraflux_${regionName.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_${selected.key}.csv`); };
   const cellStyle = (item: MonthValue): CSSProperties | undefined => { if (item.value == null) return undefined; const lightness = 14 + Math.sqrt(item.value / maxValue) * 68; return { backgroundColor: `hsl(42 86% ${lightness}%)` }; };
   return <div className="space-y-6">
