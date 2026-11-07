@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink, ShieldAlert, Cpu, Award, Globe2 } from "lucide-react";
-import { RegionCoverageList } from "@/components/RegionCoverageList";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -102,12 +101,11 @@ export default function AboutPage() {
               </a>
             </div>
             <p className="mt-1 text-xs text-text-secondary">
-              Stored MODIS and VIIRS detections are displayed with the platform, product, processing mode, and date range returned by the database. The coverage panel below is data-driven.
+              Stored MODIS and VIIRS detections are displayed with the platform, product, processing mode, and date range returned by the database.
             </p>
           </div>
         </section>
 
-        <section className="mt-8 rounded-lg border border-border bg-surface p-5"><h2 className="font-mono text-xs font-semibold uppercase tracking-wider text-text">STORED COVERAGE</h2><p className="mt-2 text-xs text-text-secondary">Date ranges below are read from stored detections; they are not hand-entered.</p><RegionCoverageList /></section>
 
         {/* Team Emberline Profile */}
         <section className="mt-8 grid gap-5 border-t border-border pt-8 sm:grid-cols-[minmax(0,1.25fr)_minmax(220px,0.75fr)] sm:items-center">
