@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { REGIONS, getRegion, parseBbox, SENSOR_META } from "@/lib/regions";
 import { defaultFilters, type FireFilters, type ConfidenceTier } from "@/components/FireControls";
-import { getDetections, fetchFireData, backfillFireData, backfillPresetHistory } from "@/lib/firelens.functions";
+import { getDetections, getSpatialSummary, fetchFireData, backfillFireData, backfillPresetHistory, type SpatialSummaryCell } from "@/lib/firelens.functions";
 import {
   computeAnalyticalGrid,
   AGREEMENT_DEFINITIONS,
@@ -125,29 +125,44 @@ function ExploreWorkspace() {
   const mapCenter = filters.regionId === "custom" ? bboxCenter(customBbox) : region.center;
   const mapZoom = filters.regionId === "custom" ? 7 : region.zoom;
 
-  // Viewport-aware cached query by region, dates, and confidence
+  const selectedSensors = activeSensor === "MODIS" ? ["MODIS" as const] : activeSensor === "VIIRS" ? ["VIIRS" as const] : undefined;
+  const queryInput = {
+    ...bboxParts,
+    start_date: filters.startDate,
+    end_date: filters.endDate,
+    sensors: selectedSensors,
+    confidence: filters.confidence.length ? filters.confidence : undefined,
+  };
+
+  // Raw records power inspection and analysis; the spatial RPC powers the map using every matching record.
   const query = useQuery({
-    queryKey: [
-      "detections",
-      filters.regionId,
-      filters.startDate,
-      filters.endDate,
-      filters.confidence.join(","),
-    ],
-    queryFn: () =>
-      getDetections({
-        data: {
-          ...bboxParts,
-          start_date: filters.startDate,
-          end_date: filters.endDate,
-          confidence: filters.confidence.length ? filters.confidence : undefined,
-          sample_limit: 10000,
-        },
-      }),
+    queryKey: ["detections", filters.regionId, filters.startDate, filters.endDate, activeSensor, filters.confidence.join(",")],
+    queryFn: () => getDetections({ data: { ...queryInput, sample_limit: 10000 } }),
+    staleTime: 120000,
+  });
+  const spatialQuery = useQuery({
+    queryKey: ["spatial-summary", filters.regionId, filters.startDate, filters.endDate, activeSensor, filters.confidence.join(",")],
+    queryFn: () => getSpatialSummary({ data: queryInput }),
     staleTime: 120000,
   });
 
   const rawDetections = useMemo(() => query.data ?? [], [query.data]);
+  const spatialCells = useMemo(() => spatialQuery.data?.cells ?? [], [spatialQuery.data]);
+  const renderedCells = useMemo(() => spatialCells.map((cell: SpatialSummaryCell) => ({
+    lat: cell.cell_lat + 0.075,
+    lon: cell.cell_lon + 0.075,
+    acq_date: filters.startDate,
+    acq_time: "",
+    sensor: cell.sensor,
+    satellite: "Aggregated cell",
+    resolution_m: cell.sensor === "MODIS" ? 1000 : 375,
+    brightness_k: null,
+    brightness2_k: null,
+    frp_mw: cell.max_frp,
+    confidence_tier: "aggregated",
+    day_night: null,
+    observation_count: cell.observation_count,
+  })), [spatialCells, filters.startDate]);
   const playbackDates = useMemo(
     () => Array.from(new Set(rawDetections.map((item) => item.acq_date).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))).sort(),
     [rawDetections],
@@ -406,7 +421,7 @@ function ExploreWorkspace() {
             >
               {mapProjection === "3D" ? (
                 <ExploreGlobe
-observations={visibleDetections}
+	observations={renderedCells}
                   gridCells={gridAnalysis.cells}
                   selectedRegion={region}
                   activeSensor={activeSensor}
@@ -429,7 +444,7 @@ observations={visibleDetections}
                 />
               ) : (
                 <FireMap
-detections={visibleDetections}
+	detections={renderedCells}
           center={mapCenter}
           zoom={mapZoom}
           onBboxDrawn={(bbox) => { setFilters((current) => ({ ...current, regionId: "custom" })); setCustomBbox(bbox); }}
@@ -442,6 +457,12 @@ detections={visibleDetections}
               )}
             </Suspense>
           </ClientOnly>
+        </div>
+        <div className="order-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-border/70 bg-surface/80 px-3 py-2 font-mono text-[10px] text-text-secondary" aria-live="polite">
+          <span><strong className="text-text">{(spatialQuery.data?.counts ?? []).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching observations</span>
+          <span><strong className="text-text">{spatialCells.length.toLocaleString()}</strong> spatial cells rendered</span>
+          <span>0.15° aggregation · {activeSensor}</span>
+          {query.data && <span>{query.data.length.toLocaleString()} raw records sampled for inspection</span>}
         </div>
   <div className="order-3">
   <PlaybackControls dates={playbackDates} detections={rawDetections} onDateChange={setPlaybackDate} />

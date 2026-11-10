@@ -202,8 +202,9 @@ export default function ExploreGlobe({
     return pointsToRender.map((obs) => {
       const isModis = obs.sensor === "MODIS";
       const baseRadius = isModis ? 0.42 : 0.28;
-      const frpScale = obs.frp_mw ? Math.min(1.8, Math.max(0.7, Math.log10(obs.frp_mw + 1))) : 1.0;
-      const radius = baseRadius * frpScale;
+  const countScale = obs.observation_count ? Math.min(2.4, 0.75 + Math.log10(obs.observation_count + 1) * 0.55) : 1;
+  const frpScale = obs.frp_mw ? Math.min(1.8, Math.max(0.7, Math.log10(obs.frp_mw + 1))) : 1.0;
+  const radius = baseRadius * countScale * frpScale;
 
       const isSelected =
         selectedObservation &&
@@ -416,8 +417,9 @@ export default function ExploreGlobe({
           return `<div style="background: rgba(3,7,17,0.95); border: 1px solid #1e293b; padding: 6px 10px; border-radius: 6px; font-family: monospace; font-size: 11px; color: #f1f5f9; box-shadow: 0 4px 14px rgba(0,0,0,0.6);">
             <div style="font-weight: bold; color: ${pt.color};">${pt.sensor} · ${pt.satellite}</div>
             <div>Altitude: ${orbitAlt} · Resolution: ${pt.resolution_m} m</div>
-            <div>FRP: ${frp} · Brightness: ${temp}</div>
-            <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">Click to inspect complete telemetry</div>
+  <div>FRP: ${frp} · Brightness: ${temp}</div>
+  ${pt.observation_count ? `<div>Cell observations: ${pt.observation_count.toLocaleString()}</div>` : ""}
+  <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">Aggregated spatial cell; click to inspect context</div>
           </div>`;
         }}
         onCustomLayerClick={(d: object) => {
