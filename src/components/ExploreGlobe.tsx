@@ -196,8 +196,9 @@ export default function ExploreGlobe({
     // Analytical views render their derived cells; native observations stay visible only in NATIVE.
     if (activeView !== "NATIVE") return [];
 
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    const pointsToRender = isMobile ? filteredObservations.slice(0, 1500) : filteredObservations;
+    // Spatial summaries are bounded cells representing the full filtered population;
+    // do not apply the old mobile raw-record slice to them.
+    const pointsToRender = filteredObservations;
 
     return pointsToRender.map((obs) => {
       const isModis = obs.sensor === "MODIS";
@@ -216,9 +217,9 @@ export default function ExploreGlobe({
       let color = isModis ? SENSOR_META.MODIS.color : SENSOR_META.VIIRS.color;
       let opacity = 0.9;
 
-      if (activeView === "HARMONIZED" || activeSensor === "HARMONIZED") {
-        // In harmonized mode: white-to-amber highlight
-        color = obs.confidence_tier === "high" ? "#FFB547" : "#F4F7FA";
+      if (activeView === "HARMONIZED") {
+        // Derived analytical mode uses amber, while NATIVE harmonized keeps sensor identity.
+        color = obs.sensor === "MODIS" ? SENSOR_META.MODIS.color : SENSOR_META.VIIRS.color;
         opacity = 0.95;
       } else if (activeView === "ANOMALY") {
         // Anomaly highlight in amber

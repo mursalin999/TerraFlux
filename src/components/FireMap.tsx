@@ -15,8 +15,9 @@ export interface MapDetection {
   resolution_m: number;
   brightness_k: number | null;
   frp_mw: number | null;
-  confidence_tier: "low" | "nominal" | "high";
+  confidence_tier: string;
   day_night: "D" | "N" | null;
+  observation_count?: number;
 }
 
 function MapBoundsReporter({ onChange }: { onChange?: (bbox: { west: number; south: number; east: number; north: number }) => void }) { const map = useMap(); useEffect(() => { const report = () => { const bounds = map.getBounds(); onChange?.({ west: bounds.getWest(), south: bounds.getSouth(), east: bounds.getEast(), north: bounds.getNorth() }); }; report(); map.on("moveend", report); return () => { map.off("moveend", report); }; }, [map, onChange]); return null; }
@@ -103,8 +104,9 @@ export default function FireMap({
         {shown.map((d, i) => {
           const isModis = d.sensor === "MODIS";
           const meta = SENSOR_META[d.sensor];
+          const countScale = d.observation_count ? Math.min(3.5, 1 + Math.log10(d.observation_count + 1) * 0.8) : 1;
           const frpScale = d.frp_mw ? Math.min(2.0, Math.max(0.7, Math.log10(d.frp_mw + 1))) : 1.0;
-          const radius = isModis ? 5 * frpScale : 3 * frpScale;
+          const radius = (isModis ? 5 : 3) * countScale * frpScale;
 
           return (
             <CircleMarker
@@ -202,6 +204,11 @@ export default function FireMap({
                       </span>{" "}
                       <span className="font-semibold uppercase text-text">{d.confidence_tier}</span>
                     </div>
+                    {d.observation_count != null && (
+                      <div className="border-t border-border pt-1 font-mono text-[10px] text-text-secondary">
+                        AGGREGATED RECORDS: {d.observation_count.toLocaleString()}
+                      </div>
+                    )}
                   </div>
                 </div>
               </Popup>
