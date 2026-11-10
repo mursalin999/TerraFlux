@@ -17,6 +17,7 @@ export interface ObservationPoint {
   confidence_tier: string;
   confidence_raw?: string | null;
   day_night: string | null;
+  observation_count?: number;
 }
 
 interface GlobePoint extends ObservationPoint {
@@ -79,8 +80,9 @@ export default function EarthGlobe({
     return filteredObservations.map((obs) => {
       const isModis = obs.sensor === "MODIS";
       const baseRadius = isModis ? 0.42 : 0.28;
+      const countScale = obs.observation_count ? Math.min(2.4, 0.75 + Math.log10(obs.observation_count + 1) * 0.55) : 1;
       const frpScale = obs.frp_mw ? Math.min(1.8, Math.max(0.7, Math.log10(obs.frp_mw + 1))) : 1.0;
-      const radius = baseRadius * frpScale;
+      const radius = baseRadius * countScale * frpScale;
 
       const isSelected =
         selectedObservation &&
@@ -196,7 +198,8 @@ export default function EarthGlobe({
             <div style="font-weight: bold; color: ${pt.color};">${pt.sensor} · ${pt.satellite}</div>
             <div>Altitude: ${orbitAlt} · Resolution: ${pt.resolution_m} m</div>
             <div>FRP: ${frp} · Brightness: ${temp}</div>
-            <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">Click to inspect complete telemetry</div>
+            ${pt.observation_count ? `<div>Cell observations: ${pt.observation_count.toLocaleString()}</div>` : ""}
+            <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">Aggregated spatial cell; click to inspect context</div>
           </div>`;
         }}
         onCustomLayerClick={(d: object) => {

@@ -146,6 +146,43 @@ export const backfillPresetHistory = createServerFn({ method: "POST" })
     return results;
   });
 
+export interface SpatialSummaryCell {
+  sensor: "MODIS" | "VIIRS";
+  cell_lat: number;
+  cell_lon: number;
+  observation_count: number;
+  max_frp: number | null;
+}
+
+const spatialQuerySchema = detectionsQuerySchema.omit({ sample_limit: true });
+
+export const getSpatialSummary = createServerFn({ method: "GET" })
+  .inputValidator((data) => spatialQuerySchema.parse(data))
+  .handler(async ({ data }) => {
+    const sb = publicClient();
+    if (!sb) return { cells: [] as SpatialSummaryCell[], counts: [] as Array<{ sensor: string; matching_records: number }> };
+    const args = {
+      p_west: data.west,
+      p_south: data.south,
+      p_east: data.east,
+      p_north: data.north,
+      p_from_date: data.start_date,
+      p_to_date: data.end_date,
+      p_sensors: data.sensors ?? null,
+      p_confidence: data.confidence ?? null,
+    };
+    const [cellsResult, countsResult] = await Promise.all([
+      sb.rpc("spatial_detection_summary", { ...args, p_cell_size: 0.15 }),
+      sb.rpc("spatial_detection_counts", args),
+    ]);
+    if (cellsResult.error) throw new Error(cellsResult.error.message);
+    if (countsResult.error) throw new Error(countsResult.error.message);
+    return {
+      cells: (cellsResult.data ?? []) as SpatialSummaryCell[],
+      counts: (countsResult.data ?? []).map((row) => ({ sensor: String(row.sensor), matching_records: Number(row.matching_records) })),
+    };
+  });
+
 export const getDetections = createServerFn({ method: "GET" })
   .inputValidator((data) => detectionsQuerySchema.parse(data))
   .handler(async ({ data }) => {
@@ -338,7 +375,7 @@ export const getHomeMissionTelemetry = createServerFn({ method: "GET" }).handler
       const lastIngestTime = null;
       return {
         status: "ok",
-        totalDetections: totalRes.count ?? 0,
+        totalDetections: Number(summary?.total_detections ?? modisCount + viirsCount),
         modisCount,
         viirsCount,
         latestAcqDate,
