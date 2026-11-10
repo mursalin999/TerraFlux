@@ -178,7 +178,7 @@ export const getSpatialSummary = createServerFn({ method: "GET" })
   .inputValidator((data) => spatialQuerySchema.parse(data))
   .handler(async ({ data }) => {
     const sb = publicClient();
-    if (!sb) return { cells: [] as SpatialSummaryCell[], counts: [] as Array<{ sensor: string; matching_records: number }> };
+    if (!sb) throw new Error("Supabase read credentials are unavailable; spatial observations were not loaded.");
     const args = {
       p_west: data.west,
       p_south: data.south,
@@ -193,12 +193,50 @@ export const getSpatialSummary = createServerFn({ method: "GET" })
       sb.rpc("spatial_detection_summary", { ...args, p_cell_size: 0.15 }),
       sb.rpc("spatial_detection_counts", args),
     ]);
-    if (cellsResult.error) throw new Error(cellsResult.error.message);
-    if (countsResult.error) throw new Error(countsResult.error.message);
-    return {
-      cells: (cellsResult.data ?? []) as SpatialSummaryCell[],
-      counts: (countsResult.data ?? []).map((row) => ({ sensor: String(row.sensor), matching_records: Number(row.matching_records) })),
-    };
+    if (!cellsResult.error && !countsResult.error) {
+      return {
+        cells: (cellsResult.data ?? []) as SpatialSummaryCell[],
+        counts: (countsResult.data ?? []).map((row) => ({ sensor: String(row.sensor), matching_records: Number(row.matching_records) })),
+      };
+    }
+
+    // Older deployments may not have the migration yet. Keep the map truthful by
+    // aggregating the real rows server-side instead of falling back to a fake/empty map.
+    const pageSize = 1000;
+    const cells = new Map<string, SpatialSummaryCell>();
+    const counts = new Map<string, number>();
+    let offset = 0;
+    while (true) {
+      let pageQuery = sb
+        .from("fire_detections")
+        .select("lat,lon,sensor,frp_mw")
+        .gte("lon", data.west).lte("lon", data.east)
+        .gte("lat", data.south).lte("lat", data.north)
+        .gte("acq_date", data.start_date).lte("acq_date", data.end_date)
+        .range(offset, offset + pageSize - 1);
+      if (data.sensors?.length) pageQuery = pageQuery.in("sensor", data.sensors);
+      if (data.confidence?.length) pageQuery = pageQuery.in("confidence_tier", data.confidence);
+      const { data: rows, error } = await pageQuery;
+      if (error) throw new Error(error.message);
+      for (const row of rows ?? []) {
+        const sensor = String(row.sensor);
+        const cellLat = Math.floor(Number(row.lat) / 0.15) * 0.15;
+        const cellLon = Math.floor(Number(row.lon) / 0.15) * 0.15;
+        const key = `${sensor}:${cellLat}:${cellLon}`;
+        const current = cells.get(key);
+        const frp = row.frp_mw == null ? null : Number(row.frp_mw);
+        if (current) {
+          current.observation_count += 1;
+          current.max_frp = current.max_frp == null ? frp : frp == null ? current.max_frp : Math.max(current.max_frp, frp);
+        } else {
+          cells.set(key, { sensor: sensor as "MODIS" | "VIIRS", cell_lat: cellLat, cell_lon: cellLon, observation_count: 1, max_frp: frp });
+        }
+        counts.set(sensor, (counts.get(sensor) ?? 0) + 1);
+      }
+      if (!rows || rows.length < pageSize) break;
+      offset += pageSize;
+    }
+    return { cells: Array.from(cells.values()), counts: Array.from(counts, ([sensor, matching_records]) => ({ sensor, matching_records })) };
   });
 
 export const getDetections = createServerFn({ method: "GET" })

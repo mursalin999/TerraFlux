@@ -140,9 +140,15 @@ function ExploreWorkspace() {
     queryFn: () => getDetections({ data: { ...queryInput, sample_limit: 10000 } }),
     staleTime: 120000,
   });
+  const spatialQueryInput = useMemo(() => {
+    if (!playbackDate) return queryInput;
+    const cutoff = new Date(`${playbackDate}T00:00:00Z`);
+    cutoff.setUTCDate(cutoff.getUTCDate() - 3);
+    return { ...queryInput, start_date: cutoff.toISOString().slice(0, 10), end_date: playbackDate };
+  }, [queryInput, playbackDate]);
   const spatialQuery = useQuery({
-    queryKey: ["spatial-summary", filters.regionId, filters.startDate, filters.endDate, activeSensor, filters.confidence.join(",")],
-    queryFn: () => getSpatialSummary({ data: queryInput }),
+    queryKey: ["spatial-summary", filters.regionId, filters.startDate, filters.endDate, playbackDate, activeSensor, filters.confidence.join(",")],
+    queryFn: () => getSpatialSummary({ data: spatialQueryInput }),
     staleTime: 120000,
   });
 
