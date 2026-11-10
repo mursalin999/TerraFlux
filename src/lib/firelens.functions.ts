@@ -154,6 +154,24 @@ export interface SpatialSummaryCell {
   max_frp: number | null;
 }
 
+export function spatialCellsToObservationPoints(cells: SpatialSummaryCell[], fallbackDate: string) {
+  return cells.map((cell) => ({
+    lat: cell.cell_lat + 0.075,
+    lon: cell.cell_lon + 0.075,
+    acq_date: fallbackDate,
+    acq_time: "",
+    sensor: cell.sensor,
+    satellite: "Aggregated spatial cell",
+    resolution_m: cell.sensor === "MODIS" ? 1000 : 375,
+    brightness_k: null,
+    brightness2_k: null,
+    frp_mw: cell.max_frp,
+    confidence_tier: "aggregated",
+    day_night: null,
+    observation_count: cell.observation_count,
+  }));
+}
+
 const spatialQuerySchema = detectionsQuerySchema.omit({ sample_limit: true });
 
 export const getSpatialSummary = createServerFn({ method: "GET" })

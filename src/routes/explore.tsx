@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { REGIONS, getRegion, parseBbox, SENSOR_META } from "@/lib/regions";
 import { defaultFilters, type FireFilters, type ConfidenceTier } from "@/components/FireControls";
-import { getDetections, getSpatialSummary, fetchFireData, backfillFireData, backfillPresetHistory, type SpatialSummaryCell } from "@/lib/firelens.functions";
+import { getDetections, getSpatialSummary, spatialCellsToObservationPoints, fetchFireData, backfillFireData, backfillPresetHistory } from "@/lib/firelens.functions";
 import {
   computeAnalyticalGrid,
   AGREEMENT_DEFINITIONS,
@@ -148,21 +148,10 @@ function ExploreWorkspace() {
 
   const rawDetections = useMemo(() => query.data ?? [], [query.data]);
   const spatialCells = useMemo(() => spatialQuery.data?.cells ?? [], [spatialQuery.data]);
-  const renderedCells = useMemo(() => spatialCells.map((cell: SpatialSummaryCell) => ({
-    lat: cell.cell_lat + 0.075,
-    lon: cell.cell_lon + 0.075,
-    acq_date: filters.startDate,
-    acq_time: "",
-    sensor: cell.sensor,
-    satellite: "Aggregated cell",
-    resolution_m: cell.sensor === "MODIS" ? 1000 : 375,
-    brightness_k: null,
-    brightness2_k: null,
-    frp_mw: cell.max_frp,
-    confidence_tier: "aggregated",
-    day_night: null,
-    observation_count: cell.observation_count,
-  })), [spatialCells, filters.startDate]);
+  const renderedCells = useMemo(
+    () => spatialCellsToObservationPoints(spatialCells, filters.startDate),
+    [spatialCells, filters.startDate],
+  );
   const playbackDates = useMemo(
     () => Array.from(new Set(rawDetections.map((item) => item.acq_date).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))).sort(),
     [rawDetections],
@@ -459,8 +448,8 @@ function ExploreWorkspace() {
           </ClientOnly>
         </div>
         <div className="order-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-border/70 bg-surface/80 px-3 py-2 font-mono text-[10px] text-text-secondary" aria-live="polite">
-          <span><strong className="text-text">{(spatialQuery.data?.counts ?? []).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching observations</span>
-          <span><strong className="text-text">{spatialCells.length.toLocaleString()}</strong> spatial cells rendered</span>
+          <span>{spatialQuery.isError ? <strong className="text-thermal-orange">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(spatialQuery.data?.counts ?? []).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching observations</>}</span>
+          <span><strong className="text-text">{spatialQuery.isError ? "—" : spatialCells.length.toLocaleString()}</strong> spatial cells rendered</span>
           <span>0.15° aggregation · {activeSensor}</span>
           {query.data && <span>{query.data.length.toLocaleString()} raw records sampled for inspection</span>}
         </div>

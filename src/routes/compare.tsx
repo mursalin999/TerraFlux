@@ -12,7 +12,7 @@ import {
   type SensorId,
 } from "@/lib/regions";
 import { RegionSelect, DateRangeInputs, defaultFilters } from "@/components/FireControls";
-import { getDetections, getDailyCounts, getMonthlySeries } from "@/lib/firelens.functions";
+import { getDetections, getSpatialSummary, spatialCellsToObservationPoints, getDailyCounts, getMonthlySeries } from "@/lib/firelens.functions";
 import { HarmonizationSection } from "@/components/HarmonizationSection";
 import { EmptyState } from "@/components/EmptyState";
 import { ObservationInspector } from "@/components/ObservationInspector";
@@ -82,6 +82,12 @@ function Compare() {
       }),
   });
 
+  const spatialQuery = useQuery({
+    queryKey: ["compare-spatial-summary", regionId, mapStartDate, endDate, mode],
+    queryFn: () => getSpatialSummary({ data: { ...bboxParts, start_date: mapStartDate, end_date: endDate, sensors } }),
+    staleTime: 120000,
+  });
+
   const dailyQuery = useQuery({
     queryKey: ["daily-counts", regionId, startDate, endDate],
     queryFn: () =>
@@ -98,14 +104,18 @@ function Compare() {
     [monthlyQuery.data, startDate, endDate],
   );
 
-  const detections = useMemo(() => mapQuery.data ?? [], [mapQuery.data]);
+  const rawDetections = useMemo(() => mapQuery.data ?? [], [mapQuery.data]);
+  const detections = useMemo(
+    () => spatialCellsToObservationPoints(spatialQuery.data?.cells ?? [], mapStartDate),
+    [spatialQuery.data, mapStartDate],
+  );
   const days = dailyQuery.data ?? [];
   const modisTotal = days.reduce((s, d) => s + d.modis, 0);
   const viirsTotal = days.reduce((s, d) => s + d.viirs, 0);
   const chartMax = Math.max(1, ...days.map((d) => d.modis + d.viirs));
   const gridAnalysis = useMemo(
-    () => computeAnalyticalGrid(detections, mapStartDate, endDate, gridSize),
-    [detections, mapStartDate, endDate, gridSize],
+    () => computeAnalyticalGrid(rawDetections, mapStartDate, endDate, gridSize),
+    [rawDetections, mapStartDate, endDate, gridSize],
   );
   const agreementRate = useMemo(() => {
     if (gridAnalysis.cells.length === 0) return null;
@@ -153,7 +163,7 @@ function Compare() {
         </div>
         <div className="mt-4 grid grid-cols-4 gap-2">
           {[0.05, 0.1, 0.15, 0.25].map((size) => {
-            const result = computeAnalyticalGrid(detections, mapStartDate, endDate, size);
+            const result = computeAnalyticalGrid(rawDetections, mapStartDate, endDate, size);
             const rate = result.cells.length
               ? result.cells.filter((cell) => cell.modisCount > 0 && cell.viirsCount > 0).length /
                 result.cells.length
@@ -185,7 +195,7 @@ function Compare() {
             ANALYSIS PARAMETERS
           </div>
           <div className="flex flex-wrap items-end gap-4 lg:flex-col lg:items-stretch">
-<div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} mapBounds={mapBounds} />}</div><DownloadMenu area={region.name} bbox={bboxParts} startDate={startDate} endDate={endDate} sensors={sensors} displayedDetectionCount={detections.length} monthlyRows={(monthlyQuery.data ?? []) as Record<string, unknown>[]} />
+<div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} mapBounds={mapBounds} />}</div><DownloadMenu area={region.name} bbox={bboxParts} startDate={startDate} endDate={endDate} sensors={sensors} displayedDetectionCount={rawDetections.length} monthlyRows={(monthlyQuery.data ?? []) as Record<string, unknown>[]} />
           <DateRangeInputs
               startDate={startDate}
               endDate={endDate}
@@ -275,6 +285,9 @@ function Compare() {
                 )}
               </Suspense>
             </ClientOnly>
+          </div>
+          <div className="rounded border border-border bg-surface px-3 py-2 font-mono text-[10px] text-text-secondary" aria-live="polite">
+            {spatialQuery.isError ? <strong className="text-thermal-orange">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(spatialQuery.data?.counts ?? []).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching records · <strong className="text-text">{detections.length.toLocaleString()}</strong> aggregated cells rendered</>} · <strong className="text-text">{rawDetections.length.toLocaleString()}</strong> raw records sampled for inspection · {mode === "combined" ? "MODIS + VIIRS" : mode}
           </div>
 
           <div className="space-y-6">
