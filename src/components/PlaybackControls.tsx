@@ -3,24 +3,19 @@ import { useEffect, useMemo, useState } from "react";
 
 interface PlaybackControlsProps {
   dates: string[];
-  detections: Array<{ acq_date: string; sensor: "MODIS" | "VIIRS" }>;
+  days: Array<{ date: string; modis: number; viirs: number }>;
   onDateChange: (date: string) => void;
 }
 
-export function PlaybackControls({ dates, detections, onDateChange }: PlaybackControlsProps) {
+export function PlaybackControls({ dates, days, onDateChange }: PlaybackControlsProps) {
   const [index, setIndex] = useState(0);
   const [speed, setSpeed] = useState<1 | 2 | 4>(1);
   const [playing, setPlaying] = useState(false);
   const currentDate = dates[index] ?? dates[0] ?? "—";
 
-  const counts = useMemo(() => {
-    const visible = detections.filter((item) => item.acq_date <= currentDate);
-    return {
-      modis: visible.filter((item) => item.sensor === "MODIS").length,
-      viirs: visible.filter((item) => item.sensor === "VIIRS").length,
-      total: visible.length,
-    };
-  }, [currentDate, detections]);
+  const counts = useMemo(() => days.reduce((total, day) => day.date <= currentDate
+    ? { modis: total.modis + day.modis, viirs: total.viirs + day.viirs, total: total.total + day.modis + day.viirs }
+    : total, { modis: 0, viirs: 0, total: 0 }), [currentDate, days]);
 
   useEffect(() => {
     if (currentDate !== "—") onDateChange(currentDate);

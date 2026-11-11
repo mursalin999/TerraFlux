@@ -157,6 +157,11 @@ function ExploreWorkspace() {
   const spatialQuery = useQuery({
     queryKey: ["spatial-bundle", debouncedSpatialInput.west, debouncedSpatialInput.south, debouncedSpatialInput.east, debouncedSpatialInput.north, debouncedSpatialInput.start_date, debouncedSpatialInput.end_date, debouncedSpatialInput.map_start_date, debouncedSpatialInput.map_end_date, debouncedSpatialInput.confidence?.join(",")],
     queryFn: ({ signal }) => fetchSpatialBundle(debouncedSpatialInput, signal),
+    placeholderData: (previousData, previousQuery) => {
+      const previousKey = previousQuery?.queryKey;
+      const sameFilters = previousKey?.[1] === debouncedSpatialInput.west && previousKey?.[2] === debouncedSpatialInput.south && previousKey?.[3] === debouncedSpatialInput.east && previousKey?.[4] === debouncedSpatialInput.north && previousKey?.[5] === debouncedSpatialInput.start_date && previousKey?.[6] === debouncedSpatialInput.end_date && previousKey?.[9] === debouncedSpatialInput.confidence?.join(",");
+      return sameFilters ? previousData : undefined;
+    },
     staleTime: 120000,
   });
   useEffect(() => {
@@ -166,13 +171,13 @@ function ExploreWorkspace() {
   }, [spatialQuery.isFetching, spatialQuery.dataUpdatedAt]);
 
   const rawDetections = useMemo(() => query.data ?? [], [query.data]);
-  const hasSpatialInputChanged = spatialQueryInput.west !== debouncedSpatialInput.west || spatialQueryInput.south !== debouncedSpatialInput.south || spatialQueryInput.east !== debouncedSpatialInput.east || spatialQueryInput.north !== debouncedSpatialInput.north || spatialQueryInput.start_date !== debouncedSpatialInput.start_date || spatialQueryInput.end_date !== debouncedSpatialInput.end_date || spatialQueryInput.map_start_date !== debouncedSpatialInput.map_start_date || spatialQueryInput.map_end_date !== debouncedSpatialInput.map_end_date;
+  const hasSpatialInputChanged = spatialQueryInput.west !== debouncedSpatialInput.west || spatialQueryInput.south !== debouncedSpatialInput.south || spatialQueryInput.east !== debouncedSpatialInput.east || spatialQueryInput.north !== debouncedSpatialInput.north || spatialQueryInput.start_date !== debouncedSpatialInput.start_date || spatialQueryInput.end_date !== debouncedSpatialInput.end_date || spatialQueryInput.map_start_date !== debouncedSpatialInput.map_start_date || spatialQueryInput.map_end_date !== debouncedSpatialInput.map_end_date || spatialQueryInput.confidence?.join(",") !== debouncedSpatialInput.confidence?.join(",");
   const spatialBundle = hasSpatialInputChanged || spatialQuery.isFetching ? undefined : spatialQuery.data;
   const spatialCells = useMemo(() => spatialBundle?.cells ?? [], [spatialBundle]);
   const renderedCells = useMemo(() => spatialCellsToObservationPoints(spatialCells, playbackDate ?? filters.startDate), [spatialCells, filters.startDate, playbackDate]);
   const drawnCells = useMemo(() => renderedCells.filter((point) => activeSensor === "HARMONIZED" || point.sensor === activeSensor), [renderedCells, activeSensor]);
-  const playbackDates = useMemo(() => (spatialBundle?.days ?? []).map((item) => item.date), [spatialBundle]);
-  const timelineDays = spatialBundle?.days ?? [];
+  const timelineDays = spatialQuery.data?.days ?? [];
+  const playbackDates = useMemo(() => timelineDays.map((item) => item.date), [timelineDays]);
 
   // Derived views and inspector context use the same complete cell aggregation as the map.
   const gridAnalysis = useMemo(() => computeAnalyticalGrid(renderedCells, filters.startDate, filters.endDate), [renderedCells, filters.startDate, filters.endDate]);
@@ -459,7 +464,7 @@ function ExploreWorkspace() {
           {isTableModalOpen && <span>{rawDetections.length.toLocaleString()} raw records sampled for inspection</span>}
         </div>
   <div className="order-3">
-  <PlaybackControls dates={playbackDates} detections={renderedCells} onDateChange={setPlaybackDate} />
+  <PlaybackControls dates={playbackDates} days={timelineDays} onDateChange={setPlaybackDate} />
   </div>
   {viewCaption && (
   <p className="order-3 -mt-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
