@@ -20,8 +20,9 @@ import {
   Map as MapIcon,
 } from "lucide-react";
 import { REGIONS, getRegion, parseBbox, SENSOR_META } from "@/lib/regions";
+import { SENSOR_COLORS } from "@/lib/sensor-colors";
 import { defaultFilters, type FireFilters, type ConfidenceTier } from "@/components/FireControls";
-import { getDetections, getSpatialSummary, spatialCellsToObservationPoints, fetchFireData, backfillFireData, backfillPresetHistory } from "@/lib/firelens.functions";
+import { getDetections, fetchSpatialBundle, spatialCellsToObservationPoints, fetchFireData, backfillFireData, backfillPresetHistory } from "@/lib/firelens.functions";
 import {
   computeAnalyticalGrid,
   AGREEMENT_DEFINITIONS,
@@ -136,55 +137,50 @@ function ExploreWorkspace() {
 
   // Raw records power inspection and analysis; the spatial RPC powers the map using every matching record.
   const query = useQuery({
-    queryKey: ["detections", filters.regionId, filters.startDate, filters.endDate, activeSensor, filters.confidence.join(",")],
-    queryFn: () => getDetections({ data: { ...queryInput, sample_limit: 10000 } }),
+    queryKey: ["detections", filters.regionId, bboxParts.west, bboxParts.south, bboxParts.east, bboxParts.north, filters.startDate, filters.endDate, filters.confidence.join(",")],
+    queryFn: () => getDetections({ data: { ...queryInput, sensors: undefined, sample_limit: 1000 } }),
+    enabled: isTableModalOpen,
     staleTime: 120000,
   });
   const spatialQueryInput = useMemo(() => {
-    if (!playbackDate) return queryInput;
-    const cutoff = new Date(`${playbackDate}T00:00:00Z`);
-    cutoff.setUTCDate(cutoff.getUTCDate() - 3);
-    return { ...queryInput, start_date: cutoff.toISOString().slice(0, 10), end_date: playbackDate };
-  }, [queryInput, playbackDate]);
+    if (!playbackDate) return { ...bboxParts, start_date: filters.startDate, end_date: filters.endDate, confidence: filters.confidence.length ? filters.confidence : undefined };
+    const from = new Date(`${playbackDate}T00:00:00Z`);
+    from.setUTCDate(from.getUTCDate() - 3);
+    return { ...bboxParts, start_date: filters.startDate, end_date: filters.endDate, map_start_date: from.toISOString().slice(0, 10), map_end_date: playbackDate, confidence: filters.confidence.length ? filters.confidence : undefined };
+  }, [bboxParts.west, bboxParts.south, bboxParts.east, bboxParts.north, filters.startDate, filters.endDate, filters.confidence, playbackDate]);
+  const [debouncedSpatialInput, setDebouncedSpatialInput] = useState(spatialQueryInput);
+  const [stillLoading, setStillLoading] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSpatialInput(spatialQueryInput), 150);
+    return () => window.clearTimeout(timer);
+  }, [spatialQueryInput]);
   const spatialQuery = useQuery({
-    queryKey: ["spatial-summary", filters.regionId, filters.startDate, filters.endDate, playbackDate, activeSensor, filters.confidence.join(",")],
-    queryFn: () => getSpatialSummary({ data: spatialQueryInput }),
+    queryKey: ["spatial-bundle", debouncedSpatialInput.west, debouncedSpatialInput.south, debouncedSpatialInput.east, debouncedSpatialInput.north, debouncedSpatialInput.start_date, debouncedSpatialInput.end_date, debouncedSpatialInput.map_start_date, debouncedSpatialInput.map_end_date, debouncedSpatialInput.confidence?.join(",")],
+    queryFn: ({ signal }) => fetchSpatialBundle(debouncedSpatialInput, signal),
+    placeholderData: (previousData, previousQuery) => {
+      const previousKey = previousQuery?.queryKey;
+      const sameFilters = previousKey?.[1] === debouncedSpatialInput.west && previousKey?.[2] === debouncedSpatialInput.south && previousKey?.[3] === debouncedSpatialInput.east && previousKey?.[4] === debouncedSpatialInput.north && previousKey?.[5] === debouncedSpatialInput.start_date && previousKey?.[6] === debouncedSpatialInput.end_date && previousKey?.[9] === debouncedSpatialInput.confidence?.join(",");
+      return sameFilters ? previousData : undefined;
+    },
     staleTime: 120000,
   });
+  useEffect(() => {
+    if (!spatialQuery.isFetching) { setStillLoading(false); return; }
+    const timer = window.setTimeout(() => setStillLoading(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [spatialQuery.isFetching, spatialQuery.dataUpdatedAt]);
 
   const rawDetections = useMemo(() => query.data ?? [], [query.data]);
-  const spatialCells = useMemo(() => spatialQuery.data?.cells ?? [], [spatialQuery.data]);
-  const renderedCells = useMemo(
-    () => spatialCellsToObservationPoints(spatialCells, filters.startDate),
-    [spatialCells, filters.startDate],
-  );
-  const playbackDates = useMemo(
-    () => Array.from(new Set(rawDetections.map((item) => item.acq_date).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))).sort(),
-    [rawDetections],
-  );
-  const visibleDetections = useMemo(() => {
-    if (!playbackDate) return rawDetections;
-    const cutoff = new Date(`${playbackDate}T00:00:00Z`);
-    cutoff.setUTCDate(cutoff.getUTCDate() - 3);
-    return rawDetections.filter((item) => item.acq_date <= playbackDate && item.acq_date >= cutoff.toISOString().slice(0, 10));
-  }, [playbackDate, rawDetections]);
+  const hasSpatialInputChanged = spatialQueryInput.west !== debouncedSpatialInput.west || spatialQueryInput.south !== debouncedSpatialInput.south || spatialQueryInput.east !== debouncedSpatialInput.east || spatialQueryInput.north !== debouncedSpatialInput.north || spatialQueryInput.start_date !== debouncedSpatialInput.start_date || spatialQueryInput.end_date !== debouncedSpatialInput.end_date || spatialQueryInput.map_start_date !== debouncedSpatialInput.map_start_date || spatialQueryInput.map_end_date !== debouncedSpatialInput.map_end_date || spatialQueryInput.confidence?.join(",") !== debouncedSpatialInput.confidence?.join(",");
+  const spatialBundle = hasSpatialInputChanged || spatialQuery.isFetching ? undefined : spatialQuery.data;
+  const spatialCells = useMemo(() => spatialBundle?.cells ?? [], [spatialBundle]);
+  const renderedCells = useMemo(() => spatialCellsToObservationPoints(spatialCells, playbackDate ?? filters.startDate), [spatialCells, filters.startDate, playbackDate]);
+  const drawnCells = useMemo(() => renderedCells.filter((point) => activeSensor === "HARMONIZED" || point.sensor === activeSensor), [renderedCells, activeSensor]);
+  const timelineDays = spatialQuery.data?.days ?? [];
+  const playbackDates = useMemo(() => timelineDays.map((item) => item.date), [timelineDays]);
 
-  // Compute common analytical grid, anomaly percentiles, and agreement levels
-  const gridAnalysis = useMemo(() => {
-    return computeAnalyticalGrid(rawDetections, filters.startDate, filters.endDate);
-  }, [rawDetections, filters.startDate, filters.endDate]);
-
-  // Aggregate daily detections for the collapsible timeline
-  const timelineDays = useMemo(() => {
-    const map = new Map<string, { date: string; modis: number; viirs: number }>();
-    for (const d of rawDetections) {
-      const entry = map.get(d.acq_date) ?? { date: d.acq_date, modis: 0, viirs: 0 };
-      if (d.sensor === "MODIS") entry.modis++;
-      else entry.viirs++;
-      map.set(d.acq_date, entry);
-    }
-    return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
-  }, [rawDetections]);
+  // Derived views and inspector context use the same complete cell aggregation as the map.
+  const gridAnalysis = useMemo(() => computeAnalyticalGrid(renderedCells, filters.startDate, filters.endDate), [renderedCells, filters.startDate, filters.endDate]);
 
   // Signature caption based on active sensor
   const viewCaption = useMemo(() => {
@@ -439,8 +435,9 @@ function ExploreWorkspace() {
                 />
               ) : (
                 <FireMap
-	detections={renderedCells}
+	detections={drawnCells}
           center={mapCenter}
+          bounds={bboxParts}
           zoom={mapZoom}
           onBboxDrawn={(bbox) => { setFilters((current) => ({ ...current, regionId: "custom" })); setCustomBbox(bbox); }}
   onBoundsChange={setMapBounds}
@@ -452,15 +449,22 @@ function ExploreWorkspace() {
               )}
             </Suspense>
           </ClientOnly>
+          {(hasSpatialInputChanged || spatialQuery.isFetching || spatialQuery.isError) && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role="status" aria-live="polite">
+              <div className="flex max-w-md flex-col items-center gap-3 rounded border border-border bg-surface p-4 text-center font-mono text-xs text-text shadow-xl">
+                {spatialQuery.isError ? <><span className="text-anomaly-amber">{spatialQuery.error.message}</span><button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button></> : <><RefreshCw className="h-4 w-4 animate-spin text-data-blue" /><span>{stillLoading ? "Still loading..." : `Loading ${activeSensor === "HARMONIZED" ? "MODIS and VIIRS" : activeSensor} cells...`}</span>{stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}</>}
+              </div>
+            </div>
+          )}
         </div>
         <div className="order-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-border/70 bg-surface/80 px-3 py-2 font-mono text-[10px] text-text-secondary" aria-live="polite">
-          <span>{spatialQuery.isError ? <strong className="text-thermal-orange">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(spatialQuery.data?.counts ?? []).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching observations</>}</span>
-          <span><strong className="text-text">{spatialQuery.isError ? "—" : spatialCells.length.toLocaleString()}</strong> spatial cells rendered</span>
+          <span>{spatialQuery.isError ? <strong className="text-anomaly-amber">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(spatialBundle?.counts ?? []).filter((row) => activeSensor === "HARMONIZED" || row.sensor === activeSensor).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching observations</>}</span>
+          <span><strong className="text-text">{spatialQuery.isError ? "—" : drawnCells.length.toLocaleString()}</strong> spatial cells rendered</span>
           <span>0.15° aggregation · {activeSensor}</span>
-          {query.data && <span>{query.data.length.toLocaleString()} raw records sampled for inspection</span>}
+          {isTableModalOpen && <span>{rawDetections.length.toLocaleString()} raw records sampled for inspection</span>}
         </div>
   <div className="order-3">
-  <PlaybackControls dates={playbackDates} detections={rawDetections} onDateChange={setPlaybackDate} />
+  <PlaybackControls dates={playbackDates} days={timelineDays} onDateChange={setPlaybackDate} />
   </div>
   {viewCaption && (
   <p className="order-3 -mt-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
@@ -507,11 +511,12 @@ function ExploreWorkspace() {
                           ? "bg-data-blue text-bg shadow-sm"
                           : sensor === "VIIRS"
                             ? "bg-thermal-orange text-bg shadow-sm"
-                            : "bg-anomaly-amber text-bg shadow-sm"
+                            : "border border-border bg-surface-elevated text-text"
                         : "text-text-secondary hover:text-text"
                     }`}
+                    style={active && sensor === "HARMONIZED" ? { borderColor: SENSOR_COLORS.NEUTRAL, color: SENSOR_COLORS.NEUTRAL } : undefined}
                   >
-                    {sensor}
+                    {sensor === "HARMONIZED" ? <span className="inline-flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full bg-data-blue" /><i className="h-1.5 w-1.5 rounded-full bg-thermal-orange" />{sensor}</span> : sensor}
                   </button>
                 );
               })}
@@ -563,7 +568,7 @@ function ExploreWorkspace() {
               onClick={() => setMapProjection("2D")}
               className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs uppercase tracking-wider transition-colors ${
                 mapProjection === "2D"
-                  ? "border border-thermal-orange bg-thermal-orange/20 text-thermal-orange font-semibold"
+                  ? "border border-border bg-surface-elevated text-text-secondary font-semibold"
                   : "text-text-secondary hover:text-text"
               }`}
             >
@@ -670,11 +675,12 @@ function ExploreWorkspace() {
                       ? "bg-data-blue text-bg"
                       : sensor === "VIIRS"
                         ? "bg-thermal-orange text-bg"
-                        : "bg-anomaly-amber text-bg"
+                        : "border border-border bg-surface-elevated text-text"
                     : "text-text-secondary"
                 }`}
+                style={activeSensor === "HARMONIZED" && sensor === "HARMONIZED" ? { borderColor: SENSOR_COLORS.NEUTRAL, color: SENSOR_COLORS.NEUTRAL } : undefined}
               >
-                {sensor}
+                {sensor === "HARMONIZED" ? <span className="inline-flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full bg-data-blue" /><i className="h-1.5 w-1.5 rounded-full bg-thermal-orange" />{sensor}</span> : sensor}
               </button>
             ))}
           </div>
@@ -769,8 +775,8 @@ function ExploreWorkspace() {
                   onClick={() => setMapProjection("2D")}
                   className={`flex items-center justify-center gap-1.5 rounded border py-1.5 text-center text-xs font-semibold ${
                     mapProjection === "2D"
-                      ? "border-thermal-orange bg-thermal-orange/20 text-thermal-orange"
-                      : "border-border bg-surface-elevated text-text-secondary"
+? "border-border bg-surface-elevated text-text-secondary"
+                    : "border-border bg-surface-elevated text-text-secondary"
                   }`}
                 >
                   <MapIcon className="h-3.5 w-3.5" />
@@ -805,7 +811,7 @@ function ExploreWorkspace() {
 
           {isLegendExpanded && (
             <div className="mt-2.5 space-y-2">
-              {activeView === "NATIVE" && (
+              {(activeView === "NATIVE" || activeView === "HARMONIZED") && (
                 <div className="space-y-1.5 text-[11px]">
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full border border-data-blue bg-transparent" />
@@ -941,13 +947,13 @@ function ExploreWorkspace() {
           {timelineExpanded && (
             <div className="w-full max-h-[48vh] overflow-y-auto border-t border-border bg-surface/95 p-3 shadow-2xl backdrop-blur-xl sm:p-4 animate-in slide-in-from-bottom duration-300">
               <div className="mx-auto max-w-6xl">
-                <ActivityTimeline
-                  days={timelineDays}
-                  detections={rawDetections}
+              <ActivityTimeline
+                days={timelineDays}
+                detections={renderedCells}
   selectedDate={playbackDate ?? selectedAnalysisDate}
   onSelectDate={(date) => { setSelectedAnalysisDate(date); setPlaybackDate(date); }}
                   onFlyTo={(date) => {
-                    const firstOnDate = rawDetections.find((d) => d.acq_date === date);
+                    const firstOnDate = renderedCells.find((d) => d.acq_date === date);
                     if (firstOnDate) {
                       setSelectedObs(firstOnDate);
                     }

@@ -18,8 +18,10 @@
   --color-surface-elevated: var(--surface-elevated);
   --color-text: var(--text);
   --color-text-secondary: var(--text-secondary);
-  --color-data-blue: var(--data-blue);
-  --color-thermal-orange: var(--thermal-orange);
+  --color-sensor-modis: var(--sensor-modis);
+  --color-sensor-viirs: var(--sensor-viirs);
+  --color-data-blue: var(--sensor-modis);
+  --color-thermal-orange: var(--sensor-viirs);
   --color-anomaly-amber: var(--anomaly-amber);
   --color-agreement-teal: var(--agreement-teal);
   --color-critical-red: var(--critical-red);
@@ -44,7 +46,7 @@
   --color-input: var(--border);
   --color-ring: var(--data-blue);
 
-  --color-ember: var(--thermal-orange);
+  --color-ember: var(--anomaly-amber);
   --color-ember-foreground: var(--text);
   --color-steel: var(--data-blue);
   --color-steel-foreground: var(--text);
@@ -72,8 +74,10 @@
   --surface-elevated: #0b1728;
   --text: #f4f7fa;
   --text-secondary: #91a0b5;
-  --data-blue: #4da3ff;
-  --thermal-orange: #ff6a2a;
+  --sensor-modis: #4da3ff;
+  --sensor-viirs: #ff6a2a;
+  --data-blue: var(--sensor-modis);
+  --thermal-orange: var(--sensor-viirs);
   --anomaly-amber: #ffb547;
   --agreement-teal: #56d6c9;
   --critical-red: #ff4d4d;
@@ -98,7 +102,7 @@
   --input: var(--border);
   --ring: var(--data-blue);
 
-  --ember: var(--thermal-orange);
+  --ember: var(--anomaly-amber);
   --ember-foreground: var(--text);
   --steel: var(--data-blue);
   --steel-foreground: var(--text);
@@ -125,8 +129,10 @@
   --surface-elevated: #0b1728;
   --text: #f4f7fa;
   --text-secondary: #91a0b5;
-  --data-blue: #4da3ff;
-  --thermal-orange: #ff6a2a;
+  --sensor-modis: #4da3ff;
+  --sensor-viirs: #ff6a2a;
+  --data-blue: var(--sensor-modis);
+  --thermal-orange: var(--sensor-viirs);
   --anomaly-amber: #ffb547;
   --agreement-teal: #56d6c9;
   --critical-red: #ff4d4d;

@@ -43,12 +43,20 @@ export function CalendarHeatmap({ days, startDate, endDate, mode, onSelectDate }
           "bg-data-blue/75 border border-data-blue/70",
           "bg-data-blue border border-data-blue",
         ]
-      : [
+      : mode === "VIIRS"
+      ? [
           "bg-surface border border-border/40",
           "bg-thermal-orange/25 border border-thermal-orange/30",
           "bg-thermal-orange/50 border border-thermal-orange/50",
           "bg-thermal-orange/75 border border-thermal-orange/70",
           "bg-thermal-orange border border-thermal-orange",
+        ]
+      : [
+          "bg-surface border border-border/40",
+          "bg-anomaly-amber/25 border border-anomaly-amber/30",
+          "bg-anomaly-amber/50 border border-anomaly-amber/50",
+          "bg-anomaly-amber/75 border border-anomaly-amber/70",
+          "bg-anomaly-amber border border-anomaly-amber",
         ];
 
   // Build week columns starting on the Sunday before startDate.

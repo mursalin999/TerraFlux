@@ -1,9 +1,10 @@
 // Browser-only map module — imported lazily (React.lazy) behind <ClientOnly>.
 // Never import this module statically from a route.
 import "leaflet/dist/leaflet.css";
+import * as L from "leaflet";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents, Rectangle } from "react-leaflet";
 import { useEffect, useState } from "react";
-import { SENSOR_META } from "@/lib/regions";
+import { SENSOR_COLORS } from "@/lib/sensor-colors";
 
 export interface MapDetection {
   lat: number;
@@ -32,11 +33,12 @@ function DragRectangle({ onComplete }: { onComplete?: (bbox: { west: number; sou
   return <Rectangle bounds={[[Math.min(start[0], current[0]), Math.min(start[1], current[1])], [Math.max(start[0], current[0]), Math.max(start[1], current[1])]]} pathOptions={{ color: "#56D6C9", dashArray: "5 5" }} />;
 }
 
-function Recenter({ center, zoom }: { center: [number, number]; zoom: number }) {
+function Recenter({ center, zoom, bounds }: { center: [number, number]; zoom: number; bounds?: { west: number; south: number; east: number; north: number } }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom, map]);
+    if (bounds) map.fitBounds([[bounds.south, bounds.west], [bounds.north, bounds.east]], { padding: [16, 16], maxZoom: zoom, animate: false });
+    else map.setView(center, zoom);
+  }, [center[0], center[1], zoom, bounds?.west, bounds?.south, bounds?.east, bounds?.north, map]);
   return null;
 }
 
@@ -46,6 +48,7 @@ export default function FireMap({
   detections,
   center,
   zoom,
+  bounds,
   onSelectObservation,
   onBboxDrawn,
   onBoundsChange,
@@ -53,6 +56,7 @@ export default function FireMap({
   detections: MapDetection[];
   center: [number, number];
   zoom: number;
+  bounds?: { west: number; south: number; east: number; north: number };
   onSelectObservation?: (obs: MapDetection) => void;
   onBboxDrawn?: (bbox: { west: number; south: number; east: number; north: number }) => void;
   onBoundsChange?: (bbox: { west: number; south: number; east: number; north: number }) => void;
@@ -86,9 +90,11 @@ export default function FireMap({
         zoom={zoom}
         className="h-full w-full bg-[#030711]"
         scrollWheelZoom
+        preferCanvas
+        renderer={L.canvas({ padding: 0.5 })}
         attributionControl={false}
       >
-        <Recenter center={center} zoom={zoom} />
+        <Recenter center={center} zoom={zoom} bounds={bounds} />
         <MapBoundsReporter onChange={onBoundsChange} />
         <DragRectangle onComplete={onBboxDrawn} />
         <TileLayer
@@ -103,7 +109,6 @@ export default function FireMap({
         )}
         {shown.map((d, i) => {
           const isModis = d.sensor === "MODIS";
-          const meta = SENSOR_META[d.sensor];
           const countScale = d.observation_count ? Math.min(3.5, 1 + Math.log10(d.observation_count + 1) * 0.8) : 1;
           const frpScale = d.frp_mw ? Math.min(2.0, Math.max(0.7, Math.log10(d.frp_mw + 1))) : 1.0;
           const radius = (isModis ? 5 : 3) * countScale * frpScale;
@@ -117,17 +122,11 @@ export default function FireMap({
                 click: () => onSelectObservation?.(d),
               }}
               pathOptions={{
-                color: meta.color,
-                fillColor: meta.color,
+                color: SENSOR_COLORS[d.sensor],
+                fillColor: SENSOR_COLORS[d.sensor],
                 // MODIS = hollow ring (low fill opacity), VIIRS = solid marker
-                fillOpacity: isModis
-                  ? 0.15
-                  : d.confidence_tier === "high"
-                    ? 0.95
-                    : d.confidence_tier === "nominal"
-                      ? 0.7
-                      : 0.4,
-                weight: isModis ? 2 : 1,
+                fillOpacity: isModis ? 0.15 : 0.8,
+                weight: isModis ? 1.5 : 1,
                 opacity: 0.95,
               }}
             >

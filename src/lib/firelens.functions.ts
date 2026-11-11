@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { REGIONS, parseBbox } from "./regions";
+import { supabase } from "@/integrations/supabase/client";
 
 const bboxSchema = z
   .string()
@@ -150,14 +151,27 @@ export interface SpatialSummaryCell {
   sensor: "MODIS" | "VIIRS";
   cell_lat: number;
   cell_lon: number;
+  cell_size: number;
   observation_count: number;
+  cell_days: number;
+  frp_sum: number;
   max_frp: number | null;
+}
+
+export interface SpatialBundle {
+  cells: SpatialSummaryCell[];
+  counts: Array<{ sensor: string; matching_records: number }>;
+  days: Array<{ date: string; modis: number; viirs: number }>;
+  sensor_cell_days: { MODIS?: number; VIIRS?: number };
+  coverage: { first_date: string | null; last_date: string | null; active_days: number };
+  overlap: { both_cell_days: number; modis_only_cell_days: number; viirs_only_cell_days: number; overlap_months: number; raw_ratio: number | null };
+  sensitivity: Array<{ cell_size: number; agreement_rate: number }>;
 }
 
 export function spatialCellsToObservationPoints(cells: SpatialSummaryCell[], fallbackDate: string) {
   return cells.map((cell) => ({
-    lat: cell.cell_lat + 0.075,
-    lon: cell.cell_lon + 0.075,
+    lat: cell.cell_lat + cell.cell_size / 2,
+    lon: cell.cell_lon + cell.cell_size / 2,
     acq_date: fallbackDate,
     acq_time: "",
     sensor: cell.sensor,
@@ -166,77 +180,54 @@ export function spatialCellsToObservationPoints(cells: SpatialSummaryCell[], fal
     brightness_k: null,
     brightness2_k: null,
     frp_mw: cell.max_frp,
-    confidence_tier: "aggregated",
+    frp_sum: cell.frp_sum,
+    confidence_tier: "nominal",
     day_night: null,
     observation_count: cell.observation_count,
+    cell_days: cell.cell_days,
   }));
 }
 
-const spatialQuerySchema = detectionsQuerySchema.omit({ sample_limit: true });
+const spatialQuerySchema = detectionsQuerySchema.omit({ sample_limit: true }).extend({ map_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), map_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() });
 
-export const getSpatialSummary = createServerFn({ method: "GET" })
-  .inputValidator((data) => spatialQuerySchema.parse(data))
-  .handler(async ({ data }) => {
-    const sb = publicClient();
-    if (!sb) throw new Error("Supabase read credentials are unavailable; spatial observations were not loaded.");
-    const args = {
+export async function fetchSpatialBundle(
+  data: z.infer<typeof spatialQuerySchema>,
+  signal: AbortSignal,
+): Promise<SpatialBundle> {
+  const rpcClient = supabase as unknown as {
+    rpc: (name: string, args: Record<string, unknown>) => {
+      abortSignal: (requestSignal: AbortSignal) => Promise<{ data: unknown; error: { message: string } | null }>;
+    };
+  };
+  const { data: result, error } = await rpcClient
+    .rpc("spatial_detection_bundle", {
       p_west: data.west,
       p_south: data.south,
       p_east: data.east,
       p_north: data.north,
       p_from_date: data.start_date,
       p_to_date: data.end_date,
-      p_sensors: data.sensors ?? null,
       p_confidence: data.confidence ?? null,
-    };
-    const [cellsResult, countsResult] = await Promise.all([
-      sb.rpc("spatial_detection_summary", { ...args, p_cell_size: 0.15 }),
-      sb.rpc("spatial_detection_counts", args),
-    ]);
-    if (!cellsResult.error && !countsResult.error) {
-      return {
-        cells: (cellsResult.data ?? []) as SpatialSummaryCell[],
-        counts: (countsResult.data ?? []).map((row) => ({ sensor: String(row.sensor), matching_records: Number(row.matching_records) })),
-      };
-    }
+      p_map_from_date: data.map_start_date ?? null,
+      p_map_to_date: data.map_end_date ?? null,
+    })
+    .abortSignal(signal);
+  if (error) throw new Error(error.message);
+  return result as unknown as SpatialBundle;
+}
 
-    // Older deployments may not have the migration yet. Keep the map truthful by
-    // aggregating the real rows server-side instead of falling back to a fake/empty map.
-    const pageSize = 1000;
-    const cells = new Map<string, SpatialSummaryCell>();
-    const counts = new Map<string, number>();
-    let offset = 0;
-    while (true) {
-      let pageQuery = sb
-        .from("fire_detections")
-        .select("lat,lon,sensor,frp_mw")
-        .gte("lon", data.west).lte("lon", data.east)
-        .gte("lat", data.south).lte("lat", data.north)
-        .gte("acq_date", data.start_date).lte("acq_date", data.end_date)
-        .range(offset, offset + pageSize - 1);
-      if (data.sensors?.length) pageQuery = pageQuery.in("sensor", data.sensors);
-      if (data.confidence?.length) pageQuery = pageQuery.in("confidence_tier", data.confidence);
-      const { data: rows, error } = await pageQuery;
-      if (error) throw new Error(error.message);
-      for (const row of rows ?? []) {
-        const sensor = String(row.sensor);
-        const cellLat = Math.floor(Number(row.lat) / 0.15) * 0.15;
-        const cellLon = Math.floor(Number(row.lon) / 0.15) * 0.15;
-        const key = `${sensor}:${cellLat}:${cellLon}`;
-        const current = cells.get(key);
-        const frp = row.frp_mw == null ? null : Number(row.frp_mw);
-        if (current) {
-          current.observation_count += 1;
-          current.max_frp = current.max_frp == null ? frp : frp == null ? current.max_frp : Math.max(current.max_frp, frp);
-        } else {
-          cells.set(key, { sensor: sensor as "MODIS" | "VIIRS", cell_lat: cellLat, cell_lon: cellLon, observation_count: 1, max_frp: frp });
-        }
-        counts.set(sensor, (counts.get(sensor) ?? 0) + 1);
-      }
-      if (!rows || rows.length < pageSize) break;
-      offset += pageSize;
-    }
-    return { cells: Array.from(cells.values()), counts: Array.from(counts, ([sensor, matching_records]) => ({ sensor, matching_records })) };
+export const getSpatialSummary = createServerFn({ method: "GET" })
+  .inputValidator((data) => spatialQuerySchema.parse(data))
+  .handler(async ({ data }) => {
+    const sb = publicClient();
+    if (!sb) throw new Error("Supabase read credentials are unavailable; spatial observations were not loaded.");
+    const { data: result, error } = await sb.rpc("spatial_detection_bundle", {
+      p_west: data.west, p_south: data.south, p_east: data.east, p_north: data.north,
+      p_from_date: data.start_date, p_to_date: data.end_date, p_confidence: data.confidence ?? null,
+      p_map_from_date: data.map_start_date ?? null, p_map_to_date: data.map_end_date ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return result as unknown as SpatialBundle;
   });
 
 export const getDetections = createServerFn({ method: "GET" })
