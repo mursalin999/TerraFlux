@@ -18,6 +18,8 @@ export interface ObservationPoint {
   confidence_raw?: string | null;
   day_night: string | null;
   observation_count?: number;
+  cell_days?: number;
+  frp_sum?: number;
 }
 
 interface GlobePoint extends ObservationPoint {
@@ -96,7 +98,7 @@ export default function EarthGlobe({
         lat: obs.lat,
         lng: obs.lon,
         size: radius,
-        color: isSelected ? "#56D6C9" : isModis ? SENSOR_META.MODIS.color : SENSOR_META.VIIRS.color,
+        color: obs.sensor === "MODIS" ? SENSOR_META.MODIS.color : SENSOR_META.VIIRS.color,
         altitude: isSelected ? 0.025 : 0.008,
       };
     });
@@ -156,7 +158,7 @@ export default function EarthGlobe({
               color: pt.color,
               side: THREE.DoubleSide,
               transparent: true,
-              opacity: 0.9,
+              opacity: 0.15,
             });
             const ringMesh = new THREE.Mesh(ringGeo, ringMat);
             group.add(ringMesh);
@@ -167,7 +169,7 @@ export default function EarthGlobe({
               color: pt.color,
               side: THREE.DoubleSide,
               transparent: true,
-              opacity: 0.95,
+              opacity: 0.8,
             });
             const circleMesh = new THREE.Mesh(circleGeo, circleMat);
             group.add(circleMesh);

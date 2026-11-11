@@ -92,12 +92,13 @@ export function computeAnalyticalGrid(
     }
 
     cell.observations.push(obs);
+    const observationWeight = obs.cell_days ?? 1;
     if (obs.sensor === "MODIS") {
-      cell.modisCount += 1;
+      cell.modisCount += observationWeight;
     } else {
-      cell.viirsCount += 1;
+      cell.viirsCount += observationWeight;
     }
-    cell.totalCount += 1;
+    cell.totalCount += observationWeight;
 
     if (obs.day_night === "D") cell.dayCount += 1;
     if (obs.day_night === "N") cell.nightCount += 1;

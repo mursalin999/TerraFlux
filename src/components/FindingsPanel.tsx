@@ -94,7 +94,7 @@ export function FindingsPanel({
             <span className="font-semibold text-thermal-orange">
               VIIRS {viirs.toLocaleString()}
             </span>{" "}
-            · MODIS {modis.toLocaleString()}
+            · <span className="font-semibold text-data-blue">MODIS {modis.toLocaleString()}</span>
           </p>
           <p className="mt-1 font-mono text-xs text-text-secondary">
             RATIO: {ratio == null ? "—" : `${ratio.toFixed(1)}x`}

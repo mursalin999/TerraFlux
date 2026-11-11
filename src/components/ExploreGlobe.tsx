@@ -194,7 +194,7 @@ export default function ExploreGlobe({
   // Points preparation with sensor styling, FRP scaling, and view adaptation
   const customPoints = useMemo(() => {
     // Analytical views render their derived cells; native observations stay visible only in NATIVE.
-    if (activeView !== "NATIVE") return [];
+    if (activeView !== "NATIVE" && activeView !== "HARMONIZED") return [];
 
     // Spatial summaries are bounded cells representing the full filtered population;
     // do not apply the old mobile raw-record slice to them.
@@ -214,13 +214,12 @@ export default function ExploreGlobe({
         selectedObservation.acq_time === obs.acq_time &&
         selectedObservation.sensor === obs.sensor;
 
-      let color = isModis ? SENSOR_META.MODIS.color : SENSOR_META.VIIRS.color;
-      let opacity = 0.9;
+      let color = obs.sensor === "MODIS" ? SENSOR_META.MODIS.color : SENSOR_META.VIIRS.color;
+      let opacity = isModis ? 0.15 : 0.8;
 
       if (activeView === "HARMONIZED") {
         // Derived analytical mode uses amber, while NATIVE harmonized keeps sensor identity.
         color = obs.sensor === "MODIS" ? SENSOR_META.MODIS.color : SENSOR_META.VIIRS.color;
-        opacity = 0.95;
       } else if (activeView === "ANOMALY") {
         // Anomaly highlight in amber
         color = obs.frp_mw && obs.frp_mw > 50 ? "#FFB547" : "#91A0B5";
@@ -228,11 +227,6 @@ export default function ExploreGlobe({
       } else if (activeView === "AGREEMENT") {
         color = "#56D6C9"; // agreement teal
         opacity = 0.85;
-      }
-
-      if (isSelected) {
-        color = "#FFFFFF";
-        opacity = 1.0;
       }
 
       return {

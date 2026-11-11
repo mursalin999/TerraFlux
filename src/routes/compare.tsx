@@ -1,18 +1,17 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { buildHarmonizedSeries, type MonthlyAggregate } from "@/lib/harmonize";
 import { useQuery } from "@tanstack/react-query";
-import { Globe2, Map as MapIcon } from "lucide-react";
+import { Globe2, Map as MapIcon, RefreshCw } from "lucide-react";
 import {
   REGIONS,
   getRegion,
   parseBbox,
   SENSOR_META,
-  HARMONIZED_META,
   type SensorId,
 } from "@/lib/regions";
 import { RegionSelect, DateRangeInputs, defaultFilters } from "@/components/FireControls";
-import { getDetections, getSpatialSummary, spatialCellsToObservationPoints, getDailyCounts, getMonthlySeries } from "@/lib/firelens.functions";
+import { fetchSpatialBundle, spatialCellsToObservationPoints, getMonthlySeries } from "@/lib/firelens.functions";
 import { HarmonizationSection } from "@/components/HarmonizationSection";
 import { EmptyState } from "@/components/EmptyState";
 import { ObservationInspector } from "@/components/ObservationInspector";
@@ -23,6 +22,7 @@ import CompareChart from "@/components/CompareChart";
 import { FindingsPanel } from "@/components/FindingsPanel";
 import { UnusualDayDrawer } from "@/components/UnusualDayDrawer";
 import { computeAnalyticalGrid } from "@/lib/analyticalGrid";
+import { SENSOR_COLORS } from "@/lib/sensor-colors";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
 import { DownloadMenu } from "@/components/DownloadMenu";
 import { bboxCenter } from "@/lib/custom-area";
@@ -67,32 +67,23 @@ function Compare() {
   const bboxParts = regionId === "custom" ? customBbox : parseBbox(region.bbox);
   const mapCenter = regionId === "custom" ? bboxCenter(customBbox) : region.center;
   const mapZoom = regionId === "custom" ? 7 : region.zoom;
-  const sensors = mode === "combined" ? undefined : [mode];
-  const mapStartDate = useMemo(() => {
-    const date = new Date(`${endDate}T00:00:00Z`);
-    date.setUTCDate(date.getUTCDate() - 365);
-    return date.toISOString().slice(0, 10);
-  }, [endDate]);
-
-  const mapQuery = useQuery({
-    queryKey: ["compare-map", regionId, mapStartDate, endDate, mode],
-    queryFn: () =>
-      getDetections({
-        data: { ...bboxParts, start_date: mapStartDate, end_date: endDate, sensors, sample_limit: 4000 },
-      }),
-  });
-
+  const [debouncedMapInput, setDebouncedMapInput] = useState({ ...bboxParts, start_date: startDate, end_date: endDate });
+  const [stillLoading, setStillLoading] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedMapInput({ ...bboxParts, start_date: startDate, end_date: endDate }), 150);
+    return () => window.clearTimeout(timer);
+  }, [bboxParts.west, bboxParts.south, bboxParts.east, bboxParts.north, startDate, endDate]);
+  const mapInputPending = bboxParts.west !== debouncedMapInput.west || bboxParts.south !== debouncedMapInput.south || bboxParts.east !== debouncedMapInput.east || bboxParts.north !== debouncedMapInput.north || startDate !== debouncedMapInput.start_date || endDate !== debouncedMapInput.end_date;
   const spatialQuery = useQuery({
-    queryKey: ["compare-spatial-summary", regionId, mapStartDate, endDate, mode],
-    queryFn: () => getSpatialSummary({ data: { ...bboxParts, start_date: mapStartDate, end_date: endDate, sensors } }),
+    queryKey: ["compare-spatial-bundle", debouncedMapInput.west, debouncedMapInput.south, debouncedMapInput.east, debouncedMapInput.north, debouncedMapInput.start_date, debouncedMapInput.end_date],
+    queryFn: ({ signal }) => fetchSpatialBundle(debouncedMapInput, signal),
     staleTime: 120000,
   });
-
-  const dailyQuery = useQuery({
-    queryKey: ["daily-counts", regionId, startDate, endDate],
-    queryFn: () =>
-      getDailyCounts({ data: { ...bboxParts, start_date: startDate, end_date: endDate } }),
-  });
+  useEffect(() => {
+    if (!spatialQuery.isFetching) { setStillLoading(false); return; }
+    const timer = window.setTimeout(() => setStillLoading(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [spatialQuery.isFetching, spatialQuery.dataUpdatedAt]);
 
   const monthlyQuery = useQuery({
     queryKey: ["monthly-series", regionId, startDate, endDate],
@@ -104,26 +95,22 @@ function Compare() {
     [monthlyQuery.data, startDate, endDate],
   );
 
-  const rawDetections = useMemo(() => mapQuery.data ?? [], [mapQuery.data]);
-  const detections = useMemo(
-    () => spatialCellsToObservationPoints(spatialQuery.data?.cells ?? [], mapStartDate),
-    [spatialQuery.data, mapStartDate],
-  );
-  const days = dailyQuery.data ?? [];
+  const spatialBundle = mapInputPending ? undefined : spatialQuery.data;
+  const allSensorCells = useMemo(() => spatialCellsToObservationPoints(spatialBundle?.cells ?? [], startDate), [spatialBundle, startDate]);
+  const detections = useMemo(() => (spatialQuery.isFetching || mapInputPending ? [] : allSensorCells.filter((item) => mode === "combined" || item.sensor === mode)), [allSensorCells, mode, spatialQuery.isFetching, mapInputPending]);
+  const days = spatialBundle?.days ?? [];
   const modisTotal = days.reduce((s, d) => s + d.modis, 0);
   const viirsTotal = days.reduce((s, d) => s + d.viirs, 0);
-  const chartMax = Math.max(1, ...days.map((d) => d.modis + d.viirs));
   const gridAnalysis = useMemo(
-    () => computeAnalyticalGrid(rawDetections, mapStartDate, endDate, gridSize),
-    [rawDetections, mapStartDate, endDate, gridSize],
+    () => computeAnalyticalGrid(allSensorCells, startDate, endDate, gridSize),
+    [allSensorCells, startDate, endDate, gridSize],
   );
   const agreementRate = useMemo(() => {
-    if (gridAnalysis.cells.length === 0) return null;
-    return (
-      gridAnalysis.cells.filter((cell) => cell.modisCount > 0 && cell.viirsCount > 0).length /
-      gridAnalysis.cells.length
-    );
-  }, [gridAnalysis.cells]);
+    if (!spatialBundle) return null;
+    return spatialBundle.sensitivity.find((item) => item.cell_size === gridSize)?.agreement_rate ?? null;
+  }, [spatialBundle, gridSize]);
+  const coverage = spatialBundle?.coverage;
+  const cellDays = { MODIS: spatialBundle?.sensor_cell_days.MODIS ?? 0, VIIRS: spatialBundle?.sensor_cell_days.VIIRS ?? 0 };
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   return (
@@ -151,7 +138,7 @@ function Compare() {
       </div>
 
       <div className="mt-6">
-        <HarmonizationSection result={monthlyAnalysis} loading={monthlyQuery.isLoading} />
+          <HarmonizationSection result={monthlyAnalysis} loading={monthlyQuery.isLoading} observed={{ modisCellDays: cellDays.MODIS, viirsCellDays: cellDays.VIIRS, bothCellDays: spatialBundle?.overlap.both_cell_days ?? 0, modisOnlyCellDays: spatialBundle?.overlap.modis_only_cell_days ?? 0, viirsOnlyCellDays: spatialBundle?.overlap.viirs_only_cell_days ?? 0, overlapMonths: spatialBundle?.overlap.overlap_months ?? 0, rawRatio: spatialBundle?.overlap.raw_ratio ?? null }} />
       </div>
 
       <div className="mt-6 rounded-lg border border-border bg-surface p-5">
@@ -163,11 +150,7 @@ function Compare() {
         </div>
         <div className="mt-4 grid grid-cols-4 gap-2">
           {[0.05, 0.1, 0.15, 0.25].map((size) => {
-            const result = computeAnalyticalGrid(rawDetections, mapStartDate, endDate, size);
-            const rate = result.cells.length
-              ? result.cells.filter((cell) => cell.modisCount > 0 && cell.viirsCount > 0).length /
-                result.cells.length
-              : null;
+            const rate = spatialBundle?.sensitivity.find((item) => item.cell_size === size)?.agreement_rate ?? null;
             return (
               <button
                 key={size}
@@ -195,7 +178,7 @@ function Compare() {
             ANALYSIS PARAMETERS
           </div>
           <div className="flex flex-wrap items-end gap-4 lg:flex-col lg:items-stretch">
-<div><RegionSelect value={regionId} onChange={setRegionId} />{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} mapBounds={mapBounds} />}</div><DownloadMenu area={region.name} bbox={bboxParts} startDate={startDate} endDate={endDate} sensors={sensors} displayedDetectionCount={rawDetections.length} monthlyRows={(monthlyQuery.data ?? []) as Record<string, unknown>[]} />
+<div><RegionSelect value={regionId} onChange={setRegionId} /><p className="mt-1 font-mono text-[10px] text-text-secondary">Coverage: {coverage?.first_date && coverage.last_date ? `${coverage.first_date} to ${coverage.last_date} (${coverage.active_days} active days)` : "—"}</p>{regionId === "custom" && <CustomAreaControls value={customBbox} onChange={setCustomBbox} mapBounds={mapBounds} />}</div><DownloadMenu area={region.name} bbox={bboxParts} startDate={startDate} endDate={endDate} displayedDetectionCount={modisTotal + viirsTotal} monthlyRows={(monthlyQuery.data ?? []) as Record<string, unknown>[]} />
           <DateRangeInputs
               startDate={startDate}
               endDate={endDate}
@@ -220,11 +203,12 @@ function Compare() {
                       ? "border-data-blue bg-data-blue/20 text-data-blue font-semibold"
                       : m === "VIIRS"
                         ? "border-thermal-orange bg-thermal-orange/20 text-thermal-orange font-semibold"
-                        : "border-anomaly-amber bg-anomaly-amber/20 text-anomaly-amber font-semibold"
+                        : "border-border bg-surface-elevated font-semibold text-text"
                     : "border-border bg-surface text-text-secondary hover:text-text"
                 }`}
+                style={mode === "combined" && m === "combined" ? { borderColor: SENSOR_COLORS.NEUTRAL, color: SENSOR_COLORS.NEUTRAL } : undefined}
               >
-                {m === "combined" ? "HARMONIZED (BOTH)" : `${m} ONLY`}
+                {m === "combined" ? <span className="inline-flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-data-blue" /><i className="h-1.5 w-1.5 rounded-full bg-thermal-orange" />HARMONIZED (BOTH)</span> : `${m} ONLY`}
               </button>
             ))}
           </div>
@@ -285,9 +269,10 @@ function Compare() {
                 )}
               </Suspense>
             </ClientOnly>
+            {(mapInputPending || spatialQuery.isFetching || spatialQuery.isError) && <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role="status" aria-live="polite"><div className="flex max-w-md flex-col items-center gap-3 rounded border border-border bg-surface p-4 text-center font-mono text-xs text-text shadow-xl">{spatialQuery.isError ? <><span className="text-thermal-orange">{spatialQuery.error.message}</span><button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button></> : <><RefreshCw className="h-4 w-4 animate-spin text-data-blue" /><span>{stillLoading ? "Still loading..." : `Loading ${mode === "combined" ? "MODIS and VIIRS" : mode} cells...`}</span>{stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}</>}</div></div>}
           </div>
           <div className="rounded border border-border bg-surface px-3 py-2 font-mono text-[10px] text-text-secondary" aria-live="polite">
-            {spatialQuery.isError ? <strong className="text-thermal-orange">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(spatialQuery.data?.counts ?? []).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching records · <strong className="text-text">{detections.length.toLocaleString()}</strong> aggregated cells rendered</>} · <strong className="text-text">{rawDetections.length.toLocaleString()}</strong> raw records sampled for inspection · {mode === "combined" ? "MODIS + VIIRS" : mode}
+            {spatialQuery.isError ? <strong className="text-thermal-orange">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(modisTotal + viirsTotal).toLocaleString()}</strong> matching records · <strong className="text-text">{detections.length.toLocaleString()}</strong> aggregated cells rendered</>} · {mode === "combined" ? "MODIS + VIIRS" : mode}
           </div>
 
           <div className="space-y-6">
@@ -298,13 +283,7 @@ function Compare() {
                   MODIS (1 KM)
                 </div>
                 <div className="mt-2 font-mono text-3xl font-semibold text-data-blue">
-                  {dailyQuery.isLoading
-                    ? "LOADING"
-                    : modisTotal > 0
-                      ? modisTotal.toLocaleString()
-                      : dailyQuery.isError
-                        ? "UNAVAILABLE — QUERY ERROR"
-                        : "NO OBSERVATIONS IN RANGE"}
+                  {spatialQuery.isLoading || mapInputPending ? "LOADING" : modisTotal > 0 ? modisTotal.toLocaleString() : spatialQuery.isError ? "UNAVAILABLE — QUERY ERROR" : "NO OBSERVATIONS IN RANGE"}
                 </div>
                 <div className="mt-1 font-mono text-[11px] uppercase text-text-secondary">
                   OBSERVATIONS IN RANGE
@@ -316,13 +295,7 @@ function Compare() {
                   VIIRS (375 M)
                 </div>
                 <div className="mt-2 font-mono text-3xl font-semibold text-thermal-orange">
-                  {dailyQuery.isLoading
-                    ? "LOADING"
-                    : viirsTotal > 0
-                      ? viirsTotal.toLocaleString()
-                      : dailyQuery.isError
-                        ? "UNAVAILABLE — QUERY ERROR"
-                        : "NO OBSERVATIONS IN RANGE"}
+                  {spatialQuery.isLoading || mapInputPending ? "LOADING" : viirsTotal > 0 ? viirsTotal.toLocaleString() : spatialQuery.isError ? "UNAVAILABLE — QUERY ERROR" : "NO OBSERVATIONS IN RANGE"}
                 </div>
                 <div className="mt-1 font-mono text-[11px] uppercase text-text-secondary">
                   OBSERVATIONS IN RANGE
