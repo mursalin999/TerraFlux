@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { SENSOR_COLORS } from "@/lib/sensor-colors";
 import {
   Layers,
   Sparkles,
@@ -44,7 +45,7 @@ const PIPELINE_STEPS = [
     id: "spatial-harmonization",
     title: "2. SPATIAL HARMONIZATION",
     subtitle: "Equal-angle 0.15° grid; cell-days, g, and k made explicit",
-    color: "#38bdf8",
+    color: SENSOR_COLORS.MODIS,
     detail:
       "MODIS observes at 1,000 m nadir pixel resolution (expanding to ~4,800 m at scan edge), while VIIRS uses 375 m I-band imagery channels. TerraFlux compares them on a uniform 0.15° × 0.15° (~16.5 km) geodetic grid. A cell-day counts one occupied grid cell on one UTC date; it is not a raw fire count.",
   },
@@ -52,7 +53,7 @@ const PIPELINE_STEPS = [
     id: "temporal-harmonization",
     title: "3. TEMPORAL HARMONIZATION",
     subtitle: "Orbital overpass alignment by UTC calendar date",
-    color: "#fb923c",
+    color: SENSOR_COLORS.VIIRS,
     detail:
       "Terra (10:30 AM/PM), Aqua (1:30 AM/PM), and Suomi-NPP/NOAA-20 (1:30 AM/PM) cross the equator at different solar times. Temporal binning indexes observations by UTC acquisition date (YYYY-MM-DD) and night/day orbital flags, enabling synchronized temporal cross-referencing.",
   },
@@ -156,11 +157,11 @@ export function MethodologyPage() {
             <svg viewBox="0 0 860 160" className="w-full h-auto">
               <defs>
                 <linearGradient id="modisGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#38bdf8" />
+                  <stop offset="0%" stopColor={SENSOR_COLORS.MODIS} />
                   <stop offset="100%" stopColor="#94a3b8" />
                 </linearGradient>
                 <linearGradient id="viirsGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#fb923c" />
+                  <stop offset="0%" stopColor={SENSOR_COLORS.VIIRS} />
                   <stop offset="100%" stopColor="#94a3b8" />
                 </linearGradient>
               </defs>
@@ -171,7 +172,7 @@ export function MethodologyPage() {
                 y1="40"
                 x2="170"
                 y2="40"
-                stroke="#38bdf8"
+                stroke={SENSOR_COLORS.MODIS}
                 strokeWidth="1.5"
                 strokeDasharray="3,3"
               />
@@ -180,7 +181,7 @@ export function MethodologyPage() {
                 y1="120"
                 x2="170"
                 y2="120"
-                stroke="#fb923c"
+                stroke={SENSOR_COLORS.VIIRS}
                 strokeWidth="1.5"
                 strokeDasharray="3,3"
               />
@@ -201,8 +202,8 @@ export function MethodologyPage() {
 
               {/* Sequential Pipeline Connection Lines */}
               <line x1="330" y1="80" x2="360" y2="80" stroke="#94a3b8" strokeWidth="1.5" />
-              <line x1="450" y1="80" x2="480" y2="80" stroke="#38bdf8" strokeWidth="1.5" />
-              <line x1="570" y1="80" x2="600" y2="80" stroke="#fb923c" strokeWidth="1.5" />
+              <line x1="450" y1="80" x2="480" y2="80" stroke={SENSOR_COLORS.MODIS} strokeWidth="1.5" />
+              <line x1="570" y1="80" x2="600" y2="80" stroke={SENSOR_COLORS.VIIRS} strokeWidth="1.5" />
               <line x1="690" y1="80" x2="720" y2="80" stroke="#2dd4bf" strokeWidth="1.5" />
               <line x1="810" y1="80" x2="840" y2="80" stroke="#f59e0b" strokeWidth="1.5" />
 
@@ -215,13 +216,13 @@ export function MethodologyPage() {
                   height="32"
                   rx="4"
                   fill="#0d1e33"
-                  stroke="#38bdf8"
+                  stroke={SENSOR_COLORS.MODIS}
                   strokeWidth="1.2"
                 />
                 <text
                   x="45"
                   y="44"
-                  fill="#38bdf8"
+                  fill={SENSOR_COLORS.MODIS}
                   fontSize="10"
                   fontWeight="600"
                   textAnchor="middle"
@@ -240,13 +241,13 @@ export function MethodologyPage() {
                   height="32"
                   rx="4"
                   fill="#2d170a"
-                  stroke="#fb923c"
+                  stroke={SENSOR_COLORS.VIIRS}
                   strokeWidth="1.2"
                 />
                 <text
                   x="45"
                   y="124"
-                  fill="#fb923c"
+                  fill={SENSOR_COLORS.VIIRS}
                   fontSize="10"
                   fontWeight="600"
                   textAnchor="middle"
@@ -467,7 +468,7 @@ export function MethodologyPage() {
       {/* RADIOMETRIC LIMITATIONS */}
       <section className="mt-10 border-t border-border pt-8">
         <div className="mb-6 flex items-center gap-2">
-          <ShieldAlert className="h-5 w-5 text-thermal-orange" />
+          <ShieldAlert className="h-5 w-5 text-anomaly-amber" />
           <h2 className="font-headline text-2xl font-bold text-text">
             Known Radiometric Limitations
           </h2>

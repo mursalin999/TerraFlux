@@ -46,7 +46,7 @@
   --color-input: var(--border);
   --color-ring: var(--data-blue);
 
-  --color-ember: var(--thermal-orange);
+  --color-ember: var(--anomaly-amber);
   --color-ember-foreground: var(--text);
   --color-steel: var(--data-blue);
   --color-steel-foreground: var(--text);
@@ -102,7 +102,7 @@
   --input: var(--border);
   --ring: var(--data-blue);
 
-  --ember: var(--thermal-orange);
+  --ember: var(--anomaly-amber);
   --ember-foreground: var(--text);
   --steel: var(--data-blue);
   --steel-foreground: var(--text);

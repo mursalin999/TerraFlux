@@ -1,6 +1,7 @@
 // Browser-only map module — imported lazily (React.lazy) behind <ClientOnly>.
 // Never import this module statically from a route.
 import "leaflet/dist/leaflet.css";
+import * as L from "leaflet";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents, Rectangle } from "react-leaflet";
 import { useEffect, useState } from "react";
 import { SENSOR_COLORS } from "@/lib/sensor-colors";
@@ -32,11 +33,12 @@ function DragRectangle({ onComplete }: { onComplete?: (bbox: { west: number; sou
   return <Rectangle bounds={[[Math.min(start[0], current[0]), Math.min(start[1], current[1])], [Math.max(start[0], current[0]), Math.max(start[1], current[1])]]} pathOptions={{ color: "#56D6C9", dashArray: "5 5" }} />;
 }
 
-function Recenter({ center, zoom }: { center: [number, number]; zoom: number }) {
+function Recenter({ center, zoom, bounds }: { center: [number, number]; zoom: number; bounds?: { west: number; south: number; east: number; north: number } }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom, map]);
+    if (bounds) map.fitBounds([[bounds.south, bounds.west], [bounds.north, bounds.east]], { padding: [16, 16], maxZoom: zoom, animate: false });
+    else map.setView(center, zoom);
+  }, [center[0], center[1], zoom, bounds?.west, bounds?.south, bounds?.east, bounds?.north, map]);
   return null;
 }
 
@@ -46,6 +48,7 @@ export default function FireMap({
   detections,
   center,
   zoom,
+  bounds,
   onSelectObservation,
   onBboxDrawn,
   onBoundsChange,
@@ -53,6 +56,7 @@ export default function FireMap({
   detections: MapDetection[];
   center: [number, number];
   zoom: number;
+  bounds?: { west: number; south: number; east: number; north: number };
   onSelectObservation?: (obs: MapDetection) => void;
   onBboxDrawn?: (bbox: { west: number; south: number; east: number; north: number }) => void;
   onBoundsChange?: (bbox: { west: number; south: number; east: number; north: number }) => void;
@@ -87,9 +91,10 @@ export default function FireMap({
         className="h-full w-full bg-[#030711]"
         scrollWheelZoom
         preferCanvas
+        renderer={L.canvas({ padding: 0.5 })}
         attributionControl={false}
       >
-        <Recenter center={center} zoom={zoom} />
+        <Recenter center={center} zoom={zoom} bounds={bounds} />
         <MapBoundsReporter onChange={onBoundsChange} />
         <DragRectangle onComplete={onBboxDrawn} />
         <TileLayer

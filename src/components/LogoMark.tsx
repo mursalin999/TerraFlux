@@ -1,3 +1,5 @@
+import { SENSOR_COLORS } from "@/lib/sensor-colors";
+
 export function LogoMark({ className = "h-7 w-7" }: { className?: string }) {
   return (
     <svg
@@ -19,20 +21,20 @@ export function LogoMark({ className = "h-7 w-7" }: { className?: string }) {
       {/* Small terrestrial core glow */}
       <circle cx="14" cy="14" r="2.5" fill="#F4F7FA" opacity="0.9" />
 
-      {/* Orbit Arc 1: MODIS (--thermal-orange) */}
+      {/* Orbit Arc 1: MODIS */}
       <path
         d="M 4.5 18 C 7 7.5, 21 8, 23.5 17.5"
-        stroke="#FF6A2A"
+        stroke={SENSOR_COLORS.MODIS}
         strokeWidth="1.5"
         strokeDasharray="2.5 1.5"
         strokeLinecap="round"
         fill="none"
       />
 
-      {/* Orbit Arc 2: VIIRS (--thermal-orange), offset */}
+      {/* Orbit Arc 2: VIIRS, offset */}
       <path
         d="M 5.5 10.5 C 9 20.5, 21 19.5, 22.5 8"
-        stroke="#4DA3FF"
+        stroke={SENSOR_COLORS.VIIRS}
         strokeWidth="1.5"
         strokeLinecap="round"
         fill="none"

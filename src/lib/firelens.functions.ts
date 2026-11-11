@@ -194,7 +194,12 @@ export async function fetchSpatialBundle(
   data: z.infer<typeof spatialQuerySchema>,
   signal: AbortSignal,
 ): Promise<SpatialBundle> {
-  const { data: result, error } = await supabase
+  const rpcClient = supabase as unknown as {
+    rpc: (name: string, args: Record<string, unknown>) => {
+      abortSignal: (requestSignal: AbortSignal) => Promise<{ data: unknown; error: { message: string } | null }>;
+    };
+  };
+  const { data: result, error } = await rpcClient
     .rpc("spatial_detection_bundle", {
       p_west: data.west,
       p_south: data.south,

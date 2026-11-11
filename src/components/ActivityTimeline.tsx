@@ -349,7 +349,7 @@ export function ActivityAnalysis({
                   FRP SUMMARY
                 </div>
                 <div className="mt-1.5 font-mono text-sm text-text">
-                  Peak: <span className="font-bold text-thermal-orange">{frpStats.max} MW</span> ·
+                  Peak: <span className="font-bold text-anomaly-amber">{frpStats.max} MW</span> ·
                   Mean: <span className="font-bold text-text">{frpStats.mean} MW</span>
                 </div>
               </div>

@@ -67,7 +67,7 @@ export const SENSOR_META = {
     platforms: "Terra & Aqua",
     resolution_m: 1000,
     pixelLabel: "1 km pixel",
-    color: SENSOR_COLORS.MODIS
+    color: SENSOR_COLORS.MODIS,
     markerStyle: "hollow-ring",
     description:
       "Aqua & Terra · 1 km nadir resolution · twice-daily revisit per platform · 0–100 confidence score",
@@ -78,7 +78,7 @@ export const SENSOR_META = {
     platforms: "Suomi NPP & NOAA-20/21",
     resolution_m: 375,
     pixelLabel: "375 m pixel",
-    color: SENSOR_COLORS.VIIRS
+    color: SENSOR_COLORS.VIIRS,
     markerStyle: "solid",
     description:
       "NOAA-20/21 & Suomi NPP · 375 m I-band resolution · finer spatial boundary detection · low/nominal/high confidence",
@@ -87,7 +87,7 @@ export const SENSOR_META = {
 
 export const HARMONIZED_META = {
   label: "HARMONIZED",
-  color: SENSOR_COLORS.NEUTRAL
+  color: SENSOR_COLORS.NEUTRAL,
   agreementColor: "#56D6C9", // --agreement-teal
   description: "Cross-sensor spatial-temporal correspondence on a common analytical grid",
 } as const;

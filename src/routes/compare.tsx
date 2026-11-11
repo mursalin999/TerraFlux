@@ -7,7 +7,6 @@ import {
   REGIONS,
   getRegion,
   parseBbox,
-  SENSOR_META,
   type SensorId,
 } from "@/lib/regions";
 import { RegionSelect, DateRangeInputs, defaultFilters } from "@/components/FireControls";
@@ -138,7 +137,7 @@ function Compare() {
       </div>
 
       <div className="mt-6">
-          <HarmonizationSection result={monthlyAnalysis} loading={monthlyQuery.isLoading} observed={{ modisCellDays: cellDays.MODIS, viirsCellDays: cellDays.VIIRS, bothCellDays: spatialBundle?.overlap.both_cell_days ?? 0, modisOnlyCellDays: spatialBundle?.overlap.modis_only_cell_days ?? 0, viirsOnlyCellDays: spatialBundle?.overlap.viirs_only_cell_days ?? 0, overlapMonths: spatialBundle?.overlap.overlap_months ?? 0, rawRatio: spatialBundle?.overlap.raw_ratio ?? null }} />
+          <HarmonizationSection result={monthlyAnalysis} loading={monthlyQuery.isLoading} observed={{ modisCellDays: cellDays.MODIS, viirsCellDays: cellDays.VIIRS, bothCellDays: spatialBundle?.overlap.both_cell_days ?? 0, modisOnlyCellDays: spatialBundle?.overlap.modis_only_cell_days ?? 0, viirsOnlyCellDays: spatialBundle?.overlap.viirs_only_cell_days ?? 0, overlapMonths: monthlyAnalysis.overlapMonths, rawRatio: spatialBundle?.overlap.raw_ratio ?? null }} />
       </div>
 
       <div className="mt-6 rounded-lg border border-border bg-surface p-5">
@@ -235,8 +234,8 @@ function Compare() {
                 onClick={() => setMapProjection("2D")}
                 className={`flex min-h-11 items-center gap-1.5 rounded px-3 py-2 uppercase transition-colors ${
                   mapProjection === "2D"
-                    ? "border border-thermal-orange bg-thermal-orange/20 text-thermal-orange font-semibold"
-                    : "text-text-secondary hover:text-text"
+                        ? "border border-border bg-surface-elevated text-text-secondary font-semibold"
+                        : "text-text-secondary hover:text-text"
                 }`}
               >
                 <MapIcon className="h-3 w-3" />
@@ -259,6 +258,7 @@ function Compare() {
                   <FireMap
                     detections={detections}
             center={mapCenter}
+            bounds={bboxParts}
             zoom={mapZoom}
             onBboxDrawn={(bbox) => { setRegionId("custom"); setCustomBbox(bbox); }}
   onBoundsChange={setMapBounds}
@@ -269,10 +269,10 @@ function Compare() {
                 )}
               </Suspense>
             </ClientOnly>
-            {(mapInputPending || spatialQuery.isFetching || spatialQuery.isError) && <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role="status" aria-live="polite"><div className="flex max-w-md flex-col items-center gap-3 rounded border border-border bg-surface p-4 text-center font-mono text-xs text-text shadow-xl">{spatialQuery.isError ? <><span className="text-thermal-orange">{spatialQuery.error.message}</span><button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button></> : <><RefreshCw className="h-4 w-4 animate-spin text-data-blue" /><span>{stillLoading ? "Still loading..." : `Loading ${mode === "combined" ? "MODIS and VIIRS" : mode} cells...`}</span>{stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}</>}</div></div>}
+            {(mapInputPending || spatialQuery.isFetching || spatialQuery.isError) && <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role="status" aria-live="polite"><div className="flex max-w-md flex-col items-center gap-3 rounded border border-border bg-surface p-4 text-center font-mono text-xs text-text shadow-xl">{spatialQuery.isError ? <><span className="text-anomaly-amber">{spatialQuery.error.message}</span><button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button></> : <><RefreshCw className="h-4 w-4 animate-spin text-data-blue" /><span>{stillLoading ? "Still loading..." : `Loading ${mode === "combined" ? "MODIS and VIIRS" : mode} cells...`}</span>{stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}</>}</div></div>}
           </div>
           <div className="rounded border border-border bg-surface px-3 py-2 font-mono text-[10px] text-text-secondary" aria-live="polite">
-            {spatialQuery.isError ? <strong className="text-thermal-orange">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(modisTotal + viirsTotal).toLocaleString()}</strong> matching records · <strong className="text-text">{detections.length.toLocaleString()}</strong> aggregated cells rendered</>} · {mode === "combined" ? "MODIS + VIIRS" : mode}
+            {spatialQuery.isError ? <strong className="text-anomaly-amber">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(modisTotal + viirsTotal).toLocaleString()}</strong> matching records · <strong className="text-text">{detections.length.toLocaleString()}</strong> aggregated cells rendered</>} · {mode === "combined" ? "MODIS + VIIRS" : mode}
           </div>
 
           <div className="space-y-6">

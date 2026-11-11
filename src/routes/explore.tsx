@@ -137,7 +137,7 @@ function ExploreWorkspace() {
 
   // Raw records power inspection and analysis; the spatial RPC powers the map using every matching record.
   const query = useQuery({
-    queryKey: ["detections", filters.regionId, filters.startDate, filters.endDate, filters.confidence.join(",")],
+    queryKey: ["detections", filters.regionId, bboxParts.west, bboxParts.south, bboxParts.east, bboxParts.north, filters.startDate, filters.endDate, filters.confidence.join(",")],
     queryFn: () => getDetections({ data: { ...queryInput, sensors: undefined, sample_limit: 1000 } }),
     enabled: isTableModalOpen,
     staleTime: 120000,
@@ -432,6 +432,7 @@ function ExploreWorkspace() {
                 <FireMap
 	detections={drawnCells}
           center={mapCenter}
+          bounds={bboxParts}
           zoom={mapZoom}
           onBboxDrawn={(bbox) => { setFilters((current) => ({ ...current, regionId: "custom" })); setCustomBbox(bbox); }}
   onBoundsChange={setMapBounds}
@@ -446,13 +447,13 @@ function ExploreWorkspace() {
           {(hasSpatialInputChanged || spatialQuery.isFetching || spatialQuery.isError) && (
             <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role="status" aria-live="polite">
               <div className="flex max-w-md flex-col items-center gap-3 rounded border border-border bg-surface p-4 text-center font-mono text-xs text-text shadow-xl">
-                {spatialQuery.isError ? <><span className="text-thermal-orange">{spatialQuery.error.message}</span><button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button></> : <><RefreshCw className="h-4 w-4 animate-spin text-data-blue" /><span>{stillLoading ? "Still loading..." : `Loading ${activeSensor === "HARMONIZED" ? "MODIS and VIIRS" : activeSensor} cells...`}</span>{stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}</>}
+                {spatialQuery.isError ? <><span className="text-anomaly-amber">{spatialQuery.error.message}</span><button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button></> : <><RefreshCw className="h-4 w-4 animate-spin text-data-blue" /><span>{stillLoading ? "Still loading..." : `Loading ${activeSensor === "HARMONIZED" ? "MODIS and VIIRS" : activeSensor} cells...`}</span>{stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}</>}
               </div>
             </div>
           )}
         </div>
         <div className="order-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-border/70 bg-surface/80 px-3 py-2 font-mono text-[10px] text-text-secondary" aria-live="polite">
-          <span>{spatialQuery.isError ? <strong className="text-thermal-orange">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(spatialBundle?.counts ?? []).filter((row) => activeSensor === "HARMONIZED" || row.sensor === activeSensor).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching observations</>}</span>
+          <span>{spatialQuery.isError ? <strong className="text-anomaly-amber">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(spatialBundle?.counts ?? []).filter((row) => activeSensor === "HARMONIZED" || row.sensor === activeSensor).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching observations</>}</span>
           <span><strong className="text-text">{spatialQuery.isError ? "—" : drawnCells.length.toLocaleString()}</strong> spatial cells rendered</span>
           <span>0.15° aggregation · {activeSensor}</span>
           {isTableModalOpen && <span>{rawDetections.length.toLocaleString()} raw records sampled for inspection</span>}
@@ -562,7 +563,7 @@ function ExploreWorkspace() {
               onClick={() => setMapProjection("2D")}
               className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs uppercase tracking-wider transition-colors ${
                 mapProjection === "2D"
-                  ? "border border-thermal-orange bg-thermal-orange/20 text-thermal-orange font-semibold"
+                  ? "border border-border bg-surface-elevated text-text-secondary font-semibold"
                   : "text-text-secondary hover:text-text"
               }`}
             >
@@ -769,8 +770,8 @@ function ExploreWorkspace() {
                   onClick={() => setMapProjection("2D")}
                   className={`flex items-center justify-center gap-1.5 rounded border py-1.5 text-center text-xs font-semibold ${
                     mapProjection === "2D"
-                      ? "border-thermal-orange bg-thermal-orange/20 text-thermal-orange"
-                      : "border-border bg-surface-elevated text-text-secondary"
+? "border-border bg-surface-elevated text-text-secondary"
+                    : "border-border bg-surface-elevated text-text-secondary"
                   }`}
                 >
                   <MapIcon className="h-3.5 w-3.5" />
