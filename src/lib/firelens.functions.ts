@@ -201,10 +201,13 @@ type DetectionSample = {
   frp_mw: number | null;
 };
 
+type SpatialRpcResult = { data: unknown; error: { message: string } | null };
+type SpatialRpcBuilder = PromiseLike<SpatialRpcResult> & {
+  abortSignal?: (requestSignal: AbortSignal) => PromiseLike<SpatialRpcResult>;
+};
+
 const spatialRpcClient = supabase as unknown as {
-  rpc: (name: string, args: Record<string, unknown>) => {
-    abortSignal: (requestSignal: AbortSignal) => Promise<{ data: unknown; error: { message: string } | null }>;
-  };
+  rpc: (name: string, args: Record<string, unknown>) => SpatialRpcBuilder;
 };
 
 async function requestSpatialRpc(name: string, args: Record<string, unknown>, signal: AbortSignal) {
@@ -213,7 +216,10 @@ async function requestSpatialRpc(name: string, args: Record<string, unknown>, si
   const cancelRequest = () => controller.abort();
   signal.addEventListener("abort", cancelRequest, { once: true });
   try {
-    const { data, error } = await spatialRpcClient.rpc(name, args).abortSignal(controller.signal);
+    const request = spatialRpcClient.rpc(name, args);
+    const response =
+      typeof request.abortSignal === "function" ? request.abortSignal(controller.signal) : request;
+    const { data, error } = await response;
     if (error) throw new Error(error.message);
     if (!data || typeof data !== "object") throw new Error(`${name} returned an invalid response.`);
     return data as Record<string, unknown>;

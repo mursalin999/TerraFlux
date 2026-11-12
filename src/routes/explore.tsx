@@ -457,11 +457,19 @@ function ExploreWorkspace() {
               )}
             </Suspense>
           </ClientOnly>
-          {(hasSpatialInputChanged || spatialQuery.isFetching || spatialQuery.isError) && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role={spatialQuery.isError ? "alert" : "status"} aria-live="polite">
+          {(hasSpatialInputChanged || spatialQuery.isFetching) && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role="status" aria-live="polite">
               <div className="flex max-w-md flex-col items-center gap-3 rounded border border-border bg-surface p-4 text-center font-mono text-xs text-text shadow-xl">
-                {spatialQuery.isError ? <><span className="text-anomaly-amber">{spatialQuery.error.message}</span><button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button></> : <><RefreshCw className="h-4 w-4 animate-spin text-data-blue" /><span>{stillLoading ? "Still loading..." : `Loading ${activeSensor === "HARMONIZED" ? "MODIS and VIIRS" : activeSensor} cells...`}</span>{stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}</>}
+                <RefreshCw className="h-4 w-4 animate-spin text-data-blue" />
+                <span>{stillLoading ? "Still loading..." : `Loading ${activeSensor === "HARMONIZED" ? "MODIS and VIIRS" : activeSensor} cells...`}</span>
+                {stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}
               </div>
+            </div>
+          )}
+          {spatialQuery.isError && (
+            <div className="absolute right-3 top-3 z-30 flex max-w-[calc(100%-1.5rem)] items-center gap-3 rounded border border-anomaly-amber/50 bg-surface/95 p-3 font-mono text-xs text-text shadow-xl" role="alert" aria-live="polite">
+              <span className="text-anomaly-amber">{spatialQuery.error.message}</span>
+              <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>
             </div>
           )}
         </div>
