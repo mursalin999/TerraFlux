@@ -194,6 +194,32 @@ function Compare() {
               onEnd={setEndDate}
             />
             </div>
+          <div
+            className="flex gap-1.5 border-t border-border pt-4 lg:flex-col"
+            role="tablist"
+            aria-label="Sensor selection"
+          >
+            {(["combined", "MODIS", "VIIRS"] as Mode[]).map((m) => (
+              <button
+                key={m}
+                role="tab"
+                aria-selected={mode === m}
+                onClick={() => setMode(m)}
+                className={`rounded border px-3 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
+                  mode === m
+                    ? m === "MODIS"
+                      ? "border-data-blue bg-data-blue/20 text-data-blue font-semibold"
+                      : m === "VIIRS"
+                        ? "border-thermal-orange bg-thermal-orange/20 text-thermal-orange font-semibold"
+                        : "border-border bg-surface-elevated font-semibold text-text"
+                    : "border-border bg-surface text-text-secondary hover:text-text"
+                }`}
+                style={mode === "combined" && m === "combined" ? { borderColor: SENSOR_COLORS.NEUTRAL, color: SENSOR_COLORS.NEUTRAL } : undefined}
+              >
+                {m === "combined" ? <span className="inline-flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-data-blue" /><i className="h-1.5 w-1.5 rounded-full bg-thermal-orange" />HARMONIZED (BOTH)</span> : `${m} ONLY`}
+              </button>
+            ))}
+          </div>
         </aside>
 
         <div className="mt-6 grid gap-6 lg:mt-0 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
