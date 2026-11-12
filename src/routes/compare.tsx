@@ -10,7 +10,7 @@ import {
   type SensorId,
 } from "@/lib/regions";
 import { RegionSelect, DateRangeInputs, defaultFilters } from "@/components/FireControls";
-import { fetchSpatialBundle, spatialCellsToObservationPoints, getMonthlySeries } from "@/lib/firelens.functions";
+import { fetchCompareSpatialBundle, spatialCellsToObservationPoints, getMonthlySeries } from "@/lib/firelens.functions";
 import { HarmonizationSection } from "@/components/HarmonizationSection";
 import { EmptyState } from "@/components/EmptyState";
 import { ObservationInspector } from "@/components/ObservationInspector";
@@ -75,7 +75,14 @@ function Compare() {
   const mapInputPending = bboxParts.west !== debouncedMapInput.west || bboxParts.south !== debouncedMapInput.south || bboxParts.east !== debouncedMapInput.east || bboxParts.north !== debouncedMapInput.north || startDate !== debouncedMapInput.start_date || endDate !== debouncedMapInput.end_date;
   const spatialQuery = useQuery({
     queryKey: ["compare-spatial-bundle", debouncedMapInput.west, debouncedMapInput.south, debouncedMapInput.east, debouncedMapInput.north, debouncedMapInput.start_date, debouncedMapInput.end_date],
-    queryFn: ({ signal }) => fetchSpatialBundle(debouncedMapInput, signal),
+    queryFn: async ({ signal }) => {
+      try {
+        return await fetchCompareSpatialBundle(debouncedMapInput, signal);
+      } catch (error) {
+        console.error("[TerraFlux] Compare spatial query failed", error);
+        throw error;
+      }
+    },
     staleTime: 120000,
   });
   useEffect(() => {
@@ -105,11 +112,11 @@ function Compare() {
     [allSensorCells, startDate, endDate, gridSize],
   );
   const agreementRate = useMemo(() => {
-    if (!spatialBundle) return null;
-    return spatialBundle.sensitivity.find((item) => item.cell_size === gridSize)?.agreement_rate ?? null;
+    if (!spatialBundle || spatialBundle.analysisError) return null;
+    return spatialBundle.sensitivity?.find((item) => item.cell_size === gridSize)?.agreement_rate ?? null;
   }, [spatialBundle, gridSize]);
   const coverage = spatialBundle?.coverage;
-  const cellDays = { MODIS: spatialBundle?.sensor_cell_days.MODIS ?? 0, VIIRS: spatialBundle?.sensor_cell_days.VIIRS ?? 0 };
+  const cellDays = { MODIS: spatialBundle?.sensor_cell_days?.MODIS ?? 0, VIIRS: spatialBundle?.sensor_cell_days?.VIIRS ?? 0 };
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   return (
@@ -131,13 +138,14 @@ function Compare() {
         <FindingsPanel
           days={days}
           agreementRate={agreementRate}
+          analysisError={spatialBundle?.analysisError}
           sampleCells={gridAnalysis.cells.length}
           onSelectDay={setSelectedDay}
         />
       </div>
 
       <div className="mt-6">
-          <HarmonizationSection result={monthlyAnalysis} loading={monthlyQuery.isLoading} observed={{ modisCellDays: cellDays.MODIS, viirsCellDays: cellDays.VIIRS, bothCellDays: spatialBundle?.overlap.both_cell_days ?? 0, modisOnlyCellDays: spatialBundle?.overlap.modis_only_cell_days ?? 0, viirsOnlyCellDays: spatialBundle?.overlap.viirs_only_cell_days ?? 0, overlapMonths: monthlyAnalysis.overlapMonths, rawRatio: spatialBundle?.overlap.raw_ratio ?? null }} />
+          <HarmonizationSection result={monthlyAnalysis} loading={monthlyQuery.isLoading} observed={{ modisCellDays: cellDays.MODIS, viirsCellDays: cellDays.VIIRS, bothCellDays: spatialBundle?.overlap?.both_cell_days ?? 0, modisOnlyCellDays: spatialBundle?.overlap?.modis_only_cell_days ?? 0, viirsOnlyCellDays: spatialBundle?.overlap?.viirs_only_cell_days ?? 0, overlapMonths: monthlyAnalysis.overlapMonths, rawRatio: spatialBundle?.overlap?.raw_ratio ?? null }} />
       </div>
 
       <div className="mt-6 rounded-lg border border-border bg-surface p-5">
@@ -149,7 +157,7 @@ function Compare() {
         </div>
         <div className="mt-4 grid grid-cols-4 gap-2">
           {[0.05, 0.1, 0.15, 0.25].map((size) => {
-            const rate = spatialBundle?.sensitivity.find((item) => item.cell_size === size)?.agreement_rate ?? null;
+            const rate = spatialBundle?.sensitivity?.find((item) => item.cell_size === size)?.agreement_rate ?? null;
             return (
               <button
                 key={size}
@@ -166,6 +174,7 @@ function Compare() {
             );
           })}
         </div>
+        {spatialBundle?.analysisError && <p className="mt-3 text-xs leading-relaxed text-anomaly-amber" role="status">{spatialBundle.analysisError}</p>}
         <p className="mt-3 text-xs text-text-secondary">
           Same observations, different cell size: shows how much agreement depends on the grid choice. Selected: {gridSize.toFixed(2)}°.
         </p>
@@ -184,92 +193,28 @@ function Compare() {
               onStart={setStartDate}
               onEnd={setEndDate}
             />
-          </div>
-          <div
-            className="flex gap-1.5 border-t border-border pt-4 lg:flex-col"
-            role="tablist"
-            aria-label="Sensor selection"
-          >
-            {(["combined", "MODIS", "VIIRS"] as Mode[]).map((m) => (
-              <button
-                key={m}
-                role="tab"
-                aria-selected={mode === m}
-                onClick={() => setMode(m)}
-                className={`rounded border px-3 py-1.5 font-mono text-xs uppercase tracking-wider transition-colors ${
-                  mode === m
-                    ? m === "MODIS"
-                      ? "border-data-blue bg-data-blue/20 text-data-blue font-semibold"
-                      : m === "VIIRS"
-                        ? "border-thermal-orange bg-thermal-orange/20 text-thermal-orange font-semibold"
-                        : "border-border bg-surface-elevated font-semibold text-text"
-                    : "border-border bg-surface text-text-secondary hover:text-text"
-                }`}
-                style={mode === "combined" && m === "combined" ? { borderColor: SENSOR_COLORS.NEUTRAL, color: SENSOR_COLORS.NEUTRAL } : undefined}
-              >
-                {m === "combined" ? <span className="inline-flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-data-blue" /><i className="h-1.5 w-1.5 rounded-full bg-thermal-orange" />HARMONIZED (BOTH)</span> : `${m} ONLY`}
-              </button>
-            ))}
-          </div>
+            </div>
         </aside>
 
         <div className="mt-6 grid gap-6 lg:mt-0 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-          <div className="relative h-[420px] overflow-hidden rounded-lg border border-border bg-bg lg:h-[620px]">
-            {/* Viewport projection mode switcher: 3D GLOBE vs 2D MAP */}
-            <div className="absolute left-3 top-3 z-20 flex min-h-11 max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1 rounded-md border border-border/80 bg-surface/90 p-1 font-mono text-[11px] shadow-xl backdrop-blur-md">
-              <button
-                type="button"
-                onClick={() => setMapProjection("3D")}
-                className={`flex min-h-11 items-center gap-1.5 rounded px-3 py-2 uppercase transition-colors ${
-                  mapProjection === "3D"
-                    ? "border border-data-blue bg-data-blue/20 text-data-blue font-semibold"
-                    : "text-text-secondary hover:text-text"
-                }`}
-              >
-                <Globe2 className="h-3 w-3" />
-                <span>3D GLOBE</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMapProjection("2D")}
-                className={`flex min-h-11 items-center gap-1.5 rounded px-3 py-2 uppercase transition-colors ${
-                  mapProjection === "2D"
-                        ? "border border-border bg-surface-elevated text-text-secondary font-semibold"
-                        : "text-text-secondary hover:text-text"
-                }`}
-              >
-                <MapIcon className="h-3 w-3" />
-                <span>2D MAP</span>
-              </button>
+          <div>
+            {spatialBundle?.degraded && <div className="mb-2 rounded border border-anomaly-amber/50 bg-surface px-3 py-2 font-mono text-[11px] text-anomaly-amber" role="status">Fast summary unavailable. Showing a sample of detections.</div>}
+            <div className="relative h-[420px] overflow-hidden rounded-lg border border-border bg-bg lg:h-[620px]">
+              <div className="absolute left-3 top-3 z-20 flex min-h-11 max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-1 rounded-md border border-border/80 bg-surface/90 p-1 font-mono text-[11px] shadow-xl backdrop-blur-md">
+                <button type="button" onClick={() => setMapProjection("3D")} className={`flex min-h-11 items-center gap-1.5 rounded px-3 py-2 uppercase transition-colors ${mapProjection === "3D" ? "border border-data-blue bg-data-blue/20 text-data-blue font-semibold" : "text-text-secondary hover:text-text"}`}><Globe2 className="h-3 w-3" /><span>3D GLOBE</span></button>
+                <button type="button" onClick={() => setMapProjection("2D")} className={`flex min-h-11 items-center gap-1.5 rounded px-3 py-2 uppercase transition-colors ${mapProjection === "2D" ? "border border-border bg-surface-elevated text-text-secondary font-semibold" : "text-text-secondary hover:text-text"}`}><MapIcon className="h-3 w-3" /><span>2D MAP</span></button>
+              </div>
+              <ClientOnly fallback={<div className="h-full w-full bg-surface" />}>
+                <Suspense fallback={<div className="h-full w-full bg-surface" />}>
+                  {mapProjection === "3D" ? (
+                    <EarthGlobe observations={detections} selectedRegion={region} selectedObservation={selectedObs} onSelectObservation={setSelectedObs} showModis={mode === "combined" || mode === "MODIS"} showViirs={mode === "combined" || mode === "VIIRS"} />
+                  ) : (
+                    <FireMap detections={detections} center={mapCenter} bounds={bboxParts} zoom={mapZoom} onBboxDrawn={(bbox) => { setRegionId("custom"); setCustomBbox(bbox); }} onBoundsChange={setMapBounds} onSelectObservation={(obs) => setSelectedObs(obs as unknown as ObservationPoint)} />
+                  )}
+                </Suspense>
+              </ClientOnly>
+              {(mapInputPending || spatialQuery.isFetching || spatialQuery.isError) && <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role={spatialQuery.isError ? "alert" : "status"} aria-live="polite"><div className="flex max-w-md flex-col items-center gap-3 rounded border border-border bg-surface p-4 text-center font-mono text-xs text-text shadow-xl">{spatialQuery.isError ? <><span className="text-anomaly-amber">{spatialQuery.error.message}</span><button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button></> : <><RefreshCw className="h-4 w-4 animate-spin text-data-blue" /><span>{stillLoading ? "Still loading..." : `Loading ${mode === "combined" ? "MODIS and VIIRS" : mode} cells...`}</span>{stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}</>}</div></div>}
             </div>
-
-            <ClientOnly fallback={<div className="h-full w-full bg-surface" />}>
-              <Suspense fallback={<div className="h-full w-full bg-surface" />}>
-                {mapProjection === "3D" ? (
-                  <EarthGlobe
-                    observations={detections}
-                    selectedRegion={region}
-                    selectedObservation={selectedObs}
-                    onSelectObservation={(obs) => setSelectedObs(obs)}
-                    showModis={mode === "combined" || mode === "MODIS"}
-                    showViirs={mode === "combined" || mode === "VIIRS"}
-                  />
-                ) : (
-                  <FireMap
-                    detections={detections}
-            center={mapCenter}
-            bounds={bboxParts}
-            zoom={mapZoom}
-            onBboxDrawn={(bbox) => { setRegionId("custom"); setCustomBbox(bbox); }}
-  onBoundsChange={setMapBounds}
-            onSelectObservation={(obs) =>
-                      setSelectedObs(obs as unknown as ObservationPoint)
-                    }
-                  />
-                )}
-              </Suspense>
-            </ClientOnly>
-            {(mapInputPending || spatialQuery.isFetching || spatialQuery.isError) && <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role="status" aria-live="polite"><div className="flex max-w-md flex-col items-center gap-3 rounded border border-border bg-surface p-4 text-center font-mono text-xs text-text shadow-xl">{spatialQuery.isError ? <><span className="text-anomaly-amber">{spatialQuery.error.message}</span><button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button></> : <><RefreshCw className="h-4 w-4 animate-spin text-data-blue" /><span>{stillLoading ? "Still loading..." : `Loading ${mode === "combined" ? "MODIS and VIIRS" : mode} cells...`}</span>{stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}</>}</div></div>}
           </div>
           <div className="rounded border border-border bg-surface px-3 py-2 font-mono text-[10px] text-text-secondary" aria-live="polite">
             {spatialQuery.isError ? <strong className="text-anomaly-amber">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(modisTotal + viirsTotal).toLocaleString()}</strong> matching records · <strong className="text-text">{detections.length.toLocaleString()}</strong> aggregated cells rendered</>} · {mode === "combined" ? "MODIS + VIIRS" : mode}

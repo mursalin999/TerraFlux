@@ -162,10 +162,12 @@ export interface SpatialBundle {
   cells: SpatialSummaryCell[];
   counts: Array<{ sensor: string; matching_records: number }>;
   days: Array<{ date: string; modis: number; viirs: number }>;
-  sensor_cell_days: { MODIS?: number; VIIRS?: number };
+  sensor_cell_days?: { MODIS?: number; VIIRS?: number };
   coverage: { first_date: string | null; last_date: string | null; active_days: number };
-  overlap: { both_cell_days: number; modis_only_cell_days: number; viirs_only_cell_days: number; overlap_months: number; raw_ratio: number | null };
-  sensitivity: Array<{ cell_size: number; agreement_rate: number }>;
+  overlap?: { both_cell_days: number; modis_only_cell_days: number; viirs_only_cell_days: number; overlap_months: number; raw_ratio: number | null };
+  sensitivity?: Array<{ cell_size: number; agreement_rate: number }>;
+  degraded?: boolean;
+  analysisError?: string;
 }
 
 export function spatialCellsToObservationPoints(cells: SpatialSummaryCell[], fallbackDate: string) {
@@ -189,53 +191,222 @@ export function spatialCellsToObservationPoints(cells: SpatialSummaryCell[], fal
 }
 
 const spatialQuerySchema = detectionsQuerySchema.omit({ sample_limit: true }).extend({ map_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), map_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() });
+const comparisonAnalysisUnavailable = "Analysis unavailable: database function missing or timed out";
+type SpatialSensor = "MODIS" | "VIIRS";
+type DetectionSample = {
+  lat: number;
+  lon: number;
+  acq_date: string;
+  sensor: SpatialSensor;
+  frp_mw: number | null;
+};
+
+const spatialRpcClient = supabase as unknown as {
+  rpc: (name: string, args: Record<string, unknown>) => {
+    abortSignal: (requestSignal: AbortSignal) => Promise<{ data: unknown; error: { message: string } | null }>;
+  };
+};
+
+async function requestSpatialRpc(name: string, args: Record<string, unknown>, signal: AbortSignal) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+  const cancelRequest = () => controller.abort();
+  signal.addEventListener("abort", cancelRequest, { once: true });
+  try {
+    const { data, error } = await spatialRpcClient.rpc(name, args).abortSignal(controller.signal);
+    if (error) throw new Error(error.message);
+    if (!data || typeof data !== "object") throw new Error(`${name} returned an invalid response.`);
+    return data as Record<string, unknown>;
+  } finally {
+    clearTimeout(timeout);
+    signal.removeEventListener("abort", cancelRequest);
+  }
+}
+
+async function fetchSampledSpatialBundle(data: z.infer<typeof spatialQuerySchema>): Promise<SpatialBundle> {
+  const query = {
+    west: data.west,
+    south: data.south,
+    east: data.east,
+    north: data.north,
+    start_date: data.start_date,
+    end_date: data.end_date,
+    confidence: data.confidence,
+    sample_limit: 5000,
+  };
+  const [modisRows, viirsRows] = await Promise.all(
+    (["MODIS", "VIIRS"] as const).map((sensor) =>
+      getDetections({ data: { ...query, sensors: [sensor] } }),
+    ),
+  );
+  const rows = [...modisRows, ...viirsRows] as DetectionSample[];
+  const mapFrom = data.map_start_date ?? data.start_date;
+  const mapTo = data.map_end_date ?? data.end_date;
+  const mapCellSize = Math.max(
+    0.15,
+    Math.sqrt(((data.east - data.west) * (data.north - data.south) * 2) / 2500),
+  );
+  const cellGroups = new Map<string, SpatialSummaryCell & { dates: Set<string> }>();
+  const dayGroups = new Map<string, { date: string; modis: number; viirs: number }>();
+  const overlapGroups = new Map<string, Set<SpatialSensor>>();
+  const sensorCellDays = { MODIS: 0, VIIRS: 0 };
+  const sensorCellDayKeys = new Set<string>();
+  const monthSensors = new Map<string, Set<SpatialSensor>>();
+  let modisCount = 0;
+  let viirsCount = 0;
+
+  for (const row of rows) {
+    if (row.sensor === "MODIS") modisCount += 1;
+    else viirsCount += 1;
+    const daily = dayGroups.get(row.acq_date) ?? { date: row.acq_date, modis: 0, viirs: 0 };
+    daily[row.sensor === "MODIS" ? "modis" : "viirs"] += 1;
+    dayGroups.set(row.acq_date, daily);
+    const month = row.acq_date.slice(0, 7);
+    const sensorsForMonth = monthSensors.get(month) ?? new Set<SpatialSensor>();
+    sensorsForMonth.add(row.sensor);
+    monthSensors.set(month, sensorsForMonth);
+
+    const cellLat = Math.floor(row.lat / mapCellSize) * mapCellSize;
+    const cellLon = Math.floor(row.lon / mapCellSize) * mapCellSize;
+    if (row.acq_date >= mapFrom && row.acq_date <= mapTo) {
+      const key = `${row.sensor}:${cellLat}:${cellLon}`;
+      const cell = cellGroups.get(key) ?? {
+        sensor: row.sensor,
+        cell_lat: cellLat,
+        cell_lon: cellLon,
+        cell_size: mapCellSize,
+        observation_count: 0,
+        cell_days: 0,
+        frp_sum: 0,
+        max_frp: null,
+        dates: new Set<string>(),
+      };
+      cell.observation_count += 1;
+      cell.dates.add(row.acq_date);
+      cell.frp_sum += row.frp_mw ?? 0;
+      cell.max_frp = cell.max_frp == null ? row.frp_mw : Math.max(cell.max_frp, row.frp_mw ?? -Infinity);
+      cellGroups.set(key, cell);
+    }
+
+    const coarseLat = Math.floor(row.lat / 0.15);
+    const coarseLon = Math.floor(row.lon / 0.15);
+    const overlapKey = `${row.acq_date}:${coarseLat}:${coarseLon}`;
+    const sensorsForCellDay = overlapGroups.get(overlapKey) ?? new Set<SpatialSensor>();
+    sensorsForCellDay.add(row.sensor);
+    overlapGroups.set(overlapKey, sensorsForCellDay);
+    sensorCellDayKeys.add(`${row.sensor}:${overlapKey}`);
+  }
+
+  for (const key of sensorCellDayKeys) {
+    const sensor = key.startsWith("MODIS:") ? "MODIS" : "VIIRS";
+    sensorCellDays[sensor] += 1;
+  }
+  const bothCellDays = [...overlapGroups.values()].filter((sensors) => sensors.size === 2).length;
+  const modisOnlyCellDays = [...overlapGroups.values()].filter((sensors) => sensors.has("MODIS") && !sensors.has("VIIRS")).length;
+  const viirsOnlyCellDays = [...overlapGroups.values()].filter((sensors) => sensors.has("VIIRS") && !sensors.has("MODIS")).length;
+  const activeDates = [...dayGroups.keys()].sort();
+  const completeOverlapMonths = [...monthSensors.entries()].filter(([month, sensors]) => {
+    const [year, monthNumber] = month.split("-").map(Number);
+    const monthEnd = new Date(Date.UTC(year!, monthNumber!, 0)).toISOString().slice(0, 10);
+    const completeStart = month !== data.start_date.slice(0, 7) || data.start_date.endsWith("-01");
+    const completeEnd = month !== data.end_date.slice(0, 7) || data.end_date === monthEnd;
+    return sensors.size === 2 && completeStart && completeEnd;
+  }).length;
+  const cells = [...cellGroups.values()].map(({ dates, ...cell }) => ({ ...cell, cell_days: dates.size }));
+
+  return {
+    cells,
+    counts: [
+      { sensor: "MODIS", matching_records: modisCount },
+      { sensor: "VIIRS", matching_records: viirsCount },
+    ],
+    days: [...dayGroups.values()].sort((a, b) => a.date.localeCompare(b.date)),
+    sensor_cell_days: sensorCellDays,
+    coverage: {
+      first_date: activeDates[0] ?? null,
+      last_date: activeDates[activeDates.length - 1] ?? null,
+      active_days: activeDates.length,
+    },
+    overlap: {
+      both_cell_days: bothCellDays,
+      modis_only_cell_days: modisOnlyCellDays,
+      viirs_only_cell_days: viirsOnlyCellDays,
+      overlap_months: completeOverlapMonths,
+      raw_ratio: modisCount > 0 ? viirsCount / modisCount : null,
+    },
+    sensitivity: [],
+  };
+}
+
+function spatialRpcArgs(data: z.infer<typeof spatialQuerySchema>) {
+  return {
+    p_west: data.west,
+    p_south: data.south,
+    p_east: data.east,
+    p_north: data.north,
+    p_from_date: data.start_date,
+    p_to_date: data.end_date,
+    p_confidence: data.confidence ?? null,
+  };
+}
 
 export async function fetchSpatialBundle(
   data: z.infer<typeof spatialQuerySchema>,
   signal: AbortSignal,
 ): Promise<SpatialBundle> {
-  const rpcClient = supabase as unknown as {
-    rpc: (name: string, args: Record<string, unknown>) => {
-      abortSignal: (requestSignal: AbortSignal) => Promise<{ data: unknown; error: { message: string } | null }>;
-    };
-  };
-  const { data: result, error } = await rpcClient
-    .rpc("spatial_detection_bundle", {
-      p_west: data.west,
-      p_south: data.south,
-      p_east: data.east,
-      p_north: data.north,
-      p_from_date: data.start_date,
-      p_to_date: data.end_date,
-      p_confidence: data.confidence ?? null,
+  try {
+    const result = await requestSpatialRpc("spatial_map_bundle", {
+      ...spatialRpcArgs(data),
       p_map_from_date: data.map_start_date ?? null,
       p_map_to_date: data.map_end_date ?? null,
-    })
-    .abortSignal(signal);
-  if (error) throw new Error(error.message);
-  return result as unknown as SpatialBundle;
+    }, signal);
+    return result as unknown as SpatialBundle;
+  } catch (rpcError) {
+    if (signal.aborted) throw rpcError;
+    console.error("[TerraFlux] spatial_map_bundle failed; falling back to sampled detections", rpcError);
+    return { ...(await fetchSampledSpatialBundle(data)), degraded: true };
+  }
 }
 
-export const getSpatialSummary = createServerFn({ method: "GET" })
-  .inputValidator((data) => spatialQuerySchema.parse(data))
-  .handler(async ({ data }) => {
-    const sb = publicClient();
-    if (!sb) throw new Error("Supabase read credentials are unavailable; spatial observations were not loaded.");
-    const { data: result, error } = await sb.rpc("spatial_detection_bundle", {
-      p_west: data.west, p_south: data.south, p_east: data.east, p_north: data.north,
-      p_from_date: data.start_date, p_to_date: data.end_date, p_confidence: data.confidence ?? null,
-      p_map_from_date: data.map_start_date ?? null, p_map_to_date: data.map_end_date ?? null,
-    });
-    if (error) throw new Error(error.message);
-    return result as unknown as SpatialBundle;
-  });
+export async function fetchCompareSpatialBundle(
+  data: z.infer<typeof spatialQuerySchema>,
+  signal: AbortSignal,
+): Promise<SpatialBundle> {
+  const mapArgs = {
+    ...spatialRpcArgs(data),
+    p_map_from_date: data.map_start_date ?? null,
+    p_map_to_date: data.map_end_date ?? null,
+  };
+  const [comparison, map] = await Promise.all([
+    requestSpatialRpc("spatial_compare_bundle", spatialRpcArgs(data), signal)
+      .then((result) => ({ result }))
+      .catch((error: unknown) => ({ error })),
+    requestSpatialRpc("spatial_map_bundle", mapArgs, signal)
+      .then((result) => ({ result }))
+      .catch((error: unknown) => ({ error })),
+  ]);
+  if (signal.aborted) throw ("error" in comparison ? comparison.error : "error" in map ? map.error : new Error("Spatial query aborted."));
+  if ("error" in comparison || "error" in map) {
+    const failedRpc = "error" in comparison ? "spatial_compare_bundle" : "spatial_map_bundle";
+    console.error(`[TerraFlux] ${failedRpc} failed; falling back to sampled detections`, "error" in comparison ? comparison.error : map.error);
+    const sampled = await fetchSampledSpatialBundle(data);
+    return {
+      ...sampled,
+      ...("error" in comparison ? {} : comparison.result),
+      cells: sampled.cells,
+      degraded: true,
+      ...("error" in comparison ? { analysisError: comparisonAnalysisUnavailable } : {}),
+    } as SpatialBundle;
+  }
+  return { ...map.result, ...comparison.result } as unknown as SpatialBundle;
+}
 
 export const getDetections = createServerFn({ method: "GET" })
   .inputValidator((data) => detectionsQuerySchema.parse(data))
   .handler(async ({ data }) => {
     const sb = publicClient();
     if (!sb) {
-      return [];
+      throw new Error("Supabase read credentials are unavailable; detections could not be loaded.");
     }
     const maximumRows = Math.min(data.sample_limit ?? 10000, 10000);
     let query = sb
@@ -248,7 +419,9 @@ export const getDetections = createServerFn({ method: "GET" })
     if (data.sensors?.length) query = query.in("sensor", data.sensors);
     if (data.confidence?.length) query = query.in("confidence_tier", data.confidence);
     const { data: rows, error } = await query;
-    return error || !rows ? [] : rows;
+    if (error) throw new Error(error.message);
+    if (!rows) throw new Error("Supabase returned no detection response.");
+    return rows;
   });
 
 // Daily counts per sensor — powers the calendar heatmap and comparison chart.

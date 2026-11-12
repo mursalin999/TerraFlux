@@ -9,6 +9,7 @@ export interface FindingDay {
 interface FindingsPanelProps {
   days: FindingDay[];
   agreementRate: number | null;
+  analysisError?: string;
   sampleCells: number;
   onSelectDay?: (date: string) => void;
   compact?: boolean;
@@ -37,6 +38,7 @@ function Formula({ children }: { children: string }) {
 export function FindingsPanel({
   days,
   agreementRate,
+  analysisError,
   sampleCells,
   onSelectDay,
   compact = false,
@@ -108,9 +110,13 @@ export function FindingsPanel({
               cells with at least one observation.
             </Formula>
           </div>
-          <p className="mt-1 font-mono text-xl font-semibold text-agreement-teal">
-            {agreementRate == null ? "—" : `${Math.round(agreementRate * 100)}%`}
-          </p>
+          {analysisError ? (
+            <p className="mt-1 text-xs leading-relaxed text-anomaly-amber">{analysisError}</p>
+          ) : (
+            <p className="mt-1 font-mono text-xl font-semibold text-agreement-teal">
+              {agreementRate == null ? "—" : `${Math.round(agreementRate * 100)}%`}
+            </p>
+          )}
         </div>
         <div className="rounded border border-border bg-surface-elevated p-3">
           <div className="flex items-center gap-1 font-mono text-[11px] uppercase text-text-secondary">

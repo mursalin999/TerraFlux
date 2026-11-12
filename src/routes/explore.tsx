@@ -156,7 +156,14 @@ function ExploreWorkspace() {
   }, [spatialQueryInput]);
   const spatialQuery = useQuery({
     queryKey: ["spatial-bundle", debouncedSpatialInput.west, debouncedSpatialInput.south, debouncedSpatialInput.east, debouncedSpatialInput.north, debouncedSpatialInput.start_date, debouncedSpatialInput.end_date, debouncedSpatialInput.map_start_date, debouncedSpatialInput.map_end_date, debouncedSpatialInput.confidence?.join(",")],
-    queryFn: ({ signal }) => fetchSpatialBundle(debouncedSpatialInput, signal),
+    queryFn: async ({ signal }) => {
+      try {
+        return await fetchSpatialBundle(debouncedSpatialInput, signal);
+      } catch (error) {
+        console.error("[TerraFlux] Explore spatial query failed", error);
+        throw error;
+      }
+    },
     placeholderData: (previousData, previousQuery) => {
       const previousKey = previousQuery?.queryKey;
       const sameFilters = previousKey?.[1] === debouncedSpatialInput.west && previousKey?.[2] === debouncedSpatialInput.south && previousKey?.[3] === debouncedSpatialInput.east && previousKey?.[4] === debouncedSpatialInput.north && previousKey?.[5] === debouncedSpatialInput.start_date && previousKey?.[6] === debouncedSpatialInput.end_date && previousKey?.[9] === debouncedSpatialInput.confidence?.join(",");
@@ -394,8 +401,9 @@ function ExploreWorkspace() {
     <div className="flex min-h-[calc(100dvh-4rem)] w-full flex-col bg-bg text-text">
       {/* Dedicated map workspace: controls and visualization stay in document flow. */}
       <div className="mx-auto flex w-full max-w-[1920px] flex-col gap-3 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-6">
+        {spatialBundle?.degraded && <div className="order-2 rounded border border-anomaly-amber/50 bg-surface px-3 py-2 font-mono text-[11px] text-anomaly-amber lg:order-1" role="status">Fast summary unavailable. Showing a sample of detections.</div>}
         {/* 3D Earth Globe */}
-        <div className="order-2 h-[min(62dvh,620px)] min-h-[420px] w-full overflow-hidden rounded-lg border border-border bg-[#030711] shadow-xl sm:h-[min(64dvh,700px)] lg:order-1 lg:h-[min(70dvh,760px)]">
+        <div className="relative order-2 h-[min(62dvh,620px)] min-h-[420px] w-full overflow-hidden rounded-lg border border-border bg-[#030711] shadow-xl sm:h-[min(64dvh,700px)] lg:order-1 lg:h-[min(70dvh,760px)]">
           <ClientOnly
             fallback={
               <div className="flex h-full w-full items-center justify-center font-mono text-xs text-text-secondary">
@@ -450,7 +458,7 @@ function ExploreWorkspace() {
             </Suspense>
           </ClientOnly>
           {(hasSpatialInputChanged || spatialQuery.isFetching || spatialQuery.isError) && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role="status" aria-live="polite">
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role={spatialQuery.isError ? "alert" : "status"} aria-live="polite">
               <div className="flex max-w-md flex-col items-center gap-3 rounded border border-border bg-surface p-4 text-center font-mono text-xs text-text shadow-xl">
                 {spatialQuery.isError ? <><span className="text-anomaly-amber">{spatialQuery.error.message}</span><button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button></> : <><RefreshCw className="h-4 w-4 animate-spin text-data-blue" /><span>{stillLoading ? "Still loading..." : `Loading ${activeSensor === "HARMONIZED" ? "MODIS and VIIRS" : activeSensor} cells...`}</span>{stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}</>}
               </div>
