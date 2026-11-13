@@ -27,22 +27,9 @@ export const fetchFireData = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const { fetchAndHarmonize, upsertDetections } = await import("./firms.server");
-    const rows = await fetchAndHarmonize(data);
-    const stored = await upsertDetections(rows);
-    return { rows, stored };
+    const { runFetchFireData } = await import("./firms.server");
+    return runFetchFireData(data);
   });
-
-function splitBboxIntoTiles(bbox: string): string[] {
-  const [west, south, east, north] = bbox.split(",").map(Number);
-  const tiles: string[] = [];
-  for (let tileWest = west!; tileWest < east!; tileWest += 10) {
-    for (let tileSouth = south!; tileSouth < north!; tileSouth += 10) {
-      tiles.push([tileWest, tileSouth, Math.min(tileWest + 10, east!), Math.min(tileSouth + 10, north!)].join(","));
-    }
-  }
-  return tiles;
-}
 
 // --- backfill-fire-data: populate a historical range in ≤5-day windows and ≤10° tiles ---
 export const backfillFireData = createServerFn({ method: "POST" })
@@ -56,28 +43,42 @@ export const backfillFireData = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    const { fetchAndHarmonize, upsertDetections, chunkDateRange } = await import("./firms.server");
-    const starts = chunkDateRange(data.start_date, data.end_date);
-    let chunks = 0;
-    let stored = 0;
-    const errors: string[] = [];
-    const tiles = splitBboxIntoTiles(data.bbox);
-    // Sequential requests avoid saturating NASA FIRMS while covering large presets.
-    for (const tile of tiles) {
-      for (const date of starts) {
-        try {
-          const rows = await fetchAndHarmonize({ bbox: tile, days: 5, date });
-          stored += await upsertDetections(rows);
-          chunks += 1;
-        } catch (err) {
-          errors.push(`${tile} ${date}: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      }
-    }
-    if (stored === 0 && errors.length > 0) {
-      throw new Error(errors[0]);
-    }
-    return { chunks, stored, errors };
+    const { runBackfillFireData } = await import("./firms.server");
+    return runBackfillFireData(data);
+  });
+
+// --- Owner-only versions used by the "Data pull" panel: they need the admin password (ADMIN_IMPORT_SECRET) ---
+function assertAdminPassword(password: string) {
+  const secret = typeof process !== "undefined" ? process.env["ADMIN_IMPORT_SECRET"] : undefined;
+  if (!secret) throw new Error("ADMIN_IMPORT_SECRET is not set on the server.");
+  if (password !== secret) throw new Error("Wrong admin password.");
+}
+
+export const adminFetchFireData = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z.object({ password: z.string().min(1).max(200), bbox: bboxSchema, days: z.number().int().min(1).max(10) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    assertAdminPassword(data.password);
+    const { runFetchFireData } = await import("./firms.server");
+    return runFetchFireData({ bbox: data.bbox, days: data.days });
+  });
+
+export const adminBackfillFireData = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z
+      .object({
+        password: z.string().min(1).max(200),
+        bbox: bboxSchema,
+        start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    assertAdminPassword(data.password);
+    const { runBackfillFireData } = await import("./firms.server");
+    return runBackfillFireData({ bbox: data.bbox, start_date: data.start_date, end_date: data.end_date });
   });
 
 // --- Public read queries (publishable key, anon-safe SELECT policy) ---
@@ -129,7 +130,7 @@ const detectionsQuerySchema = z.object({
 export const backfillPresetHistory = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ region_ids: z.array(z.string()).min(1).max(20), start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(data))
   .handler(async ({ data }) => {
-    const { fetchAndHarmonize, upsertDetections, chunkDateRange } = await import("./firms.server");
+    const { fetchAndHarmonize, upsertDetections, chunkDateRange, splitBboxIntoTiles } = await import("./firms.server");
     const results: Array<{ region_id: string; stored: number; errors: string[] }> = [];
     for (const regionId of data.region_ids) {
       const region = REGIONS.find((item) => item.id === regionId);
@@ -165,7 +166,7 @@ export interface SpatialBundle {
   sensor_cell_days?: { MODIS?: number; VIIRS?: number };
   coverage: { first_date: string | null; last_date: string | null; active_days: number };
   overlap?: { both_cell_days: number; modis_only_cell_days: number; viirs_only_cell_days: number; overlap_months: number; raw_ratio: number | null };
-  sensitivity?: Array<{ cell_size: number; agreement_rate: number }>;
+  sensitivity?: Array<{ cell_size: number; agreement_rate: number; both_cell_days?: number; total_cell_days?: number }>;
   degraded?: boolean;
   analysisError?: string;
 }
@@ -229,122 +230,134 @@ async function requestSpatialRpc(name: string, args: Record<string, unknown>, si
   }
 }
 
-async function fetchSampledSpatialBundle(data: z.infer<typeof spatialQuerySchema>): Promise<SpatialBundle> {
-  const query = {
-    west: data.west,
-    south: data.south,
-    east: data.east,
-    north: data.north,
-    start_date: data.start_date,
-    end_date: data.end_date,
-    confidence: data.confidence,
-    sample_limit: 5000,
-  };
-  const [modisRows, viirsRows] = await Promise.all(
-    (["MODIS", "VIIRS"] as const).map((sensor) =>
-      getDetections({ data: { ...query, sensors: [sensor] } }),
-    ),
+type SpatialQuery = z.infer<typeof spatialQuerySchema>;
+
+const DAY_MS = 86_400_000;
+const dayNumber = (iso: string) => Math.floor(Date.parse(`${iso}T00:00:00Z`) / DAY_MS);
+const isoFromDayNumber = (day: number) => new Date(day * DAY_MS).toISOString().slice(0, 10);
+// A window that selects no rows at all. Used for yearly chunks that fall outside the playback window.
+const EMPTY_MAP_WINDOW = { p_map_from_date: "9999-12-31", p_map_to_date: "9999-12-30" };
+
+function mapCellSizeFor(data: SpatialQuery) {
+  return Math.max(0.15, Math.sqrt(((data.east - data.west) * (data.north - data.south) * 2) / 2500));
+}
+
+// Runs the tasks with at most `limit` in flight, keeping the result order.
+async function mapWithLimit<T, R>(items: T[], limit: number, task: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const index = next;
+        next += 1;
+        results[index] = await task(items[index]!);
+      }
+    }),
   );
-  const rows = [...modisRows, ...viirsRows] as DetectionSample[];
+  return results;
+}
+
+// One page (max 1,000 rows) of detections for one sensor. The API caps every response at 1,000 rows,
+// so larger windows are read as several pages.
+export const getMapDetectionPage = createServerFn({ method: "GET" })
+  .inputValidator((data) =>
+    detectionsQuerySchema
+      .omit({ sample_limit: true, sensors: true })
+      .extend({ sensor: z.enum(["MODIS", "VIIRS"]), offset: z.number().int().min(0).max(50_000) })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const sb = publicClient();
+    if (!sb) throw new Error("Supabase read credentials are unavailable; detections could not be loaded.");
+    let query = sb
+      .from("fire_detections")
+      .select("lat,lon,acq_date,sensor,frp_mw")
+      .eq("sensor", data.sensor)
+      .gte("lon", data.west).lte("lon", data.east)
+      .gte("lat", data.south).lte("lat", data.north)
+      .gte("acq_date", data.start_date).lte("acq_date", data.end_date)
+      .order("acq_date", { ascending: false })
+      .range(data.offset, data.offset + 999);
+    if (data.confidence?.length) query = query.in("confidence_tier", data.confidence);
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as DetectionSample[];
+  });
+
+// Used when the spatial SQL functions are missing or too slow. Totals, the timeline and coverage come from the
+// stored daily series (every record, as the Calendar uses); the map cells come from the detections of the map
+// window, read page by page. Wide windows are sampled evenly across time. Nothing here is invented.
+async function fetchFallbackSpatialBundle(data: SpatialQuery, signal: AbortSignal): Promise<SpatialBundle> {
+  const area = { west: data.west, south: data.south, east: data.east, north: data.north };
   const mapFrom = data.map_start_date ?? data.start_date;
   const mapTo = data.map_end_date ?? data.end_date;
-  const mapCellSize = Math.max(
-    0.15,
-    Math.sqrt(((data.east - data.west) * (data.north - data.south) * 2) / 2500),
+  const firstDay = dayNumber(mapFrom);
+  const span = Math.max(1, dayNumber(mapTo) - firstDay + 1);
+  const windowCount = span <= 14 ? 1 : Math.min(8, Math.ceil(span / 30));
+  const pagesPerWindow = windowCount === 1 ? 6 : 1;
+  const windows = Array.from({ length: windowCount }, (_, index) => ({
+    start: isoFromDayNumber(firstDay + Math.floor((span * index) / windowCount)),
+    end: isoFromDayNumber(index === windowCount - 1 ? dayNumber(mapTo) : firstDay + Math.floor((span * (index + 1)) / windowCount) - 1),
+  }));
+  const requests = windows.flatMap((window) =>
+    (["MODIS", "VIIRS"] as const).flatMap((sensor) =>
+      Array.from({ length: pagesPerWindow }, (_, page) => ({ window, sensor, offset: page * 1000 })),
+    ),
   );
+  const [daily, pages] = await Promise.all([
+    getDailyCounts({ data: { ...area, start_date: data.start_date, end_date: data.end_date } }),
+    mapWithLimit(requests, 6, (request) =>
+      getMapDetectionPage({
+        data: { ...area, start_date: request.window.start, end_date: request.window.end, sensor: request.sensor, offset: request.offset, confidence: data.confidence },
+      }),
+    ),
+  ]);
+  if (signal.aborted) throw new Error("Spatial query aborted.");
+
+  const cellSize = mapCellSizeFor(data);
   const cellGroups = new Map<string, SpatialSummaryCell & { dates: Set<string> }>();
-  const dayGroups = new Map<string, { date: string; modis: number; viirs: number }>();
-  const overlapGroups = new Map<string, Set<SpatialSensor>>();
-  const sensorCellDays = { MODIS: 0, VIIRS: 0 };
-  const sensorCellDayKeys = new Set<string>();
-  const monthSensors = new Map<string, Set<SpatialSensor>>();
-  let modisCount = 0;
-  let viirsCount = 0;
-
-  for (const row of rows) {
-    if (row.sensor === "MODIS") modisCount += 1;
-    else viirsCount += 1;
-    const daily = dayGroups.get(row.acq_date) ?? { date: row.acq_date, modis: 0, viirs: 0 };
-    daily[row.sensor === "MODIS" ? "modis" : "viirs"] += 1;
-    dayGroups.set(row.acq_date, daily);
-    const month = row.acq_date.slice(0, 7);
-    const sensorsForMonth = monthSensors.get(month) ?? new Set<SpatialSensor>();
-    sensorsForMonth.add(row.sensor);
-    monthSensors.set(month, sensorsForMonth);
-
-    const cellLat = Math.floor(row.lat / mapCellSize) * mapCellSize;
-    const cellLon = Math.floor(row.lon / mapCellSize) * mapCellSize;
-    if (row.acq_date >= mapFrom && row.acq_date <= mapTo) {
-      const key = `${row.sensor}:${cellLat}:${cellLon}`;
-      const cell = cellGroups.get(key) ?? {
-        sensor: row.sensor,
-        cell_lat: cellLat,
-        cell_lon: cellLon,
-        cell_size: mapCellSize,
-        observation_count: 0,
-        cell_days: 0,
-        frp_sum: 0,
-        max_frp: null,
-        dates: new Set<string>(),
-      };
-      cell.observation_count += 1;
-      cell.dates.add(row.acq_date);
-      cell.frp_sum += row.frp_mw ?? 0;
-      cell.max_frp = cell.max_frp == null ? row.frp_mw : Math.max(cell.max_frp, row.frp_mw ?? -Infinity);
-      cellGroups.set(key, cell);
-    }
-
-    const coarseLat = Math.floor(row.lat / 0.15);
-    const coarseLon = Math.floor(row.lon / 0.15);
-    const overlapKey = `${row.acq_date}:${coarseLat}:${coarseLon}`;
-    const sensorsForCellDay = overlapGroups.get(overlapKey) ?? new Set<SpatialSensor>();
-    sensorsForCellDay.add(row.sensor);
-    overlapGroups.set(overlapKey, sensorsForCellDay);
-    sensorCellDayKeys.add(`${row.sensor}:${overlapKey}`);
+  for (const row of pages.flat()) {
+    const cellLat = Math.floor(row.lat / cellSize) * cellSize;
+    const cellLon = Math.floor(row.lon / cellSize) * cellSize;
+    const key = `${row.sensor}:${cellLat}:${cellLon}`;
+    const cell = cellGroups.get(key) ?? {
+      sensor: row.sensor,
+      cell_lat: cellLat,
+      cell_lon: cellLon,
+      cell_size: cellSize,
+      observation_count: 0,
+      cell_days: 0,
+      frp_sum: 0,
+      max_frp: null,
+      dates: new Set<string>(),
+    };
+    cell.observation_count += 1;
+    cell.dates.add(row.acq_date);
+    cell.frp_sum += row.frp_mw ?? 0;
+    cell.max_frp = row.frp_mw == null ? cell.max_frp : Math.max(cell.max_frp ?? -Infinity, row.frp_mw);
+    cellGroups.set(key, cell);
   }
 
-  for (const key of sensorCellDayKeys) {
-    const sensor = key.startsWith("MODIS:") ? "MODIS" : "VIIRS";
-    sensorCellDays[sensor] += 1;
-  }
-  const bothCellDays = [...overlapGroups.values()].filter((sensors) => sensors.size === 2).length;
-  const modisOnlyCellDays = [...overlapGroups.values()].filter((sensors) => sensors.has("MODIS") && !sensors.has("VIIRS")).length;
-  const viirsOnlyCellDays = [...overlapGroups.values()].filter((sensors) => sensors.has("VIIRS") && !sensors.has("MODIS")).length;
-  const activeDates = [...dayGroups.keys()].sort();
-  const completeOverlapMonths = [...monthSensors.entries()].filter(([month, sensors]) => {
-    const [year, monthNumber] = month.split("-").map(Number);
-    const monthEnd = new Date(Date.UTC(year!, monthNumber!, 0)).toISOString().slice(0, 10);
-    const completeStart = month !== data.start_date.slice(0, 7) || data.start_date.endsWith("-01");
-    const completeEnd = month !== data.end_date.slice(0, 7) || data.end_date === monthEnd;
-    return sensors.size === 2 && completeStart && completeEnd;
-  }).length;
-  const cells = [...cellGroups.values()].map(({ dates, ...cell }) => ({ ...cell, cell_days: dates.size }));
-
+  const days = daily.filter((day) => day.modis + day.viirs > 0);
   return {
-    cells,
+    cells: [...cellGroups.values()].map(({ dates, ...cell }) => ({ ...cell, cell_days: dates.size })),
     counts: [
-      { sensor: "MODIS", matching_records: modisCount },
-      { sensor: "VIIRS", matching_records: viirsCount },
+      { sensor: "MODIS", matching_records: days.reduce((sum, day) => sum + day.modis, 0) },
+      { sensor: "VIIRS", matching_records: days.reduce((sum, day) => sum + day.viirs, 0) },
     ],
-    days: [...dayGroups.values()].sort((a, b) => a.date.localeCompare(b.date)),
-    sensor_cell_days: sensorCellDays,
+    days,
     coverage: {
-      first_date: activeDates[0] ?? null,
-      last_date: activeDates[activeDates.length - 1] ?? null,
-      active_days: activeDates.length,
-    },
-    overlap: {
-      both_cell_days: bothCellDays,
-      modis_only_cell_days: modisOnlyCellDays,
-      viirs_only_cell_days: viirsOnlyCellDays,
-      overlap_months: completeOverlapMonths,
-      raw_ratio: modisCount > 0 ? viirsCount / modisCount : null,
+      first_date: days[0]?.date ?? null,
+      last_date: days[days.length - 1]?.date ?? null,
+      active_days: days.length,
     },
     sensitivity: [],
+    degraded: true,
   };
 }
 
-function spatialRpcArgs(data: z.infer<typeof spatialQuerySchema>) {
+function spatialRpcArgs(data: SpatialQuery) {
   return {
     p_west: data.west,
     p_south: data.south,
@@ -356,55 +369,134 @@ function spatialRpcArgs(data: z.infer<typeof spatialQuerySchema>) {
   };
 }
 
-export async function fetchSpatialBundle(
-  data: z.infer<typeof spatialQuerySchema>,
-  signal: AbortSignal,
-): Promise<SpatialBundle> {
+// Calendar-year chunks keep every database call small, so each one finishes inside the database time limit.
+function chunkQuery(data: SpatialQuery, chunk: { start: string; end: string }): SpatialQuery {
+  return { ...data, start_date: chunk.start, end_date: chunk.end };
+}
+
+function mapWindowArgs(data: SpatialQuery, chunk: { start: string; end: string }) {
+  if (!data.map_start_date && !data.map_end_date) return { p_map_from_date: null, p_map_to_date: null };
+  const from = data.map_start_date && data.map_start_date > chunk.start ? data.map_start_date : chunk.start;
+  const to = data.map_end_date && data.map_end_date < chunk.end ? data.map_end_date : chunk.end;
+  return from <= to ? { p_map_from_date: from, p_map_to_date: to } : EMPTY_MAP_WINDOW;
+}
+
+function mergeBundles(parts: SpatialBundle[]): SpatialBundle {
+  const cells = new Map<string, SpatialSummaryCell>();
+  const totals = { MODIS: 0, VIIRS: 0 };
+  const days: SpatialBundle["days"] = [];
+  let firstDate: string | null = null;
+  let lastDate: string | null = null;
+  let activeDays = 0;
+  let cellDays = { MODIS: 0, VIIRS: 0 };
+  let hasCellDays = false;
+  const overlap = { both_cell_days: 0, modis_only_cell_days: 0, viirs_only_cell_days: 0, overlap_months: 0 };
+  let hasOverlap = false;
+  const sensitivity = new Map<number, { both: number; total: number; rates: number[]; complete: boolean }>();
+  for (const part of parts) {
+    for (const cell of part.cells ?? []) {
+      const key = `${cell.sensor}:${cell.cell_lat}:${cell.cell_lon}`;
+      const existing = cells.get(key);
+      if (!existing) cells.set(key, { ...cell });
+      else {
+        existing.observation_count += Number(cell.observation_count) || 0;
+        existing.cell_days += Number(cell.cell_days) || 0; // yearly chunks never share a day
+        existing.frp_sum += Number(cell.frp_sum) || 0;
+        existing.max_frp = cell.max_frp == null ? existing.max_frp : Math.max(existing.max_frp ?? -Infinity, cell.max_frp);
+      }
+    }
+    for (const row of part.counts ?? []) {
+      if (row.sensor === "MODIS" || row.sensor === "VIIRS") totals[row.sensor] += Number(row.matching_records) || 0;
+    }
+    days.push(...(part.days ?? []));
+    if (part.coverage?.first_date && (!firstDate || part.coverage.first_date < firstDate)) firstDate = part.coverage.first_date;
+    if (part.coverage?.last_date && (!lastDate || part.coverage.last_date > lastDate)) lastDate = part.coverage.last_date;
+    activeDays += Number(part.coverage?.active_days) || 0;
+    if (part.sensor_cell_days) {
+      hasCellDays = true;
+      cellDays = { MODIS: cellDays.MODIS + (Number(part.sensor_cell_days.MODIS) || 0), VIIRS: cellDays.VIIRS + (Number(part.sensor_cell_days.VIIRS) || 0) };
+    }
+    if (part.overlap) {
+      hasOverlap = true;
+      overlap.both_cell_days += Number(part.overlap.both_cell_days) || 0;
+      overlap.modis_only_cell_days += Number(part.overlap.modis_only_cell_days) || 0;
+      overlap.viirs_only_cell_days += Number(part.overlap.viirs_only_cell_days) || 0;
+      overlap.overlap_months += Number(part.overlap.overlap_months) || 0;
+    }
+    for (const item of part.sensitivity ?? []) {
+      const entry = sensitivity.get(item.cell_size) ?? { both: 0, total: 0, rates: [], complete: true };
+      if (item.both_cell_days == null || item.total_cell_days == null) entry.complete = false;
+      entry.both += Number(item.both_cell_days) || 0;
+      entry.total += Number(item.total_cell_days) || 0;
+      entry.rates.push(Number(item.agreement_rate) || 0);
+      sensitivity.set(item.cell_size, entry);
+    }
+  }
+  const single = parts.length === 1;
+  return {
+    cells: [...cells.values()],
+    counts: [
+      { sensor: "MODIS", matching_records: totals.MODIS },
+      { sensor: "VIIRS", matching_records: totals.VIIRS },
+    ],
+    days: days.sort((a, b) => a.date.localeCompare(b.date)),
+    ...(hasCellDays ? { sensor_cell_days: cellDays } : {}),
+    coverage: { first_date: firstDate, last_date: lastDate, active_days: activeDays },
+    ...(hasOverlap ? { overlap: { ...overlap, raw_ratio: totals.MODIS > 0 ? totals.VIIRS / totals.MODIS : null } } : {}),
+    sensitivity: [...sensitivity.entries()]
+      .filter(([, entry]) => single || entry.complete)
+      .map(([cell_size, entry]) => ({
+        cell_size,
+        agreement_rate: single && !entry.complete ? entry.rates[0]! : entry.total > 0 ? entry.both / entry.total : 0,
+        ...(entry.complete ? { both_cell_days: entry.both, total_cell_days: entry.total } : {}),
+      }))
+      .sort((a, b) => a.cell_size - b.cell_size),
+  };
+}
+
+const comparisonNeedsNewSql = "Analysis unavailable: update the Supabase SQL (spatial_compare_bundle v2) for multi-year ranges.";
+
+export async function fetchSpatialBundle(data: SpatialQuery, signal: AbortSignal): Promise<SpatialBundle> {
   try {
-    const result = await requestSpatialRpc("spatial_map_bundle", {
-      ...spatialRpcArgs(data),
-      p_map_from_date: data.map_start_date ?? null,
-      p_map_to_date: data.map_end_date ?? null,
-    }, signal);
-    return result as unknown as SpatialBundle;
+    const chunks = splitIntoYears(data.start_date, data.end_date);
+    const parts = await mapWithLimit(chunks, 3, (chunk) =>
+      requestSpatialRpc("spatial_map_bundle", { ...spatialRpcArgs(chunkQuery(data, chunk)), ...mapWindowArgs(data, chunk) }, signal),
+    );
+    return mergeBundles(parts as unknown as SpatialBundle[]);
   } catch (rpcError) {
     if (signal.aborted) throw rpcError;
-    console.error("[TerraFlux] spatial_map_bundle failed; falling back to sampled detections", rpcError);
-    return { ...(await fetchSampledSpatialBundle(data)), degraded: true };
+    console.error("[TerraFlux] spatial_map_bundle failed; reading detections directly", rpcError);
+    return fetchFallbackSpatialBundle(data, signal);
   }
 }
 
-export async function fetchCompareSpatialBundle(
-  data: z.infer<typeof spatialQuerySchema>,
-  signal: AbortSignal,
-): Promise<SpatialBundle> {
-  const mapArgs = {
-    ...spatialRpcArgs(data),
-    p_map_from_date: data.map_start_date ?? null,
-    p_map_to_date: data.map_end_date ?? null,
-  };
+export async function fetchCompareSpatialBundle(data: SpatialQuery, signal: AbortSignal): Promise<SpatialBundle> {
+  const chunks = splitIntoYears(data.start_date, data.end_date);
   const [comparison, map] = await Promise.all([
-    requestSpatialRpc("spatial_compare_bundle", spatialRpcArgs(data), signal)
-      .then((result) => ({ result }))
+    mapWithLimit(chunks, 3, (chunk) => requestSpatialRpc("spatial_compare_bundle", spatialRpcArgs(chunkQuery(data, chunk)), signal))
+      .then((parts) => ({ bundle: mergeBundles(parts as unknown as SpatialBundle[]) }))
       .catch((error: unknown) => ({ error })),
-    requestSpatialRpc("spatial_map_bundle", mapArgs, signal)
-      .then((result) => ({ result }))
+    mapWithLimit(chunks, 3, (chunk) =>
+      requestSpatialRpc("spatial_map_bundle", { ...spatialRpcArgs(chunkQuery(data, chunk)), ...mapWindowArgs(data, chunk) }, signal),
+    )
+      .then((parts) => ({ bundle: mergeBundles(parts as unknown as SpatialBundle[]) }))
       .catch((error: unknown) => ({ error })),
   ]);
-  if (signal.aborted) throw ("error" in comparison ? comparison.error : "error" in map ? map.error : new Error("Spatial query aborted."));
-  if ("error" in comparison || "error" in map) {
-    const failedRpc = "error" in comparison ? "spatial_compare_bundle" : "spatial_map_bundle";
-    console.error(`[TerraFlux] ${failedRpc} failed; falling back to sampled detections`, "error" in comparison ? comparison.error : map.error);
-    const sampled = await fetchSampledSpatialBundle(data);
-    return {
-      ...sampled,
-      ...("error" in comparison ? {} : comparison.result),
-      cells: sampled.cells,
-      degraded: true,
-      ...("error" in comparison ? { analysisError: comparisonAnalysisUnavailable } : {}),
-    } as SpatialBundle;
+  if (signal.aborted) throw new Error("Spatial query aborted.");
+
+  if ("bundle" in comparison && "bundle" in map) {
+    const hasRecords = (comparison.bundle.counts ?? []).some((row) => row.matching_records > 0);
+    const needsNewSql = chunks.length > 1 && hasRecords && (comparison.bundle.sensitivity ?? []).length === 0;
+    return { ...map.bundle, ...comparison.bundle, cells: map.bundle.cells, ...(needsNewSql ? { analysisError: comparisonNeedsNewSql } : {}) };
   }
-  return { ...map.result, ...comparison.result } as unknown as SpatialBundle;
+  if ("bundle" in map) {
+    console.error("[TerraFlux] spatial_compare_bundle failed", "error" in comparison ? comparison.error : null);
+    return { ...map.bundle, analysisError: comparisonAnalysisUnavailable };
+  }
+  console.error("[TerraFlux] spatial_map_bundle failed; reading detections directly", "error" in map ? map.error : null);
+  const fallback = await fetchFallbackSpatialBundle(data, signal);
+  if ("bundle" in comparison) return { ...comparison.bundle, cells: fallback.cells, degraded: true };
+  return { ...fallback, analysisError: comparisonAnalysisUnavailable };
 }
 
 export const getDetections = createServerFn({ method: "GET" })
