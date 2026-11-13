@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { RefreshCw, Satellite } from "lucide-react";
 import { REGIONS, getRegion } from "@/lib/regions";
-import { backfillFireData, fetchFireData } from "@/lib/firelens.functions";
+import { adminBackfillFireData, adminFetchFireData } from "@/lib/firelens.functions";
 
 interface NasaFirmsFetcherProps {
   initialRegionId?: string;
@@ -34,14 +34,19 @@ export function NasaFirmsFetcher({
   const [bbox, setBbox] = useState(initialBbox ?? getRegion(initialRegionId).bbox);
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
+  const [password, setPassword] = useState("");
   const [status, setStatus] = useState<FetchStatus>({ kind: "idle" });
-  const runBackfill = useServerFn(backfillFireData);
-  const runFetch = useServerFn(fetchFireData);
+  const runBackfill = useServerFn(adminBackfillFireData);
+  const runFetch = useServerFn(adminFetchFireData);
   const queryClient = useQueryClient();
   const region = getRegion(regionId);
   const activeBbox = regionId === "custom" ? bbox : region.bbox;
 
   const refreshData = async () => {
+    if (!password) {
+      setStatus({ kind: "error", message: "Enter the admin password first." });
+      return;
+    }
     if (!startDate || !endDate) {
       setStatus({ kind: "error", message: "Choose both dates." });
       return;
@@ -54,7 +59,7 @@ export function NasaFirmsFetcher({
     setStatus({ kind: "loading" });
     try {
       const result = await runBackfill({
-        data: { bbox: activeBbox, start_date: startDate, end_date: endDate },
+        data: { password, bbox: activeBbox, start_date: startDate, end_date: endDate },
       });
       await queryClient.invalidateQueries();
       setStatus({ kind: "success", stored: result.stored });
@@ -67,9 +72,13 @@ export function NasaFirmsFetcher({
   };
 
   const fetchRecent = async () => {
+    if (!password) {
+      setStatus({ kind: "error", message: "Enter the admin password first." });
+      return;
+    }
     setStatus({ kind: "loading" });
     try {
-      const result = await runFetch({ data: { bbox: activeBbox, days: 3 } });
+      const result = await runFetch({ data: { password, bbox: activeBbox, days: 3 } });
       await queryClient.invalidateQueries();
       setStatus({ kind: "success", stored: result.stored });
     } catch (error) {
@@ -103,16 +112,28 @@ export function NasaFirmsFetcher({
               Fetch observations for any date range
             </h2>
             <p className="mt-1 max-w-2xl font-mono text-[11px] leading-relaxed text-text-secondary">
-              Pull MODIS and VIIRS records directly from NASA FIRMS and make them available across
-              the globe, calendar, and comparison views.
+              Pull MODIS and VIIRS records directly from NASA FIRMS (the server holds the API key) and make them
+              available across the globe, calendar, and comparison views. The admin password is the one you set as ADMIN_IMPORT_SECRET; visitors cannot use this panel.
             </p>
           </div>
           <span className="rounded border border-agreement-teal/40 bg-agreement-teal/10 px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-agreement-teal">
-            API CONNECTED
+            OWNER ONLY
           </span>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_1fr_1fr_auto] sm:items-end">
+        <label className="mt-4 flex max-w-xs flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
+          Admin password
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="off"
+            placeholder="ADMIN_IMPORT_SECRET"
+            className="min-h-11 rounded border border-border bg-bg px-2.5 text-xs normal-case tracking-normal text-text focus:border-data-blue focus:outline-none"
+          />
+        </label>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_1fr_1fr_auto] sm:items-end">
           <label className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
             Region
             <select
