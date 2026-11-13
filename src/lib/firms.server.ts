@@ -289,3 +289,45 @@ export function chunkDateRange(startDate: string, endDate: string): string[] {
   }
   return starts;
 }
+
+// --- shared by the public and the owner-only pull functions in firelens.functions.ts ---
+export function splitBboxIntoTiles(bbox: string): string[] {
+  const [west, south, east, north] = bbox.split(",").map(Number);
+  const tiles: string[] = [];
+  for (let tileWest = west!; tileWest < east!; tileWest += 10) {
+    for (let tileSouth = south!; tileSouth < north!; tileSouth += 10) {
+      tiles.push([tileWest, tileSouth, Math.min(tileWest + 10, east!), Math.min(tileSouth + 10, north!)].join(","));
+    }
+  }
+  return tiles;
+}
+
+export async function runFetchFireData(data: { bbox: string; days: number; date?: string }) {
+  const rows = await fetchAndHarmonize(data);
+  const stored = await upsertDetections(rows);
+  return { rows, stored };
+}
+
+export async function runBackfillFireData(data: { bbox: string; start_date: string; end_date: string }) {
+  const starts = chunkDateRange(data.start_date, data.end_date);
+  let chunks = 0;
+  let stored = 0;
+  const errors: string[] = [];
+  const tiles = splitBboxIntoTiles(data.bbox);
+  // Sequential requests avoid saturating NASA FIRMS while covering large presets.
+  for (const tile of tiles) {
+    for (const date of starts) {
+      try {
+        const rows = await fetchAndHarmonize({ bbox: tile, days: 5, date });
+        stored += await upsertDetections(rows);
+        chunks += 1;
+      } catch (err) {
+        errors.push(`${tile} ${date}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
+  if (stored === 0 && errors.length > 0) {
+    throw new Error(errors[0]);
+  }
+  return { chunks, stored, errors };
+}

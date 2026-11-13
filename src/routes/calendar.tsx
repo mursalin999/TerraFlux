@@ -9,6 +9,7 @@ import { CalendarAnalysis } from "@/components/CalendarAnalysis";
 import { EmptyState } from "@/components/EmptyState";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
 import { DownloadMenu } from "@/components/DownloadMenu";
+import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
 import { useCustomArea } from "@/hooks/use-custom-area";
 
 export const Route = createFileRoute("/calendar")({
@@ -142,6 +143,15 @@ function CalendarPage() {
             onEnd={setEndDate}
           />
         </div>
+      </div>
+
+      <div className="mt-6">
+        <NasaFirmsFetcher
+          initialRegionId={regionId}
+          initialStartDate={startDate}
+          initialEndDate={endDate}
+          initialBbox={`${bboxParts.west},${bboxParts.south},${bboxParts.east},${bboxParts.north}`}
+        />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-border" role="tablist" aria-label="Calendar view">

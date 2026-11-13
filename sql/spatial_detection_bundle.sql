@@ -1,4 +1,5 @@
--- Run this SQL in the Supabase SQL editor before using the spatial summaries.
+-- TerraFlux spatial summaries, version 2. Run this whole file in the Supabase SQL editor (safe to run again).
+-- The website calls these functions one calendar year at a time, so each call stays inside the database time limit.
 -- Map cells are capped at roughly 2,500 per response. Comparison scans fire_detections once,
 -- then derives all sensitivity grids from the grouped 0.05-degree cell-days.
 
@@ -195,6 +196,8 @@ with filtered as materialized (
 ), sensitivity as (
   select
     cell_size,
+    count(*) filter (where has_modis and has_viirs)::bigint as both_cell_days,
+    count(*)::bigint as total_cell_days,
     coalesce(
       count(*) filter (where has_modis and has_viirs)::double precision / nullif(count(*), 0),
       0

@@ -24,6 +24,7 @@ import { computeAnalyticalGrid } from "@/lib/analyticalGrid";
 import { SENSOR_COLORS } from "@/lib/sensor-colors";
 import { CustomAreaControls } from "@/components/CustomAreaControls";
 import { DownloadMenu } from "@/components/DownloadMenu";
+import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
 import { bboxCenter } from "@/lib/custom-area";
 import { useCustomArea } from "@/hooks/use-custom-area";
 
@@ -132,6 +133,15 @@ function Compare() {
           Comparing 1 km MODIS nadir observations with 375 m VIIRS I-band detections over{" "}
           {region.name}.
         </p>
+      </div>
+
+      <div className="mt-6">
+        <NasaFirmsFetcher
+          initialRegionId={regionId}
+          initialStartDate={startDate}
+          initialEndDate={endDate}
+          initialBbox={`${bboxParts.west},${bboxParts.south},${bboxParts.east},${bboxParts.north}`}
+        />
       </div>
 
       <div className="mt-6">
