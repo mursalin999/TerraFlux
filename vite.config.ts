@@ -34,5 +34,8 @@ const nitro = shouldEnableVercelNitro
   : undefined;
 
 export default defineConfig({
+  vite: {
+    envPrefix: ["VITE_", "NEXT_PUBLIC_"],
+  },
   ...(nitro ? { nitro } : {}),
 });
