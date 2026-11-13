@@ -205,6 +205,124 @@ type SpatialRpcResult = { data: unknown; error: { message: string } | null };
 type SpatialRpcBuilder = PromiseLike<SpatialRpcResult> & {
   abortSignal?: (requestSignal: AbortSignal) => PromiseLike<SpatialRpcResult>;
 };
+type SpatialDateRange = { start_date: string; end_date: string };
+
+function splitIntoMonthlyRanges(startDate: string, endDate: string): SpatialDateRange[] {
+  const start = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end) {
+    throw new Error("The spatial query date range is invalid.");
+  }
+
+  const ranges: SpatialDateRange[] = [];
+  let cursor = start;
+  while (cursor <= end) {
+    const nextMonth = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
+    const monthEnd = new Date(nextMonth.getTime() - 24 * 60 * 60 * 1000);
+    const chunkEnd = monthEnd < end ? monthEnd : end;
+    ranges.push({
+      start_date: cursor.toISOString().slice(0, 10),
+      end_date: chunkEnd.toISOString().slice(0, 10),
+    });
+    cursor = new Date(chunkEnd.getTime() + 24 * 60 * 60 * 1000);
+  }
+  return ranges;
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  signal: AbortSignal,
+  mapItem: (item: T, signal: AbortSignal) => Promise<R>,
+): Promise<R[]> {
+  const controller = new AbortController();
+  const abortChild = () => controller.abort(signal.reason);
+  if (signal.aborted) abortChild();
+  else signal.addEventListener("abort", abortChild, { once: true });
+
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < items.length) {
+      if (controller.signal.aborted) {
+        throw signal.reason instanceof Error
+          ? signal.reason
+          : new DOMException("The spatial query was aborted.", "AbortError");
+      }
+      const index = nextIndex++;
+      try {
+        results[index] = await mapItem(items[index]!, controller.signal);
+      } catch (error) {
+        controller.abort(error);
+        throw error;
+      }
+    }
+  };
+
+  try {
+    await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+    return results;
+  } finally {
+    signal.removeEventListener("abort", abortChild);
+  }
+}
+
+function mergeSpatialBundles(bundles: SpatialBundle[]): SpatialBundle {
+  const cells = new Map<string, SpatialSummaryCell>();
+  const daily = new Map<string, { date: string; modis: number; viirs: number }>();
+  const totals = new Map<SpatialSensor, number>([["MODIS", 0], ["VIIRS", 0]]);
+  const coverageDates: string[] = [];
+
+  for (const bundle of bundles) {
+    for (const count of bundle.counts ?? []) {
+      if (count.sensor === "MODIS" || count.sensor === "VIIRS") {
+        totals.set(count.sensor, (totals.get(count.sensor) ?? 0) + count.matching_records);
+      }
+    }
+    for (const day of bundle.days ?? []) {
+      const current = daily.get(day.date) ?? { date: day.date, modis: 0, viirs: 0 };
+      current.modis += day.modis;
+      current.viirs += day.viirs;
+      daily.set(day.date, current);
+    }
+    if (bundle.coverage.first_date) coverageDates.push(bundle.coverage.first_date);
+    if (bundle.coverage.last_date) coverageDates.push(bundle.coverage.last_date);
+
+    for (const cell of bundle.cells ?? []) {
+      const key = `${cell.sensor}:${cell.cell_lat}:${cell.cell_lon}:${cell.cell_size}`;
+      const current = cells.get(key);
+      if (!current) {
+        cells.set(key, { ...cell });
+        continue;
+      }
+      current.observation_count += cell.observation_count;
+      current.cell_days += cell.cell_days;
+      current.frp_sum += cell.frp_sum;
+      current.max_frp = current.max_frp == null
+        ? cell.max_frp
+        : cell.max_frp == null
+          ? current.max_frp
+          : Math.max(current.max_frp, cell.max_frp);
+    }
+  }
+
+  const days = [...daily.values()].sort((a, b) => a.date.localeCompare(b.date));
+  const sortedCoverageDates = coverageDates.sort();
+  return {
+    cells: [...cells.values()],
+    counts: [
+      { sensor: "MODIS", matching_records: totals.get("MODIS") ?? 0 },
+      { sensor: "VIIRS", matching_records: totals.get("VIIRS") ?? 0 },
+    ],
+    days,
+    coverage: {
+      first_date: sortedCoverageDates[0] ?? null,
+      last_date: sortedCoverageDates.at(-1) ?? null,
+      active_days: days.length,
+    },
+    degraded: bundles.some((bundle) => bundle.degraded),
+  };
+}
 
 const spatialRpcClient = supabase as unknown as {
   rpc: (name: string, args: Record<string, unknown>) => SpatialRpcBuilder;
@@ -229,23 +347,30 @@ async function requestSpatialRpc(name: string, args: Record<string, unknown>, si
   }
 }
 
-async function fetchSampledSpatialBundle(data: z.infer<typeof spatialQuerySchema>): Promise<SpatialBundle> {
-  const query = {
-    west: data.west,
-    south: data.south,
-    east: data.east,
-    north: data.north,
-    start_date: data.start_date,
-    end_date: data.end_date,
-    confidence: data.confidence,
-    sample_limit: 5000,
-  };
-  const [modisRows, viirsRows] = await Promise.all(
-    (["MODIS", "VIIRS"] as const).map((sensor) =>
-      getDetections({ data: { ...query, sensors: [sensor] } }),
-    ),
-  );
-  const rows = [...modisRows, ...viirsRows] as DetectionSample[];
+async function fetchSampledSpatialBundle(
+  data: z.infer<typeof spatialQuerySchema>,
+  signal: AbortSignal,
+): Promise<SpatialBundle> {
+  const ranges = splitIntoMonthlyRanges(data.start_date, data.end_date);
+  const rowsByRange = await mapWithConcurrency(ranges, 2, signal, async (range) => {
+    const query = {
+      west: data.west,
+      south: data.south,
+      east: data.east,
+      north: data.north,
+      start_date: range.start_date,
+      end_date: range.end_date,
+      confidence: data.confidence,
+      sample_limit: 10000,
+    };
+    const [modisRows, viirsRows] = await Promise.all(
+      (["MODIS", "VIIRS"] as const).map((sensor) =>
+        getDetections({ data: { ...query, sensors: [sensor] } }),
+      ),
+    );
+    return [...modisRows, ...viirsRows] as DetectionSample[];
+  });
+  const rows = rowsByRange.flat();
   const mapFrom = data.map_start_date ?? data.start_date;
   const mapTo = data.map_end_date ?? data.end_date;
   const mapCellSize = Math.max(
@@ -361,16 +486,21 @@ export async function fetchSpatialBundle(
   signal: AbortSignal,
 ): Promise<SpatialBundle> {
   try {
-    const result = await requestSpatialRpc("spatial_map_bundle", {
-      ...spatialRpcArgs(data),
-      p_map_from_date: data.map_start_date ?? null,
-      p_map_to_date: data.map_end_date ?? null,
-    }, signal);
-    return result as unknown as SpatialBundle;
+    const ranges = splitIntoMonthlyRanges(data.start_date, data.end_date);
+    const bundles = await mapWithConcurrency(ranges, 2, signal, async (range, chunkSignal) => {
+      const chunkData = { ...data, ...range };
+      const result = await requestSpatialRpc("spatial_map_bundle", {
+        ...spatialRpcArgs(chunkData),
+        p_map_from_date: data.map_start_date ?? null,
+        p_map_to_date: data.map_end_date ?? null,
+      }, chunkSignal);
+      return result as unknown as SpatialBundle;
+    });
+    return mergeSpatialBundles(bundles);
   } catch (rpcError) {
     if (signal.aborted) throw rpcError;
     console.error("[TerraFlux] spatial_map_bundle failed; falling back to sampled detections", rpcError);
-    return { ...(await fetchSampledSpatialBundle(data)), degraded: true };
+    return { ...(await fetchSampledSpatialBundle(data, signal)), degraded: true };
   }
 }
 
@@ -395,7 +525,7 @@ export async function fetchCompareSpatialBundle(
   if ("error" in comparison || "error" in map) {
     const failedRpc = "error" in comparison ? "spatial_compare_bundle" : "spatial_map_bundle";
     console.error(`[TerraFlux] ${failedRpc} failed; falling back to sampled detections`, "error" in comparison ? comparison.error : map.error);
-    const sampled = await fetchSampledSpatialBundle(data);
+    const sampled = await fetchSampledSpatialBundle(data, signal);
     return {
       ...sampled,
       ...("error" in comparison ? {} : comparison.result),
