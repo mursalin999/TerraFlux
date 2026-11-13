@@ -8,10 +8,11 @@ interface PlaybackControlsProps {
 }
 
 export function PlaybackControls({ dates, days, onDateChange }: PlaybackControlsProps) {
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState<number | null>(null);
   const [speed, setSpeed] = useState<1 | 2 | 4>(1);
   const [playing, setPlaying] = useState(false);
-  const currentDate = dates[index] ?? dates[0] ?? "—";
+  const currentIndex = index === null ? Math.max(0, dates.length - 1) : Math.min(index, Math.max(0, dates.length - 1));
+  const currentDate = dates[currentIndex] ?? dates[0] ?? "—";
 
   const counts = useMemo(() => days.reduce((total, day) => day.date <= currentDate
     ? { modis: total.modis + day.modis, viirs: total.viirs + day.viirs, total: total.total + day.modis + day.viirs }
@@ -36,11 +37,12 @@ export function PlaybackControls({ dates, days, onDateChange }: PlaybackControls
     if (!playing || dates.length < 2) return;
     const timer = window.setInterval(() => {
       setIndex((value) => {
-        if (value >= dates.length - 1) {
+        const current = value ?? dates.length - 1;
+        if (current >= dates.length - 1) {
           setPlaying(false);
-          return value;
+          return current;
         }
-        return value + 1;
+        return current + 1;
       });
     }, 1200 / speed);
     return () => window.clearInterval(timer);
@@ -52,7 +54,7 @@ export function PlaybackControls({ dates, days, onDateChange }: PlaybackControls
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={() => setPlaying((value) => {
           if (value) return false;
-          if (index >= dates.length - 1) setIndex(0);
+          if (currentIndex >= dates.length - 1) setIndex(0);
           return dates.length > 1;
         })} className="inline-flex min-h-10 items-center gap-2 rounded border border-agreement-teal px-3 text-[11px] text-agreement-teal">
           {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
@@ -68,7 +70,7 @@ export function PlaybackControls({ dates, days, onDateChange }: PlaybackControls
         <output className="text-[11px] text-text">{currentDate} · MODIS {counts.modis} · VIIRS {counts.viirs}</output>
         <span className="text-[10px] text-text-secondary">TOTAL SO FAR {counts.total}</span>
       </div>
-      <input className="mt-3 w-full accent-[var(--data-blue)]" type="range" min={0} max={Math.max(0, dates.length - 1)} value={index} onChange={(event) => { setIndex(Number(event.target.value)); setPlaying(false); }} aria-label="Playback date" />
+      <input className="mt-3 w-full accent-[var(--data-blue)]" type="range" min={0} max={Math.max(0, dates.length - 1)} value={currentIndex} onChange={(event) => { setIndex(Number(event.target.value)); setPlaying(false); }} aria-label="Playback date" />
     </section>
   );
 }

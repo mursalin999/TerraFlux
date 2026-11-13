@@ -201,8 +201,9 @@ export async function fetchAndHarmonize(opts: {
   bbox: string;
   days: number;
   date?: string | undefined;
+  mapKey?: string | undefined;
 }): Promise<HarmonizedRow[]> {
-  const mapKey = (
+  const mapKey = opts.mapKey?.trim() || (
     (typeof process !== "undefined" &&
       (process.env["FIRMS_MAP_KEY"] ||
         process.env["VITE_FIRMS_MAP_KEY"] ||
@@ -212,7 +213,7 @@ export async function fetchAndHarmonize(opts: {
   )?.trim();
   if (!mapKey) {
     throw new Error(
-      "FIRMS_MAP_KEY is not set in Vercel environment variables. Please set FIRMS_MAP_KEY in Vercel Project Settings -> Environment Variables and trigger a fresh redeploy.",
+      "Enter your NASA FIRMS MAP_KEY or configure FIRMS_MAP_KEY on the server.",
     );
   }
   validateBbox(opts.bbox);

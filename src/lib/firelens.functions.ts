@@ -23,12 +23,13 @@ export const fetchFireData = createServerFn({ method: "POST" })
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .optional(),
+        map_key: z.string().trim().min(1).max(200).optional(),
       })
       .parse(data),
   )
   .handler(async ({ data }) => {
     const { fetchAndHarmonize, upsertDetections } = await import("./firms.server");
-    const rows = await fetchAndHarmonize(data);
+    const rows = await fetchAndHarmonize({ bbox: data.bbox, days: data.days, date: data.date, mapKey: data.map_key });
     const stored = await upsertDetections(rows);
     return { rows, stored };
   });
@@ -52,6 +53,7 @@ export const backfillFireData = createServerFn({ method: "POST" })
         bbox: bboxSchema,
         start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        map_key: z.string().trim().min(1).max(200).optional(),
       })
       .parse(data),
   )
@@ -66,7 +68,7 @@ export const backfillFireData = createServerFn({ method: "POST" })
     for (const tile of tiles) {
       for (const date of starts) {
         try {
-          const rows = await fetchAndHarmonize({ bbox: tile, days: 5, date });
+          const rows = await fetchAndHarmonize({ bbox: tile, days: 5, date, mapKey: data.map_key });
           stored += await upsertDetections(rows);
           chunks += 1;
         } catch (err) {
@@ -487,7 +489,7 @@ export async function fetchSpatialBundle(
 ): Promise<SpatialBundle> {
   try {
     const ranges = splitIntoMonthlyRanges(data.start_date, data.end_date);
-    const bundles = await mapWithConcurrency(ranges, 2, signal, async (range, chunkSignal) => {
+    const bundles = await mapWithConcurrency(ranges, 4, signal, async (range, chunkSignal) => {
       const chunkData = { ...data, ...range };
       const result = await requestSpatialRpc("spatial_map_bundle", {
         ...spatialRpcArgs(chunkData),

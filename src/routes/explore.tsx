@@ -1,7 +1,6 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useMemo, useState, useEffect, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import {
   SlidersHorizontal,
   ChevronDown,
@@ -15,6 +14,7 @@ import {
   Sparkles,
   ShieldCheck,
   Calendar,
+  Database,
   Grid,
   Globe2,
   Map as MapIcon,
@@ -22,7 +22,7 @@ import {
 import { REGIONS, getRegion, parseBbox, SENSOR_META } from "@/lib/regions";
 import { SENSOR_COLORS } from "@/lib/sensor-colors";
 import { defaultFilters, type FireFilters, type ConfidenceTier } from "@/components/FireControls";
-import { getDetections, fetchSpatialBundle, spatialCellsToObservationPoints, fetchFireData, backfillFireData, backfillPresetHistory } from "@/lib/firelens.functions";
+import { getDetections, fetchSpatialBundle, spatialCellsToObservationPoints } from "@/lib/firelens.functions";
 import {
   computeAnalyticalGrid,
   AGREEMENT_DEFINITIONS,
@@ -40,6 +40,7 @@ import { ObservationInspector } from "@/components/ObservationInspector";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { PlaybackControls } from "@/components/PlaybackControls";
 import { EmptyState } from "@/components/EmptyState";
+import { NasaFirmsFetcher } from "@/components/NasaFirmsFetcher";
 import {
   Drawer,
   DrawerContent,
@@ -74,29 +75,6 @@ export const Route = createFileRoute("/explore")({
 
 type TimeScale = "daily" | "weekly" | "monthly";
 
-type PullState =
-  | { status: "idle" }
-  | { status: "running"; done: number; total: number }
-  | { status: "done"; stored: number }
-  | { status: "error"; message: string };
-
-function monthChunks(start: string, end: string): { start: string; end: string }[] {
-  const out: { start: string; end: string }[] = [];
-  const cursor = new Date(start + "T00:00:00Z");
-  const last = new Date(end + "T00:00:00Z");
-  while (cursor <= last) {
-    const chunkEnd = new Date(cursor);
-    chunkEnd.setUTCDate(chunkEnd.getUTCDate() + 29);
-    if (chunkEnd > last) chunkEnd.setTime(last.getTime());
-    out.push({
-      start: cursor.toISOString().slice(0, 10),
-      end: chunkEnd.toISOString().slice(0, 10),
-    });
-    cursor.setUTCDate(cursor.getUTCDate() + 30);
-  }
-  return out;
-}
-
 function ExploreWorkspace() {
   const [filters, setFilters] = useState<FireFilters>(() => ({ ...defaultFilters(), regionId: typeof window !== "undefined" && new URLSearchParams(window.location.search).has("bbox") ? "custom" : defaultFilters().regionId }));
   const [timeScale, setTimeScale] = useState<TimeScale>("daily");
@@ -112,12 +90,6 @@ function ExploreWorkspace() {
   const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [selectedAnalysisDate, setSelectedAnalysisDate] = useState<string | null>(null);
   const [playbackDate, setPlaybackDate] = useState<string | null>(null);
-  const [pull, setPull] = useState<PullState>({ status: "idle" });
-
-  const queryClient = useQueryClient();
-  const runBackfill = useServerFn(backfillFireData);
-  const runBackfillPresets = useServerFn(backfillPresetHistory);
-  const runFetch = useServerFn(fetchFireData);
 
   const [customBbox, setCustomBbox] = useCustomArea(parseBbox(getRegion("bangladesh").bbox));
   const [mapBounds, setMapBounds] = useState(customBbox);
@@ -125,6 +97,7 @@ function ExploreWorkspace() {
   const bboxParts = filters.regionId === "custom" ? customBbox : parseBbox(region.bbox);
   const mapCenter = filters.regionId === "custom" ? bboxCenter(customBbox) : region.center;
   const mapZoom = filters.regionId === "custom" ? 7 : region.zoom;
+  const activeBbox = `${bboxParts.west},${bboxParts.south},${bboxParts.east},${bboxParts.north}`;
 
   const selectedSensors = activeSensor === "MODIS" ? ["MODIS" as const] : activeSensor === "VIIRS" ? ["VIIRS" as const] : undefined;
   const queryInput = {
@@ -142,48 +115,81 @@ function ExploreWorkspace() {
     enabled: isTableModalOpen,
     staleTime: 120000,
   });
-  const spatialQueryInput = useMemo(() => {
-    if (!playbackDate) return { ...bboxParts, start_date: filters.startDate, end_date: filters.endDate, confidence: filters.confidence.length ? filters.confidence : undefined };
-    const from = new Date(`${playbackDate}T00:00:00Z`);
+  const summarySpatialInput = useMemo(() => ({
+    ...bboxParts,
+    start_date: filters.startDate,
+    end_date: filters.endDate,
+    confidence: filters.confidence.length ? filters.confidence : undefined,
+  }), [bboxParts.west, bboxParts.south, bboxParts.east, bboxParts.north, filters.startDate, filters.endDate, filters.confidence]);
+  const playbackSpatialInput = useMemo(() => {
+    if (!playbackDate) return null;
+    const selectedDate = playbackDate < filters.startDate ? filters.startDate : playbackDate > filters.endDate ? filters.endDate : playbackDate;
+    const from = new Date(`${selectedDate}T00:00:00Z`);
     from.setUTCDate(from.getUTCDate() - 3);
-    return { ...bboxParts, start_date: filters.startDate, end_date: filters.endDate, map_start_date: from.toISOString().slice(0, 10), map_end_date: playbackDate, confidence: filters.confidence.length ? filters.confidence : undefined };
+    const mapStart = from.toISOString().slice(0, 10);
+    return {
+      ...bboxParts,
+      start_date: mapStart < filters.startDate ? filters.startDate : mapStart,
+      end_date: selectedDate,
+      confidence: filters.confidence.length ? filters.confidence : undefined,
+    };
   }, [bboxParts.west, bboxParts.south, bboxParts.east, bboxParts.north, filters.startDate, filters.endDate, filters.confidence, playbackDate]);
-  const [debouncedSpatialInput, setDebouncedSpatialInput] = useState(spatialQueryInput);
+  const [debouncedSummaryInput, setDebouncedSummaryInput] = useState(summarySpatialInput);
+  const [debouncedPlaybackInput, setDebouncedPlaybackInput] = useState(playbackSpatialInput);
   const [stillLoading, setStillLoading] = useState(false);
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedSpatialInput(spatialQueryInput), 150);
+    const timer = window.setTimeout(() => {
+      setDebouncedSummaryInput(summarySpatialInput);
+      setDebouncedPlaybackInput(playbackSpatialInput);
+    }, 150);
     return () => window.clearTimeout(timer);
-  }, [spatialQueryInput]);
-  const spatialQuery = useQuery({
-    queryKey: ["spatial-bundle", debouncedSpatialInput.west, debouncedSpatialInput.south, debouncedSpatialInput.east, debouncedSpatialInput.north, debouncedSpatialInput.start_date, debouncedSpatialInput.end_date, debouncedSpatialInput.map_start_date, debouncedSpatialInput.map_end_date, debouncedSpatialInput.confidence?.join(",")],
+  }, [summarySpatialInput, playbackSpatialInput]);
+  const spatialSummaryQuery = useQuery({
+    queryKey: ["spatial-summary", debouncedSummaryInput.west, debouncedSummaryInput.south, debouncedSummaryInput.east, debouncedSummaryInput.north, debouncedSummaryInput.start_date, debouncedSummaryInput.end_date, debouncedSummaryInput.confidence?.join(",")],
     queryFn: async ({ signal }) => {
       try {
-        return await fetchSpatialBundle(debouncedSpatialInput, signal);
+        return await fetchSpatialBundle(debouncedSummaryInput, signal);
       } catch (error) {
-        console.error("[TerraFlux] Explore spatial query failed", error);
+        console.error("[TerraFlux] Explore spatial summary failed", error);
         throw error;
       }
     },
+    staleTime: 300000,
+  });
+  const playbackQuery = useQuery({
+    queryKey: ["spatial-playback", debouncedPlaybackInput?.west, debouncedPlaybackInput?.south, debouncedPlaybackInput?.east, debouncedPlaybackInput?.north, filters.startDate, filters.endDate, debouncedPlaybackInput?.start_date, debouncedPlaybackInput?.end_date, debouncedPlaybackInput?.confidence?.join(",")],
+    queryFn: async ({ signal }) => {
+      if (!debouncedPlaybackInput) throw new Error("Select a playback date first.");
+      try {
+        return await fetchSpatialBundle(debouncedPlaybackInput, signal);
+      } catch (error) {
+        console.error("[TerraFlux] Explore playback query failed", error);
+        throw error;
+      }
+    },
+    enabled: Boolean(debouncedPlaybackInput),
     placeholderData: (previousData, previousQuery) => {
       const previousKey = previousQuery?.queryKey;
-      const sameFilters = previousKey?.[1] === debouncedSpatialInput.west && previousKey?.[2] === debouncedSpatialInput.south && previousKey?.[3] === debouncedSpatialInput.east && previousKey?.[4] === debouncedSpatialInput.north && previousKey?.[5] === debouncedSpatialInput.start_date && previousKey?.[6] === debouncedSpatialInput.end_date && previousKey?.[9] === debouncedSpatialInput.confidence?.join(",");
+      const sameFilters = previousKey?.[1] === debouncedPlaybackInput?.west && previousKey?.[2] === debouncedPlaybackInput?.south && previousKey?.[3] === debouncedPlaybackInput?.east && previousKey?.[4] === debouncedPlaybackInput?.north && previousKey?.[5] === filters.startDate && previousKey?.[6] === filters.endDate && previousKey?.[9] === debouncedPlaybackInput?.confidence?.join(",");
       return sameFilters ? previousData : undefined;
     },
-    staleTime: 120000,
+    staleTime: 300000,
+    gcTime: 60000,
   });
+  const activeSpatialQuery = playbackDate && debouncedPlaybackInput ? playbackQuery : spatialSummaryQuery;
+  const isSpatialLoading = activeSpatialQuery.isFetching && !activeSpatialQuery.data && !spatialSummaryQuery.data;
   useEffect(() => {
-    if (!spatialQuery.isFetching) { setStillLoading(false); return; }
+    if (!isSpatialLoading) { setStillLoading(false); return; }
     const timer = window.setTimeout(() => setStillLoading(true), 8000);
     return () => window.clearTimeout(timer);
-  }, [spatialQuery.isFetching, spatialQuery.dataUpdatedAt]);
+  }, [isSpatialLoading, activeSpatialQuery.dataUpdatedAt]);
 
   const rawDetections = useMemo(() => query.data ?? [], [query.data]);
-  const hasSpatialInputChanged = spatialQueryInput.west !== debouncedSpatialInput.west || spatialQueryInput.south !== debouncedSpatialInput.south || spatialQueryInput.east !== debouncedSpatialInput.east || spatialQueryInput.north !== debouncedSpatialInput.north || spatialQueryInput.start_date !== debouncedSpatialInput.start_date || spatialQueryInput.end_date !== debouncedSpatialInput.end_date || spatialQueryInput.map_start_date !== debouncedSpatialInput.map_start_date || spatialQueryInput.map_end_date !== debouncedSpatialInput.map_end_date || spatialQueryInput.confidence?.join(",") !== debouncedSpatialInput.confidence?.join(",");
-  const spatialBundle = hasSpatialInputChanged || spatialQuery.isFetching ? undefined : spatialQuery.data;
+  const spatialBundle = playbackDate ? playbackQuery.data ?? spatialSummaryQuery.data : spatialSummaryQuery.data;
   const spatialCells = useMemo(() => spatialBundle?.cells ?? [], [spatialBundle]);
   const renderedCells = useMemo(() => spatialCellsToObservationPoints(spatialCells, playbackDate ?? filters.startDate), [spatialCells, filters.startDate, playbackDate]);
   const drawnCells = useMemo(() => renderedCells.filter((point) => activeSensor === "HARMONIZED" || point.sensor === activeSensor), [renderedCells, activeSensor]);
-  const timelineDays = spatialQuery.data?.days ?? [];
+  const timelineDays = spatialSummaryQuery.data?.days ?? [];
   const playbackDates = useMemo(() => timelineDays.map((item) => item.date), [timelineDays]);
 
   // Derived views and inspector context use the same complete cell aggregation as the map.
@@ -218,66 +224,6 @@ function ExploreWorkspace() {
     }
     return "HARMONIZED: both sensors on one common analytical grid.";
   }, [activeSensor]);
-
-  // Ingestion actions
-  const handlePullRecent = async () => {
-    setPull({ status: "running", done: 0, total: 1 });
-    try {
-      const res = await runFetch({ data: { bbox: region.bbox, days: 3 } });
-      await queryClient.invalidateQueries({ queryKey: ["detections"] });
-      setPull({ status: "done", stored: res.stored });
-    } catch (err) {
-      setPull({ status: "error", message: err instanceof Error ? err.message : "Pull failed" });
-    }
-  };
-
-  const handlePullHistory = async () => {
-    if (!filters.startDate || !filters.endDate) {
-      setPull({ status: "error", message: "Choose both a start date and an end date." });
-      return;
-    }
-    if (filters.startDate > filters.endDate) {
-      setPull({ status: "error", message: "Start date must be on or before end date." });
-      return;
-    }
-
-    const chunks = monthChunks(filters.startDate, filters.endDate);
-    setPull({ status: "running", done: 0, total: chunks.length });
-    let stored = 0;
-    try {
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i]!;
-        const res = await runBackfill({
-          data: {
-            bbox: region.bbox,
-            start_date: chunk.start,
-            end_date: chunk.end,
-          },
-        });
-        stored += res.stored;
-        setPull({ status: "running", done: i + 1, total: chunks.length });
-      }
-      await queryClient.invalidateQueries({ queryKey: ["detections"] });
-      setPull({ status: "done", stored });
-    } catch (err) {
-      setPull({ status: "error", message: err instanceof Error ? err.message : "Pull failed" });
-    }
-  };
-
-  const handlePullAllRegions = async () => {
-    const end = new Date();
-    const start = new Date(end);
-    start.setUTCFullYear(start.getUTCFullYear() - 1);
-    const format = (value: Date) => value.toISOString().slice(0, 10);
-    setPull({ status: "running", done: 0, total: REGIONS.length - 1 });
-    try {
-      const results = await runBackfillPresets({ data: { region_ids: REGIONS.filter((item) => item.id !== "bangladesh").map((item) => item.id), start_date: format(start), end_date: format(end) } });
-      await queryClient.invalidateQueries();
-      const stored = results.reduce((sum, result) => sum + result.stored, 0);
-      const errors = results.flatMap((result) => result.errors);
-      setPull(errors.length && stored === 0 ? { status: "error", message: errors[0] ?? "No rows were stored." } : { status: "done", stored });
-    } catch (error) { setPull({ status: "error", message: error instanceof Error ? error.message : "One-year regional backfill failed." }); }
-  };
 
   const resetFilters = () => {
     setFilters(defaultFilters());
@@ -400,6 +346,12 @@ function ExploreWorkspace() {
   return (
     <div className="flex min-h-[calc(100dvh-4rem)] w-full flex-col bg-bg text-text">
       {/* Dedicated map workspace: controls and visualization stay in document flow. */}
+      <div className="mx-auto w-full max-w-[1920px] px-3 pt-3 sm:px-5 lg:px-6">
+        <NasaFirmsFetcher
+          initialRegionId={filters.regionId}
+          initialBbox={filters.regionId === "custom" ? `${bboxParts.west},${bboxParts.south},${bboxParts.east},${bboxParts.north}` : undefined}
+        />
+      </div>
       <div className="mx-auto flex w-full max-w-[1920px] flex-col gap-3 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-6">
         {spatialBundle?.degraded && <div className="order-2 rounded border border-anomaly-amber/50 bg-surface px-3 py-2 font-mono text-[11px] text-anomaly-amber lg:order-1" role="status">Fast summary unavailable. Showing a sample of detections.</div>}
         {/* 3D Earth Globe */}
@@ -457,30 +409,45 @@ function ExploreWorkspace() {
               )}
             </Suspense>
           </ClientOnly>
-          {(hasSpatialInputChanged || spatialQuery.isFetching) && (
+          {isSpatialLoading && (
             <div className="absolute inset-0 z-30 flex items-center justify-center bg-bg/75 p-4 backdrop-blur-sm" role="status" aria-live="polite">
               <div className="flex max-w-md flex-col items-center gap-3 rounded border border-border bg-surface p-4 text-center font-mono text-xs text-text shadow-xl">
                 <RefreshCw className="h-4 w-4 animate-spin text-data-blue" />
                 <span>{stillLoading ? "Still loading..." : `Loading ${activeSensor === "HARMONIZED" ? "MODIS and VIIRS" : activeSensor} cells...`}</span>
-                {stillLoading && <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}
+                {stillLoading && <button type="button" onClick={() => activeSpatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>}
               </div>
             </div>
           )}
-          {spatialQuery.isError && (
+          {activeSpatialQuery.isError && (
             <div className="absolute right-3 top-3 z-30 flex max-w-[calc(100%-1.5rem)] items-center gap-3 rounded border border-anomaly-amber/50 bg-surface/95 p-3 font-mono text-xs text-text shadow-xl" role="alert" aria-live="polite">
-              <span className="text-anomaly-amber">{spatialQuery.error.message}</span>
-              <button type="button" onClick={() => spatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>
+              <span className="text-anomaly-amber">{activeSpatialQuery.error.message}</span>
+              <button type="button" onClick={() => activeSpatialQuery.refetch()} className="rounded border border-border px-3 py-2 text-text">Retry</button>
             </div>
           )}
         </div>
         <div className="order-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-border/70 bg-surface/80 px-3 py-2 font-mono text-[10px] text-text-secondary" aria-live="polite">
-          <span>{spatialQuery.isError ? <strong className="text-anomaly-amber">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(spatialBundle?.counts ?? []).filter((row) => activeSensor === "HARMONIZED" || row.sensor === activeSensor).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching observations</>}</span>
-          <span><strong className="text-text">{spatialQuery.isError ? "—" : drawnCells.length.toLocaleString()}</strong> spatial cells rendered</span>
+          <span>{activeSpatialQuery.isError ? <strong className="text-anomaly-amber">SPATIAL SUMMARY UNAVAILABLE</strong> : <><strong className="text-text">{(spatialSummaryQuery.data?.counts ?? []).filter((row) => activeSensor === "HARMONIZED" || row.sensor === activeSensor).reduce((sum, row) => sum + row.matching_records, 0).toLocaleString()}</strong> matching observations</>}</span>
+          <span><strong className="text-text">{activeSpatialQuery.isError ? "—" : drawnCells.length.toLocaleString()}</strong> spatial cells rendered</span>
           <span>0.15° aggregation · {activeSensor}</span>
           {isTableModalOpen && <span>{rawDetections.length.toLocaleString()} raw records sampled for inspection</span>}
         </div>
   <div className="order-3">
-  <PlaybackControls dates={playbackDates} days={timelineDays} onDateChange={setPlaybackDate} />
+  {timelineLoading && !timelineReady && (
+    <div className="flex items-center gap-2 rounded border border-border bg-surface/90 px-3 py-2 font-mono text-[11px] text-text-secondary" role="status" aria-live="polite">
+      <RefreshCw className="h-3.5 w-3.5 animate-spin text-data-blue" />
+      <span>Loading historical timeline… the current globe view remains available.</span>
+    </div>
+  )}
+  {timelineError && (
+    <div className="flex flex-wrap items-center gap-3 rounded border border-anomaly-amber/50 bg-surface px-3 py-2 font-mono text-[11px] text-anomaly-amber" role="alert">
+      <span>Historical timeline could not load.</span>
+      <button type="button" onClick={retryTimeline} className="rounded border border-border px-3 py-2 text-text">Retry</button>
+    </div>
+  )}
+  {!timelineLoading && !timelineError && timelineReady && timelineDays.length === 0 && (
+    <p className="rounded border border-border bg-surface/90 px-3 py-2 font-mono text-[11px] text-text-secondary">No historical observations in this region and date range.</p>
+  )}
+  {timelineDays.length > 0 && <PlaybackControls dates={playbackDates} days={timelineDays} onDateChange={setPlaybackDate} />}
   </div>
   {viewCaption && (
   <p className="order-3 -mt-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">

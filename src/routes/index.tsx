@@ -227,15 +227,15 @@ function HomePage() {
               >
                 <DropdownMenuItem asChild>
                   <Link
-                    to="/calendar"
+                    to="/explore"
                     search={{}}
                     className="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-text hover:bg-surface"
                   >
                     <RefreshCw className="h-4 w-4 text-data-blue" />
                     <div className="flex flex-col">
-                      <span className="font-semibold">Fetch NASA FIRMS</span>
+                      <span className="font-semibold">NASA FIRMS ingest</span>
                       <span className="text-[10px] text-text-secondary">
-                        Any region and date range
+                        Add MODIS + VIIRS observations
                       </span>
                     </div>
                   </Link>
@@ -336,12 +336,12 @@ function HomePage() {
                 EXPLORE
               </Link>
               <Link
-                to="/calendar"
+                to="/explore"
                 search={{}}
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded px-3 py-2 text-text hover:bg-surface-elevated"
               >
-                DATA · FETCH NASA FIRMS
+                DATA · NASA FIRMS INGEST
               </Link>
               <Link
                 to="/calendar"

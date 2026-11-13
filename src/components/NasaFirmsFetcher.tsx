@@ -31,9 +31,10 @@ export function NasaFirmsFetcher({
   initialBbox,
 }: NasaFirmsFetcherProps) {
   const [regionId, setRegionId] = useState(initialRegionId);
-  const [bbox, setBbox] = useState(initialBbox ?? getRegion(initialRegionId).bbox);
+  const [bbox] = useState(initialBbox ?? getRegion(initialRegionId).bbox);
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
+  const [mapKey, setMapKey] = useState("");
   const [status, setStatus] = useState<FetchStatus>({ kind: "idle" });
   const runBackfill = useServerFn(backfillFireData);
   const runFetch = useServerFn(fetchFireData);
@@ -54,7 +55,7 @@ export function NasaFirmsFetcher({
     setStatus({ kind: "loading" });
     try {
       const result = await runBackfill({
-        data: { bbox: activeBbox, start_date: startDate, end_date: endDate },
+        data: { bbox: activeBbox, start_date: startDate, end_date: endDate, map_key: mapKey.trim() || undefined },
       });
       await queryClient.invalidateQueries();
       setStatus({ kind: "success", stored: result.stored });
@@ -69,7 +70,7 @@ export function NasaFirmsFetcher({
   const fetchRecent = async () => {
     setStatus({ kind: "loading" });
     try {
-      const result = await runFetch({ data: { bbox: activeBbox, days: 3 } });
+      const result = await runFetch({ data: { bbox: activeBbox, days: 3, map_key: mapKey.trim() || undefined } });
       await queryClient.invalidateQueries();
       setStatus({ kind: "success", stored: result.stored });
     } catch (error) {
@@ -81,7 +82,7 @@ export function NasaFirmsFetcher({
   };
 
   return (
-    <details className="rounded-lg border border-border bg-surface shadow-sm" open={false}>
+    <details id="nasa-firms-ingest" className="rounded-lg border border-border bg-surface shadow-sm" open={false}>
       <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 px-4 py-3 font-mono text-[11px] font-semibold uppercase tracking-wider text-text sm:px-5">
         <span>DATA PULL</span>
         <span className="text-text-secondary">NASA FIRMS</span>
@@ -108,11 +109,11 @@ export function NasaFirmsFetcher({
             </p>
           </div>
           <span className="rounded border border-agreement-teal/40 bg-agreement-teal/10 px-2 py-1 font-mono text-[11px] uppercase tracking-wider text-agreement-teal">
-            API CONNECTED
+            MODIS + VIIRS
           </span>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_1fr_1fr_auto] sm:items-end">
+        <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_1fr_1fr_minmax(12rem,1.2fr)_auto] sm:items-end">
           <label className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
             Region
             <select
@@ -146,6 +147,18 @@ export function NasaFirmsFetcher({
               className="min-h-11 rounded border border-border bg-bg px-2.5 text-xs text-text focus:border-data-blue focus:outline-none"
             />
           </label>
+          <label className="flex flex-col gap-1 font-mono text-[11px] uppercase tracking-wider text-text-secondary">
+            NASA FIRMS MAP_KEY
+            <input
+              type="password"
+              autoComplete="off"
+              value={mapKey}
+              onChange={(event) => setMapKey(event.target.value)}
+              placeholder="Optional if server key is set"
+              className="min-h-11 rounded border border-border bg-bg px-2.5 text-xs normal-case tracking-normal text-text focus:border-data-blue focus:outline-none"
+              aria-describedby="firms-map-key-help"
+            />
+          </label>
           <button
             type="button"
             onClick={refreshData}
@@ -160,6 +173,10 @@ export function NasaFirmsFetcher({
           </button>
         </div>
 
+        <p id="firms-map-key-help" className="mt-2 font-mono text-[10px] leading-relaxed text-text-secondary">
+          Paste your personal MAP_KEY or leave blank to use the server key. The key is sent only with this request and is not saved. Get one from{" "}
+          <a className="underline underline-offset-2 hover:text-text" href="https://firms.modaps.eosdis.nasa.gov/api/area/" target="_blank" rel="noreferrer">NASA FIRMS</a>.
+        </p>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] text-text-secondary">
           <button
             type="button"
